@@ -120,13 +120,14 @@ void Config::readYAML(string yaml) {
 // is user admin?
 bool Config::isAdmin(const string user) {
     return std::find(global.admins.begin(), global.admins.end(), user) != global.admins.end();
-    // FIXME add unit test
+    // FIXME: add unit test
 }
 
 
 
 // check if given user can assess given filesystem with current config
 //  see validFilesystems for specification of ACLs
+// unittest: yes
 bool Config::hasAccess(const string user, const vector<string> groups, const string filesystem) {
     bool ok = true;
     
@@ -174,7 +175,6 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
 
     return ok;
 
-    // FIXME unit test
 }
 
 
@@ -188,6 +188,7 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
 //  SPEC: user acls are checked after groups for - entries, so users can be excluded after having group access
 //  SPEC:CHANGE: a user default does NOT override an ACL
 //  SPEC: admins have access to all filesystems
+// unittest: yes
 vector<string> Config::validFilesystems(const string user, const vector<string> groups) {
         vector<string> validfs;
 
@@ -256,7 +257,7 @@ string Config::database(const string filesystem) const {
         return it->second.database;
 }
 
-// returnpath to deletedpath for given filesystem, or empty strinh
+// returnpath to deletedpath for given filesystem, or empty string
 string Config::deletedPath(const string filesystem) const {
     auto it = filesystems.find(filesystem);
     if (it == filesystems.end()) 

@@ -117,6 +117,6 @@ private:
 
 // helper for std::find
 #define canFind(x, y) (std::find(x.begin(), x.end(), y) != x.end())
-// FIXME make template
+// FIXME: make template
 
 #endif

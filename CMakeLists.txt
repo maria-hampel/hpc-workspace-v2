@@ -180,12 +180,13 @@ TARGET_LINK_LIBRARIES( ws_list "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${EXTRA_STA
 #              man/ws_send_ical.1             DESTINATION share/man/man1)
 
 
+if(BUILD_TESTS)
+	ADD_SUBDIRECTORY(${workspace_SOURCE_DIR}/external/Catch2)
+	#find_package(Catch2 REQUIRED)
+	add_executable(config_test tests/config_test.cpp src/config.cpp src/config.h src/utils.h src/utils.cpp src/dbv1.cpp src/dbv1.h)
+	target_link_libraries(config_test PRIVATE Catch2::Catch2WithMain yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
 
-ADD_SUBDIRECTORY(${workspace_SOURCE_DIR}/external/Catch2)
-#find_package(Catch2 REQUIRED)
-add_executable(config_test tests/config_test.cpp src/config.cpp src/config.h src/utils.h src/utils.cpp src/dbv1.cpp src/dbv1.h)
-target_link_libraries(config_test PRIVATE Catch2::Catch2WithMain yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
-
-include(CTest)
-include(Catch)
-catch_discover_tests(config_test)
+	include(CTest)
+	include(Catch)
+	catch_discover_tests(config_test)
+ENDIF (BUILD_TESTS)
