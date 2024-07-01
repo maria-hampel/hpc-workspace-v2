@@ -45,7 +45,7 @@
 
 #include "db.h"
 #include "user.h"
-#include "fmt/core.h"
+#include "fmt/base.h"
 #include "fmt/ranges.h"
 //#include "fmt/ostream.h"
 
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    auto config = Config(configfiletoread);
+    auto config = Config(cppfs::path(configfiletoread));
 
 
     // root and admins can choose usernames

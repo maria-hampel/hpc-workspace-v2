@@ -36,7 +36,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include "fmt/core.h"
+#include "fmt/base.h"
 
 #include "utils.h"
 

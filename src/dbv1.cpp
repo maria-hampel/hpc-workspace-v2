@@ -46,7 +46,7 @@
 
 #include "dbv1.h"
 #include "utils.h"
-#include "fmt/core.h"
+#include "fmt/base.h"
 #include "fmt/ranges.h"
 
 using namespace std;

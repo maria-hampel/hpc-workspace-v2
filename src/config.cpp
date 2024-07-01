@@ -30,14 +30,17 @@
 
 #include <vector>
 #include <algorithm>
+#include <filesystem>
 
 #include "yaml-cpp/yaml.h"
-#include "fmt/core.h"
+#include "fmt/base.h"
 #include "fmt/ranges.h"
 
 #include "config.h"
 #include "db.h"
 #include "dbv1.h"
+
+
 
 extern bool debugflag;
 extern bool traceflag;
@@ -45,15 +48,17 @@ extern bool traceflag;
 std::string get_file_contents(const char *filename);
 
 // read config from file or directory
-Config::Config(const string path) {
-    // FIXME check if file or directory
-    readConfigFile(path);
-}
-
-void Config::readConfigFile(const string path) {
-    string yaml = get_file_contents(path.c_str());
+Config::Config(cppfs::path filename) {
+    // FIXME: check if file or directory
+    string yaml = get_file_contents(filename.c_str());
     readYAML(yaml);
 }
+
+// read config from YAML node
+Config::Config(std::string configstring) {
+    readYAML(configstring);
+}
+
 
 void Config::readYAML(string yaml) {
     auto config = YAML::Load(yaml);
@@ -72,27 +77,34 @@ void Config::readYAML(string yaml) {
 
     // SPEC:CHANGE accept filesystem as alias for workspaces
     if (config["workspaces"] || config["filesystems"]) {
-        auto list = config["workspaces"] ? config["workspaces"] : config["filesystems"];
-        for(auto it: list) {
-            Filesystem_config fs;
-            fs.name = it.first.as<string>();
-            if (debugflag) fmt::print(stderr, "debug: config, reading workspace {}\n", fs.name);
-            auto ws=it.second;
-            if (ws["spaces"]) fs.spaces = ws["spaces"].as<vector<string>>(); else {fmt::print(stderr, "ERROR: no spaces path for {}\n", fs.name); valid=false;}
-            if (ws["spaceselection"]) fs.spaceselection = ws["spaceselection"].as<string>(); else fs.spaceselection = "random";
-            if (ws["deleted"]) fs.deletedPath = ws["deleted"].as<string>(); else {fmt::print(stderr, "ERROR: no deleted path for {}\n", fs.name); valid=false;}
-            if (ws["database"]) fs.database = ws["database"].as<string>(); else {fmt::print(stderr, "ERROR: no database path for {}\n", fs.name); valid=false;}
-            if (ws["groupdefault"]) fs.groupdefault = ws["groupdefault"].as<vector<string>>();
-            if (ws["userdefault"]) fs.userdefault = ws["userdefault"].as<vector<string>>();
-            if (ws["user_acl"]) fs.user_acl = ws["user_acl"].as<vector<string>>();
-            if (ws["group_acl"]) fs.group_acl = ws["group_acl"].as<vector<string>>();
-            if (ws["keeptime"]) fs.keeptime = ws["keeptime"].as<int>(); else fs.keeptime = 10;
-            if (ws["maxduration"]) fs.maxduration = ws["maxduration"].as<int>();
-            if (ws["maxextensions"]) fs.maxextensions = ws["maxextensions"].as<int>();
-            if (ws["allocatable"]) fs.allocatable = ws["allocatable"].as<bool>(); else fs.allocatable = true;
-            if (ws["extendable"]) fs.extendable = ws["extendable"].as<bool>(); else fs.extendable = true;
-            if (ws["restorable"]) fs.restorable = ws["restorable"].as<bool>(); else fs.restorable = true;
-            filesystems[fs.name] = fs;
+        // auto list = config["workspaces"] ? config["workspaces"] : config["filesystems"];
+        for(auto key: std::vector<string>{"workspaces","filesystems"}) {
+            if (config[key]) { 
+
+                auto list = config[key];
+
+                for(auto it: list) {
+                    Filesystem_config fs;
+                    fs.name = it.first.as<string>();
+                    if (debugflag) fmt::print(stderr, "debug: config, reading workspace {}\n", fs.name);
+                    auto ws=it.second;
+                    if (ws["spaces"]) fs.spaces = ws["spaces"].as<vector<string>>(); else {fmt::print(stderr, "ERROR: no spaces path for {}\n", fs.name); valid=false;}
+                    if (ws["spaceselection"]) fs.spaceselection = ws["spaceselection"].as<string>(); else fs.spaceselection = "random";
+                    if (ws["deleted"]) fs.deletedPath = ws["deleted"].as<string>(); else {fmt::print(stderr, "ERROR: no deleted path for {}\n", fs.name); valid=false;}
+                    if (ws["database"]) fs.database = ws["database"].as<string>(); else {fmt::print(stderr, "ERROR: no database path for {}\n", fs.name); valid=false;}
+                    if (ws["groupdefault"]) fs.groupdefault = ws["groupdefault"].as<vector<string>>();
+                    if (ws["userdefault"]) fs.userdefault = ws["userdefault"].as<vector<string>>();
+                    if (ws["user_acl"]) fs.user_acl = ws["user_acl"].as<vector<string>>();
+                    if (ws["group_acl"]) fs.group_acl = ws["group_acl"].as<vector<string>>();
+                    if (ws["keeptime"]) fs.keeptime = ws["keeptime"].as<int>(); else fs.keeptime = 10;
+                    if (ws["maxduration"]) fs.maxduration = ws["maxduration"].as<int>();
+                    if (ws["maxextensions"]) fs.maxextensions = ws["maxextensions"].as<int>();
+                    if (ws["allocatable"]) fs.allocatable = ws["allocatable"].as<bool>(); else fs.allocatable = true;
+                    if (ws["extendable"]) fs.extendable = ws["extendable"].as<bool>(); else fs.extendable = true;
+                    if (ws["restorable"]) fs.restorable = ws["restorable"].as<bool>(); else fs.restorable = true;
+                    filesystems[fs.name] = fs;
+                }
+            }
         }
     } else {
         fmt::print(stderr, "ERROR: no workspaces in config!\n"); valid=false;
@@ -252,3 +264,6 @@ string Config::deletedPath(const string filesystem) const {
     else
         return it->second.deletedPath;  
 }
+
+
+

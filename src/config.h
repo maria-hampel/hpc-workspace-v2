@@ -33,10 +33,12 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <filesystem>
 
 #include "db.h"
 
 using namespace std;
+namespace cppfs = std::filesystem;
 
 using strings = std::vector<string>;
 
@@ -87,9 +89,11 @@ private:
 
 public:
     // read config from file or directory
-    Config(const string path);
-    // read config from YAML string
-    void readYAML(string YAML);
+    Config(const cppfs::path filename);
+    // read config from string
+    Config(const string configstring);
+
+
     // check if user is an admin
     bool isAdmin(const string user);
     // get list of valid filesystems for user
@@ -106,8 +110,8 @@ public:
     string deletedPath(const string filesystem) const;
 
 private:
-    // read yaml file
-    void readConfigFile(const string filename);
+    // read config from YAML string
+    void readYAML(string YAML);
 };
 
 
