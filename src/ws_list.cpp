@@ -3,7 +3,7 @@
  *
  *  ws_list
  *
- *  - tool to listworkspaces
+ *  - tool to list workspaces
  *    changes to workspace++:
  *      - c++ implementation (not python anymore)
  *      - option to run in parallel (PARALLEL CMake flag), 
@@ -33,13 +33,20 @@
  *
  */
 
+/*
+    TODO:
+        -l  print details about filesystems. like max extensions, max duration
+        option to show deleted workspaces?
+ */
 
 
-#include <iostream>   // for program_options
+#include <iostream>   // for program_options  FIXME:
+
 #ifdef PARALLEL
 #include <mutex>
 #include <execution>
 #endif
+
 #include <boost/program_options.hpp>
 #include "config.h"
 
@@ -93,7 +100,7 @@ int main(int argc, char **argv) {
 	("reverted,r", "revert sort")
 	("terse,t", "terse listing")
 	("config,c", po::value<string>(&configfile), "config file")
-	("pattern,p", po::value<string>(&pattern), "pattern matching name")
+	("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
 	("verbose,v", "verbose listing") ;
 
     po::options_description secret_options("Secret");
@@ -114,7 +121,7 @@ int main(int argc, char **argv) {
         po::notify(opts);
     } catch (...) {
         fmt::print("Usage-1: {} [options] [pattern]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME can not be printed with fmt??
+        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
         exit(1);
     }
 
@@ -137,7 +144,7 @@ int main(int argc, char **argv) {
 
     if (opts.count("help")) {
         fmt::print("Usage-2: {} [options] [pattern]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME can not be printed with fmt??
+        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
         exit(1);
     }
 
@@ -155,7 +162,7 @@ int main(int argc, char **argv) {
     //   user can change this if no setuid installation OR if root
     string configfiletoread = "/etc/ws.conf"; 
     if (configfile != "") {
-        if (isRoot() || notSetuid()) {
+        if (isRoot() || notSetuid()) {      // FIXME: capability? this could be DANGEROUS!
             configfiletoread = configfile;
         } else {
             fmt::print(stderr, "WARNING: ignored config file options!\n");
@@ -191,7 +198,7 @@ int main(int argc, char **argv) {
     } else {
         bool sort = sortbyname || sortbycreation || sortbyremaining;
         
-        // if not pattern, show all ebtries
+        // if not pattern, show all entries
         if (pattern=="") pattern = "*";
 
         // where to list from?
@@ -201,7 +208,7 @@ int main(int argc, char **argv) {
             if (canFind(validfs, filesystem)) {
                 fslist.push_back(filesystem);
             } else {
-                fmt::print(stderr,"error: invalid filesystem given.");
+                fmt::print(stderr, "Error  : invalid filesystem given.");
             }
         } else {
             fslist = validfs;
@@ -211,7 +218,7 @@ int main(int argc, char **argv) {
         // no sorting for short format
         if(shortlisting) sort=false;
 
-        vector<DBEntry*> entrylist; 
+        vector<std::unique_ptr<DBEntry>> entrylist; 
         
         // iterate over filesystems and print or create list to be sorted
         for(auto const &fs: fslist) {
@@ -245,16 +252,17 @@ int main(int argc, char **argv) {
 #else                   
             // catch DB access errors, if DB directory or DB is accessible
             //try {
-                for(auto const &id: db->matchPattern(pattern, fs, userpattern, grouplist, listexpired, listgroups)) {
+                for(auto const &id: db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups)) {
                     if (!shortlisting) {
-                        auto entry = db->readEntry(fs, id, listexpired);
+                        //auto entry = db->readEntry(id, listexpired);
+                        std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
                         // if entry is valid
                         if (entry) {
                             // if no sorting, print, otherwise append to list
                             if (!sort) {
                                 entry->print(verbose, terselisting);
                             } else {
-                                entrylist.push_back(entry);
+                                entrylist.push_back(std::move(entry));
                             }
                         }
                     } else {
@@ -267,15 +275,14 @@ int main(int argc, char **argv) {
                 //if(debugflag) fmt::print("DB access error for fs <{}>: {}\n", fs, e.msg);
             //}
 #endif
-
             delete db;
         }
 
         // in case of sorted output, sort and print here
         if(sort) {
-            if(sortbyremaining) std::sort(entrylist.begin(), entrylist.end(), [](auto x, auto y) { return (x->getRemaining() < y->getRemaining());} ); 
-            if(sortbycreation)  std::sort(entrylist.begin(), entrylist.end(), [](auto x, auto y) { return (x->getCreation() < y->getCreation());} );
-            if(sortbyname)      std::sort(entrylist.begin(), entrylist.end(), [](auto x, auto y) { return (x->getId() < y->getId());} );
+            if(sortbyremaining) std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getRemaining() < y->getRemaining());} ); 
+            if(sortbycreation)  std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getCreation() < y->getCreation());} );
+            if(sortbyname)      std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getId() < y->getId());} );
 
             if(sortreverted) {                
                 std::reverse(entrylist.begin(), entrylist.end());
@@ -288,6 +295,5 @@ int main(int argc, char **argv) {
 
 
     }
-
-   
+  
 }
