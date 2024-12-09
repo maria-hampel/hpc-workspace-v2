@@ -37,6 +37,7 @@
 #include "config.h"
 #include "db.h"
 
+class FilesystemDBV1;
 
 // dbentry
 //  struct or assoc array?
@@ -60,15 +61,29 @@ private:
         string  group;                  // group for whom it is visible
         string  mailaddress;            // address for reminder email
         string  comment;                // some user defined comment
+        string  dbfilepath;             // if read from DB, this is the location to write to
+
+        // pointer to DB containing this entry (to get access to config)
+        FilesystemDBV1 *db;
 
 public:
         // read yaml entry from file
         void readFromFile(const WsID id, const string filesystem, const string filename);
-        void print(const bool verbose, const bool terse);
-        long getRemaining();
-        string getId();
-        long getCreation();
-        string getWSPath();
+        // use extension and write back file
+        void useExtension(const long expiration, const string mail, const int reminder, const string comment);
+	// write entry to DB after update (read with readEntry)
+	void writeEntry();
+        // print for ws_list
+        void print(const bool verbose, const bool terse) const;
+        long getRemaining() const;
+        int getExtension() const;
+        string getMailaddress() const;
+        string getId() const;
+        long getCreation() const;
+        string getWSPath() const;
+        long getExpiration() const;
+
+
 };
 
 
@@ -84,15 +99,21 @@ public:
         // return list of identifiers of DB entries matching pattern from filesystem or all valid filesystems
         //  does not check if request for "deleted" is valid, has to be done on caller side
         //  throws IO exceptions in case of access problems
-        std::vector<WsID> matchPattern(const string pattern, const string filesystem, const string user, const vector<string> groups,
+        std::vector<WsID> matchPattern(const string pattern, const string user, const vector<string> groups,
                                                 const bool deleted, const bool groupworkspaces);
 
-        void createEntry(const string filesystem, const string user, const string id, const string workspace, 
+        // create new DB entry
+        void createEntry(const string user, const string id, const string workspace, 
 			const long creation, const long expiration, const long reminder, const int extensions, 
-			const string group, const string mailaddress, const string comment) {};
-	// read entry
-	DBEntry* readEntry(const string filesystem, const WsID id, const bool deleted);
+			const string group, const string mailaddress, const string comment) {} // TODO: };
 
+	// read entry
+	DBEntry* readEntry(const WsID id, const bool deleted);
+
+        // access to config
+        const Config *getconfig() {
+                return config;
+        }
 };
 
 #endif

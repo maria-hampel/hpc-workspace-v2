@@ -34,6 +34,7 @@
 
 #include <string>
 #include <vector>
+#include <exception>
 
 using namespace std;
 
@@ -49,26 +50,62 @@ struct WsID {
 
 class DBEntry {
 public:
-        virtual void print(const bool verbose, const bool terse) = 0;
-        virtual long getRemaining() = 0;
-        virtual string getId() = 0;
-        virtual long getCreation() = 0;
-        virtual string getWSPath() = 0;
+		// read from DB file // FIXME: this implies a file
 		virtual void readFromFile(const WsID id, const string filesystem, const string filename) = 0;
+		// consume an extension (writes entry back)
+		virtual void useExtension(const long expiration, const string mail, const int reminder, const string comment) = 0;
+		// write entry to DB after update (read with readEntry)
+		void writeEntry();
+		// print for ws_list
+        virtual void print(const bool verbose, const bool terse) const = 0;
+
+		// getters
+        virtual long getRemaining() const = 0;
+        virtual string getId() const = 0;
+        virtual int getExtension() const =0;
+		virtual long getCreation() const = 0;
+        virtual string getWSPath() const = 0;
+		virtual string getMailaddress() const = 0;
+		virtual long getExpiration() const = 0;
+
+		virtual ~DBEntry() = default;  // address-sanitizer needs this
 };
 
 
 class Database {
 public:
 	// new entry
-	virtual void createEntry(const string filesystem, const string user, const string id, const string workspace, 
+	virtual void createEntry(const string user, const string id, const string workspace, 
 			const long creation, const long expiration, const long reminder, const int extensions, 
 			const string group, const string mailaddress, const string comment) = 0;
-	// read entry
-	virtual DBEntry* readEntry(const string filesystem, const WsID id, const bool deleted) = 0;
+		// FIXME: acctcode? where is it?
+	
+	// read specific entry
+	virtual DBEntry* readEntry(const WsID id, const bool deleted) = 0;
+	
 	// return a list of entries
-	virtual std::vector<WsID> matchPattern(const string pattern, const string filesystem, const string user, 
+	virtual std::vector<WsID> matchPattern(const string pattern, const string user, 
 			const vector<string> groups, const bool deleted, const bool groupworkspaces) = 0;
+
+	virtual ~Database() = default; // address-sanitizer needs this
+};
+
+
+// exception for signalling errors
+class DatabaseException : public exception {
+private:
+    string message;
+
+public:
+    DatabaseException(const char* msg)
+        : message(msg)
+    {
+    }
+
+    const char* what() const throw()
+    {
+        return message.c_str();
+    }
 };
 
 

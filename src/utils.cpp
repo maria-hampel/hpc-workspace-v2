@@ -38,6 +38,13 @@ namespace fs = std::filesystem;
 
 #include "fmt/base.h"
 
+#include <pwd.h>
+#include <unistd.h>
+#include <grp.h>
+#include <sys/types.h>
+
+
+
 #include "utils.h"
 
 using namespace std;
@@ -48,14 +55,51 @@ extern bool traceflag;
 // fwd
 static bool glob_match(char const *pat, char const *str);
 
+/* FIXME: unused, can be removed
+// get list of groupnames for a user
+std::vector<std::string> getgroupnameS(std::string username) {
+    vector<string> groupnames;
+
+    struct group *grp;
+    int ngroups = 128;
+    gid_t gids[128];
+    int nrgroups;
+
+	// FIXME:: does getgid return the right value here? pw->pw_gid?
+	//  if current group is not primary group in /etc/passwd, will this return all groups?
+    nrgroups = getgrouplist(username.c_str(), getgid(), gids, &ngroups); 
+    if(nrgroups == -1) {
+        fmt::print(stderr, "Error  : user in too many groups!\n");
+        exit(-1); // FIXME: error return, unlikely see constant above
+    }
+    for(int i=0; i<nrgroups; i++) {
+        grp=getgrgid(gids[i]);
+        if(grp) {
+            groupnames.push_back(string(grp->gr_name));
+            if (debugflag) {
+                fmt::print(stderr, "debug: secondary group {}\n", string(grp->gr_name));
+            }
+        }
+    }
+    // get current group
+    grp=getgrgid(getgid());
+    if (grp==NULL) {
+        fmt::print(stderr, "Error  : user has no group anymore!");
+        exit(-1); // FIXME: error return
+    }
+    groupnames.push_back(string(grp->gr_name)); // FIXME: is this necessary or is it already in the list?
+
+	return groupnames;
+}
+*/
 
 
 // read a (small) file into a string
-std::string get_file_contents(const char *filename)
+std::string getFileContents(const char *filename)
 {
     std::ifstream in(filename, std::ios::in | std::ios::binary);
     if (!in) {
-        fmt::print("could not open {}\n", filename);
+        fmt::print(stderr, "Error  : could not open {}\n", filename);
         exit(1);
     }
     std::ostringstream contents;

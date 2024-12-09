@@ -34,6 +34,8 @@
 #include <vector>
 #include <map>
 #include <filesystem>
+#include <fstream>
+#include <algorithm>
 
 #include "db.h"
 
@@ -49,6 +51,7 @@ struct Global_config {
     string mail_from;               // sender for mails
     string default_workspace;       // workspace to use if several are allowed
     int duration;                   // max duration user can choose
+    int durationdefault;            // default duration
     int reminderdefault;            // when to send a reminder, 0 no default reminder
     int maxextensions;              // max extensions a user gets
     int dbuid;                      // uid of DB user
@@ -77,7 +80,7 @@ struct Filesystem_config {
 };
 
 
-// global config, glocal settings + workspaces
+// global config, global settings + workspaces
 class Config {
 
 private:
@@ -97,17 +100,25 @@ public:
     // check if user is an admin
     bool isAdmin(const string user);
     // get list of valid filesystems for user
-    vector<string> validFilesystems(const string user, const vector<string> groups);
+    vector<string> validFilesystems(const string user, const vector<string> groups) const;
     // check if given user can assess given filesystem with current config
-    bool hasAccess(const string user, const std::vector<string> groups, const string filesystem);
+    bool hasAccess(const string user, const std::vector<string> groups, const string filesystem) const;
 
     // return DB handle of right version
-    Database* openDB(const string fs);
+    Database* openDB(const string fs) const;
+
+    // get config a filesystem
+    Filesystem_config getFsConfig(const std::string filesystem) const;
 
     // return path to database for given filesystem
     string database(const string filesystem) const;
-    // returnpath to deletedpath for given filesystem
+    // return path to deletedpath for given filesystem
     string deletedPath(const string filesystem) const;
+    int reminderdefault() const {return global.reminderdefault;};
+    int durationdefault() const {return global.durationdefault;};
+    long dbuid() const {return global.dbuid;};
+    long dbgid() const {return global.dbgid;};
+
 
 private:
     // read config from YAML string
@@ -115,8 +126,25 @@ private:
 };
 
 
+// config in user home
+class UserConfig {
+private:
+    std::string mailaddress;
+
+public:
+    // read config from string, either YAML or single line
+    UserConfig(std::string userconf);
+    // get mailaddress
+    std::string getMailaddress() { return mailaddress; };
+};
+
+
 // helper for std::find
-#define canFind(x, y) (std::find(x.begin(), x.end(), y) != x.end())
-// FIXME: make template
+//#define canFind(x, y) (std::find(x.begin(), x.end(), y) != x.end())
+template<typename T1, typename T2>
+bool canFind(T1 x, T2 y) {
+    return (std::find(x.begin(), x.end(), y) != x.end());
+}
+
 
 #endif

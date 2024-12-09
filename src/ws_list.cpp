@@ -37,10 +37,14 @@
     TODO:
         -l  print details about filesystems. like max extensions, max duration
         option to show deleted workspaces?
+    FIXME:
+        --trace and --debug leak information about other workspaces, disable
+        for release builds!
  */
 
 
 #include <iostream>   // for program_options  FIXME:
+#include <memory>
 
 #ifdef PARALLEL
 #include <mutex>
@@ -223,7 +227,7 @@ int main(int argc, char **argv) {
         // iterate over filesystems and print or create list to be sorted
         for(auto const &fs: fslist) {
             if (debugflag) fmt::print("loop over fslist {} in {}\n", fs, fslist);
-            auto db = config.openDB(fs); 
+            std::unique_ptr<Database> db(config.openDB(fs));
 
 #ifdef PARALLEL
             // FIXME: error handling
@@ -275,7 +279,6 @@ int main(int argc, char **argv) {
                 //if(debugflag) fmt::print("DB access error for fs <{}>: {}\n", fs, e.msg);
             //}
 #endif
-            delete db;
         }
 
         // in case of sorted output, sort and print here

@@ -11,42 +11,45 @@ message(STATUS "build type: " ${CMAKE_BUILD_TYPE})
 message(STATUS "use cmake -DCMAKE_BUILD_TYPE=debug for debug build")
 
 SET(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 ")
-SET(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -g -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 ")
+SET(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -g -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 -fstack-protector-all -fcf-protection=full  -fsanitize=address -D_GLIBCXX_ASSERTIONS")
 SET(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 ")
 
 SET(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=mold")
 
 
-OPTION(STATIC "static linking" FALSE)
-IF (STATIC)
+OPTION(WS_STATIC "static linking" FALSE)
+IF (WS_STATIC)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
     set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
     SET(EXTRA_STATIC_LIBS "pthread")
 #    set(Boost_USE_STATIC_LIBS ON)
 #    set(Boost_USE_STATIC_RUNTIME ON) 
-ELSE (STATIC)
+ELSE (WS_STATIC)
     set(Boost_USE_STATIC_LIBS OFF)
     set(Boost_USE_STATIC_RUNTIME OFF) 
-ENDIF (STATIC)
+ENDIF (WS_STATIC)
 
-OPTION(CHECK_ALL_GROUPS "search all groups for ACLs, not just primary" FALSE)
-IF (CHECK_ALL_GROUPS)
-    ADD_DEFINITIONS("-DCHECK_ALL_GROUPS")
-ENDIF (CHECK_ALL_GROUPS)
 
 # FIXME remove this, forget redhat 7
-OPTION(USE_BOOST_REGEXP "use boost regexp in case std::regexp is broken (rh7 gcc)" FALSE)
-IF (USE_BOOST_REGEXP)
-    ADD_DEFINITIONS("-DUSE_BOOST_REGEXP")
-ENDIF (USE_BOOST_REGEXP)
+OPTION(WS_USE_BOOST_REGEXP "use boost regexp in case std::regexp is broken (rh7 gcc)" FALSE)
+IF (WS_USE_BOOST_REGEXP)
+	ADD_DEFINITIONS("-DWS_USE_BOOST_REGEXP")
+ENDIF (WS_USE_BOOST_REGEXP)
 
-OPTION(SETUID "use setuid instead of capabilites" TRUE)
-IF (SETUID)
-	ADD_DEFINITIONS(-DSETUID)
-	SET(CAP "")
-ELSE (SETUID)
-    SET(CAP "cap")
-ENDIF (SETUID)
+OPTION(WS_USERMODE "use neither setuid nor capabilites" TRUE)
+IF (WS_USERMODE)
+	ADD_DEFINITIONS(-DUSERMODE)
+ELSE (WS_USERMODE)
+	OPTION(WS_SETUID "use setuid instead of capabilites" TRUE)
+	IF (WS_SETUID)
+		ADD_DEFINITIONS(-DSETUID)
+		SET(CAP "")
+	ELSE (WS_SETUID)
+	    SET(CAP "cap")
+    	ENDIF (WS_SETUID)
+ENDIF (WS_USERMODE)
+
+
 
 # FIXME see above
 set(Boost_USE_MULTITHREADED OFF)  
@@ -87,14 +90,14 @@ ENDIF (TERMINFO)
     #MESSAGE(FATAL_ERROR "-- No termcap, please get a termcap library!")
 #ENDIF (TERMCAP)
 
-OPTION(PARALLEL "std::par usage, needs TBB" FALSE)
-if (PARALLEL)
+OPTION(WS_PARALLEL "std::par usage, needs TBB" FALSE)
+if (WS_PARALLEL)
     find_package(TBB REQUIRED tbb)
     ADD_DEFINITIONS("-DPARALLEL")
     SET(PARLIB "TBB::tbb")
-else (PARALLEL)
+else (WS_PARALLEL)
     SET(PARLIB "")
-endif (PARALLEL)
+endif (WS_PARALLEL)
 
 ADD_SUBDIRECTORY(${workspace_SOURCE_DIR}/external/yaml-cpp)
 add_subdirectory(${workspace_SOURCE_DIR}/external/rapidyaml ryml)
@@ -149,17 +152,28 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 #TARGET_LINK_LIBRARIES( ws_release "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${LUALIB} ${CAP} yaml-cpp ${EXTRA_STATIC_LIBS})
 #TARGET_LINK_LIBRARIES( ws_restore "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${LUALIB} ${CAP} yaml-cpp ${TLIB} ${EXTRA_STATIC_LIBS})
 
-ADD_EXECUTABLE( ws_list ${workspace_SOURCE_DIR}/src/ws_list.cpp 
-			${workspace_SOURCE_DIR}/src/db.h
-			${workspace_SOURCE_DIR}/src/dbv1.h
-			${workspace_SOURCE_DIR}/src/dbv1.cpp
-			${workspace_SOURCE_DIR}/src/user.h
-			${workspace_SOURCE_DIR}/src/utils.h
-			${workspace_SOURCE_DIR}/src/utils.cpp
-			${workspace_SOURCE_DIR}/src/user.cpp 
-			${workspace_SOURCE_DIR}/src/config.h 
-			${workspace_SOURCE_DIR}/src/config.cpp) 
-TARGET_LINK_LIBRARIES( ws_list "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+ADD_LIBRARY(ws_common OBJECT 
+	${workspace_SOURCE_DIR}/src/db.h
+	${workspace_SOURCE_DIR}/src/dbv1.cpp 
+	${workspace_SOURCE_DIR}/src/dbv1.h 
+	${workspace_SOURCE_DIR}/src/utils.h
+	${workspace_SOURCE_DIR}/src/utils.cpp 
+	${workspace_SOURCE_DIR}/src/user.h
+	${workspace_SOURCE_DIR}/src/user.cpp 
+	${workspace_SOURCE_DIR}/src/config.h
+	${workspace_SOURCE_DIR}/src/config.cpp
+	${workspace_SOURCE_DIR}/src/capability.h
+	${workspace_SOURCE_DIR}/src/capability.cpp
+	)
+
+TARGET_LINK_LIBRARIES(ws_common PUBLIC yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core)
+
+ADD_EXECUTABLE( ws_list ${workspace_SOURCE_DIR}/src/ws_list.cpp )
+TARGET_LINK_LIBRARIES( ws_list "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+
+ADD_EXECUTABLE( ws_allocate ${workspace_SOURCE_DIR}/src/ws_allocate.cpp )
+TARGET_LINK_LIBRARIES( ws_allocate "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+
 
 
 # Get install target
@@ -183,8 +197,9 @@ TARGET_LINK_LIBRARIES( ws_list "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${EXTRA_STA
 if(BUILD_TESTS)
 	ADD_SUBDIRECTORY(${workspace_SOURCE_DIR}/external/Catch2)
 	#find_package(Catch2 REQUIRED)
-	add_executable(config_test tests/config_test.cpp src/config.cpp src/config.h src/utils.h src/utils.cpp src/dbv1.cpp src/dbv1.h)
-	target_link_libraries(config_test PRIVATE Catch2::Catch2WithMain yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+	#add_executable(config_test tests/config_test.cpp src/config.cpp src/utils.cpp src/dbv1.cpp src/capability.cpp)
+	add_executable(config_test tests/config_test.cpp src/config.cpp src/config.h src/utils.h src/utils.cpp src/dbv1.cpp src/dbv1.h src/capability.cpp)
+	target_link_libraries(config_test PRIVATE  Catch2::Catch2WithMain yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
 
 	include(CTest)
 	include(Catch)

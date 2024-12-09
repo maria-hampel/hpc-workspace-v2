@@ -8,6 +8,7 @@
 #include <pwd.h>
 
 std::string getUsername();
+std::string getUserhome();
 bool isRoot();
 bool notSetuid();
 std::vector<std::string> getGrouplist();
