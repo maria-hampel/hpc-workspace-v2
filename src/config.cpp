@@ -121,9 +121,9 @@ void Config::readYAML(string yaml) {
 }
 
 // is user admin?
+// unittest: yes
 bool Config::isAdmin(const string user) {
     return std::find(global.admins.begin(), global.admins.end(), user) != global.admins.end();
-    // FIXME: add unit test
 }
 
 
