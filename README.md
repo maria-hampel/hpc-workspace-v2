@@ -19,6 +19,20 @@ It is likely that all python tools will be replaced with C++ tools.
 
 Functional extension is possible after this is achieved.
 
+## Environment
+
+at the moment main development platform is
+
+- gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
+- Description:    Ubuntu 22.04.5 LTS
+
+## Dependencies
+
+yaml-cpp (to be removed)
+{fmt} 
+rapidyaml
+Catch2
+boost program_options + boost system
 
 ## Status
 
