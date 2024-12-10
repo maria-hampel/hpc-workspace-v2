@@ -29,6 +29,11 @@ ELSE (WS_STATIC)
     set(Boost_USE_STATIC_RUNTIME OFF) 
 ENDIF (WS_STATIC)
 
+OPTION(WS_ALLOW_USER_DEBUG "allow users to enable debugging and tracing" FALSE)
+IF (WS_ALLOW_USER_DEBUG)
+    ADD_DEFINITIONS("-DWS_ALLOW_USER_DEBUG")
+ENDIF (WS_ALLOW_USER_DEBUG)
+
 
 # FIXME remove this, forget redhat 7
 OPTION(WS_USE_BOOST_REGEXP "use boost regexp in case std::regexp is broken (rh7 gcc)" FALSE)
@@ -36,19 +41,15 @@ IF (WS_USE_BOOST_REGEXP)
 	ADD_DEFINITIONS("-DWS_USE_BOOST_REGEXP")
 ENDIF (WS_USE_BOOST_REGEXP)
 
-OPTION(WS_USERMODE "use neither setuid nor capabilites" TRUE)
-IF (WS_USERMODE)
-	ADD_DEFINITIONS(-DUSERMODE)
-ELSE (WS_USERMODE)
-	OPTION(WS_SETUID "use setuid instead of capabilites" TRUE)
-	IF (WS_SETUID)
-		ADD_DEFINITIONS(-DSETUID)
-		SET(CAP "")
-	ELSE (WS_SETUID)
-	    SET(CAP "cap")
-    	ENDIF (WS_SETUID)
-ENDIF (WS_USERMODE)
 
+FIND_LIBRARY(HAVECAP NAMES libcap.a libcap.so)
+IF (HAVECAP)
+    	MESSAGE("-- Found libcap")
+	ADD_DEFINITIONS(-DWS_CAPA)
+	SET(LIBCAP "cap")
+ELSE (HAVECAP)
+	SET(LIBCAP "cap")
+ENDIF (HAVECAP)
 
 
 # FIXME see above
@@ -169,10 +170,10 @@ ADD_LIBRARY(ws_common OBJECT
 TARGET_LINK_LIBRARIES(ws_common PUBLIC yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core)
 
 ADD_EXECUTABLE( ws_list ${workspace_SOURCE_DIR}/src/ws_list.cpp )
-TARGET_LINK_LIBRARIES( ws_list "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+TARGET_LINK_LIBRARIES( ws_list "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
 
 ADD_EXECUTABLE( ws_allocate ${workspace_SOURCE_DIR}/src/ws_allocate.cpp )
-TARGET_LINK_LIBRARIES( ws_allocate "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+TARGET_LINK_LIBRARIES( ws_allocate "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
 
 
 

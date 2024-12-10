@@ -46,6 +46,7 @@
 
 #include "dbv1.h"
 #include "utils.h"
+#include "user.h"
 #include "fmt/base.h"
 #include "fmt/ranges.h"
 
@@ -341,51 +342,55 @@ void DBEntryV1::writeEntry()
     // suppress ctrl-c to prevent broken DB entries when FS is hanging and user gets nervous
     signal(SIGINT,SIG_IGN);
 
-    raise_cap(CAP_DAC_OVERRIDE);
-#ifdef SETUID
-    // for filesystem with root_squash, we need to be DB user here
+    raise_cap(CAP_DAC_OVERRIDE);   // === Section with raised capabuility START ====
 
-    auto dbgid = db->getconfig()->dbgid();
-    auto dbuid = db->getconfig()->dbuid();
+    long dbgid, dbuid;    
 
-    if (setegid(dbgid)|| seteuid(dbuid)) {
-            fmt::print(stderr, "Error  : can not seteuid or setgid. Bad installation?\n");
-            exit(-1);
+    if (user::isSetuid()) {
+        // for filesystem with root_squash, we need to be DB user here
+        dbgid = db->getconfig()->dbgid();
+        dbuid = db->getconfig()->dbuid();
+
+        if (setegid(dbgid)|| seteuid(dbuid)) {
+                // FIXME: usermode
+                fmt::print(stderr, "Error  : can not seteuid or setgid. Bad installation?\n");
+                exit(-1);
+        }
     }
-#else
-    auto dbuid = 0; // FIXME: needed for lower_cap below
-    auto dbgid = 0;
-#endif
+
     ofstream fout(dbfilepath.c_str());
-    if(!(fout << entry)) fmt::print(stderr, "Error  : could not write DB file! Please check if the outcome is as expected, you might have to make a backup of the workspace to prevent loss of data!\n");
+    if(!(fout << entry)) {
+        fmt::print(stderr, "Error  : could not write DB file! Please check if the outcome is as expected, "
+                            "you might have to make a backup of the workspace to prevent loss of data!\n");
+    }
     fout.close();
+
     if (group.length()>0) {
         // for group workspaces, we set the x-bit
         perm = 0744;
     } else {
         perm = 0644;
     }
+
     raise_cap(CAP_FOWNER);
     if (chmod(dbfilepath.c_str(), perm) != 0) {
         fmt::print(stderr, "Error  : could not change permissions of database entry\n");
     }
-    lower_cap(CAP_FOWNER, dbuid);
-#ifdef WS_SETUID
-    if(seteuid(0)|| setegid(0)) {
-            fmt::print(stderr, "Error  : can not seteuid or setgid. Bad installation?\n");
-            exit(-1);
-    }
-#endif
-    lower_cap(CAP_DAC_OVERRIDE, dbuid);
 
-#ifndef WS_SETUID
-    raise_cap(CAP_CHOWN);
-    if (chown(dbfilepath.c_str(), dbuid, dbgid)) {
+    lower_cap(CAP_FOWNER, dbuid);
+    lower_cap(CAP_DAC_OVERRIDE, dbuid); // === Section with raised capabuility END ===
+
+
+    if (user::isSetuid()) {
+        raise_cap(CAP_CHOWN);
+        if (chown(dbfilepath.c_str(), dbuid, dbgid)) {
+            lower_cap(CAP_CHOWN, dbuid);
+            // FIXME: usermode? 
+            fmt::print(stderr, "Error  : could not change owner of database entry.\n");
+        }
         lower_cap(CAP_CHOWN, dbuid);
-        fmt::print(stderr, "Error  : could not change owner of database entry.\n");
     }
-    lower_cap(CAP_CHOWN, dbuid);
-#endif
+
 
     // normal signal handling
     signal(SIGINT,SIG_DFL);

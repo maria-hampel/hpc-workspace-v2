@@ -36,10 +36,13 @@
 #include <sys/types.h>
 #include <pwd.h>
 
-std::string getUsername();
-std::string getUserhome();
-bool isRoot();
-bool notSetuid();
-std::vector<std::string> getGrouplist();
+namespace user {
+    std::string getUsername();
+    std::string getUserhome();
+    bool isRoot();
+    bool isnotSetuid();
+    bool isSetuid();
+    std::vector<std::string> getGrouplist();
+}
 
 #endif

@@ -10,8 +10,7 @@
 // drop effective capabilities, except CAP_DAC_OVERRIDE | CAP_CHOWN
 void drop_cap(cap_value_t cap_arg, int dbuid)
 {
-#ifndef WS_USERMODE
-#ifndef WS_SETUID
+#ifdef WS_CAPA
     cap_t caps;
     cap_value_t cap_list[1];
 
@@ -39,17 +38,17 @@ void drop_cap(cap_value_t cap_arg, int dbuid)
 #else
     // seteuid(0);
     if(seteuid(dbuid)) {
+        // FIXME: usermode
         fmt::print(stderr, "Error  : can not change uid.\n");
         exit(1);
     }
 #endif
-#endif
+
 }
 
 void drop_cap(cap_value_t cap_arg1, cap_value_t cap_arg2, int dbuid)
 {
-#ifndef WS_USERMODE
-#ifndef WS_SETUID
+#ifdef WS_CAPA
     cap_t caps; 
     cap_value_t cap_list[2];
     
@@ -78,19 +77,19 @@ void drop_cap(cap_value_t cap_arg1, cap_value_t cap_arg2, int dbuid)
 #else
     // seteuid(0);
     if(seteuid(dbuid)) {
+        // FIXME: usermode
         fmt::print(stderr, "Error  : can not change uid.\n");
         exit(1);
     }
 #endif
-#endif
+
 }
 
 
 // remove a capability from the effective set
 void lower_cap(int cap, int dbuid)
 {
-#ifndef WS_USERMODE
-#ifndef WS_SETUID
+#ifdef WS_CAPA
     cap_t caps; 
     cap_value_t cap_list[1];
     
@@ -113,12 +112,11 @@ void lower_cap(int cap, int dbuid)
     cap_free(caps);
 #else
     // seteuid(0);
-    
     if(seteuid(dbuid)) {
+        // FIXME: usermode
         fmt::print(stderr, "Error  : can not change uid.\n");
         exit(1);
     }
-#endif
 #endif
 }
 
@@ -126,8 +124,7 @@ void lower_cap(int cap, int dbuid)
 // add a capability to the effective set
 void raise_cap(int cap)
 {
-#ifndef WS_USERMODE
-#ifndef WS_SETUID
+#ifdef WS_CAPA
     cap_t caps;
     cap_value_t cap_list[1];
 
@@ -149,10 +146,11 @@ void raise_cap(int cap)
 
     cap_free(caps);
 #else
+    // FIXME: 0?
     if (seteuid(0)) {
+        // FIXME: usermode
         fmt::print(stderr, "Error  : can not change uid.\n");
         exit(1);
     }
-#endif
 #endif
 }

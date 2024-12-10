@@ -37,9 +37,7 @@
     TODO:
         -l  print details about filesystems. like max extensions, max duration
         option to show deleted workspaces?
-    FIXME:
-        --trace and --debug leak information about other workspaces, disable
-        for release builds!
+
  */
 
 
@@ -87,6 +85,8 @@ int main(int argc, char **argv) {
 
     po::variables_map opts;
 
+    // FIXME: locals settiongs as in ws_allocate
+
     // define options
     po::options_description cmd_options( "\nOptions" );
     cmd_options.add_options()
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opts);
         po::notify(opts);
     } catch (...) {
-        fmt::print("Usage-1: {} [options] [pattern]\n", argv[0]);
+        fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
         cout << cmd_options << endl; // FIXME: can not be printed with fmt??
         exit(1);
     }
@@ -141,13 +141,20 @@ int main(int argc, char **argv) {
     sortreverted = opts.count("reverted");
     terselisting = opts.count("terse");
     verbose = opts.count("verbose");
-    debugflag = opts.count("debug");
-    traceflag = opts.count("trace");
+
+#ifndef WS_ALLOW_USER_DEBUG
+    if (user::isRoot()) {
+#else
+    {
+#endif
+        debugflag = opts.count("debug");
+        traceflag = opts.count("trace");
+    }
 
     // handle options exiting here
 
     if (opts.count("help")) {
-        fmt::print("Usage-2: {} [options] [pattern]\n", argv[0]);
+        fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
         cout << cmd_options << endl; // FIXME: can not be printed with fmt??
         exit(1);
     }
@@ -166,7 +173,7 @@ int main(int argc, char **argv) {
     //   user can change this if no setuid installation OR if root
     string configfiletoread = "/etc/ws.conf"; 
     if (configfile != "") {
-        if (isRoot() || notSetuid()) {      // FIXME: capability? this could be DANGEROUS!
+        if (user::isRoot() || user::isnotSetuid()) {      // FIXME: capability? this could be DANGEROUS!
             configfiletoread = configfile;
         } else {
             fmt::print(stderr, "WARNING: ignored config file options!\n");
@@ -177,9 +184,9 @@ int main(int argc, char **argv) {
 
 
     // root and admins can choose usernames
-    string username = getUsername();        // used for rights checks
+    string username = user::getUsername();        // used for rights checks
     string userpattern;                     // used for pattern matching in DB
-    if (isRoot() || config.isAdmin(getUsername())) {
+    if (user::isRoot() || config.isAdmin(user::getUsername())) {
         if (user!="") {
                 userpattern = user;
         } else {
@@ -191,7 +198,7 @@ int main(int argc, char **argv) {
 
 
     // list of groups of this process
-    auto grouplist = getGrouplist();
+    auto grouplist = user::getGrouplist();
 
     // list of fileystems or list of workspaces
     if (listfilesystems) {

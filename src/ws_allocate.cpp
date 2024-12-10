@@ -157,7 +157,7 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
             if(mailaddress.length()>0) {
                 fmt::print(stderr, "Info   : Took email address <{}> from users config.",  mailaddress);
             } else {
-                mailaddress = getUsername();
+                mailaddress = user::getUsername();
                 fmt::print(stderr, "Info   : could not read email from users config ~/.ws_user.conf.");
                 fmt::print(stderr, "         reminder email will be sent to local user account");
             }
@@ -196,7 +196,7 @@ bool validateFsAndGroup(const Config config, const po::variables_map &opt, const
     if (traceflag) fmt::print(stderr, "validateFsAndGroup(username={})", username);
 
     //auto groupnames=getgroupnames(username); // FIXME:  use getGrouplist ?
-    auto groupnames = getGrouplist();
+    auto groupnames = user::getGrouplist();
 
     // if a group was given, check if a valid group was given
     if ( opt["groupname"].as<string>() != "" ) {
@@ -260,10 +260,10 @@ void allocate(
     int maxextensions;
     int fixed_duration = duration;
 
-    std::string username = getUsername(); // current user
+    std::string username = user::getUsername(); // current user
 
     // get valid filesystems to bail out if there is none
-    auto valid_filesystems = config.validFilesystems(getUsername(), getGrouplist());
+    auto valid_filesystems = config.validFilesystems(user::getUsername(), user::getGrouplist());
 
     if (valid_filesystems.size()==0) {
         fmt::print(stderr, "Error: no valid filesystems in configuration, can not allocate\n");
@@ -281,7 +281,7 @@ void allocate(
     if(opt.count("filesystem")) {
         searchlist.push_back(opt["filesystem"].as<string>());
     } else {
-        searchlist = config.validFilesystems(getUsername(), getGrouplist());  // FIXME: getUsername or user_option? getGrouplist uses current uid
+        searchlist = config.validFilesystems(user::getUsername(), user::getGrouplist());  // FIXME: getUsername or user_option? getGrouplist uses current uid
     }
 
     //
@@ -445,7 +445,7 @@ int main(int argc, char **argv) {
     //   user can change this if no setuid installation OR if root
     string configfiletoread = "/etc/ws.conf"; 
     if (configfile != "") {
-        if (isRoot() || notSetuid()) {      // FIXME: capability? this could be DANGEROUS!
+        if (user::isRoot() || user::isnotSetuid()) {      // FIXME: capability? this could be DANGEROUS!
             configfiletoread = configfile;
         } else {
             fmt::print(stderr, "WARNING: ignored config file options!\n");
@@ -461,7 +461,7 @@ int main(int argc, char **argv) {
     // read user config before dropping privileges 
     //std::stringstream user_conf;
     std::string user_conf;
-    string user_conf_filename = getUserhome()+"/.ws_user.conf";
+    string user_conf_filename = user::getUserhome()+"/.ws_user.conf";
     if (!cppfs::is_symlink(user_conf_filename)) {
         // std::ifstream t(user_conf_filename.c_str());
         // user_conf << t.rdbuf();

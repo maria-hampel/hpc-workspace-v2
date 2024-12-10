@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 
-#ifndef WS_SETUID
+#ifdef WS_CAPA
 #include <sys/capability.h>
 #else
 typedef int cap_value_t;
@@ -20,6 +20,7 @@ const int CAP_DAC_READ_SEARCH=2;
 const int CAP_FOWNER = 3;
 #endif
 
+// functions that can be called to raise and lower caps
 void drop_cap(cap_value_t cap_arg, int dbuid);
 void drop_cap(cap_value_t cap_arg1, cap_value_t cap_arg2, int dbuid);
 void lower_cap(int cap, int dbuid);
