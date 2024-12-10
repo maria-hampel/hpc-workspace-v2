@@ -46,7 +46,7 @@
 #include <iostream>   // for program_options  FIXME:
 #include <memory>
 
-#ifdef PARALLEL
+#ifdef WS_PARALLEL
 #include <mutex>
 #include <execution>
 #endif
@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
             if (debugflag) fmt::print("loop over fslist {} in {}\n", fs, fslist);
             std::unique_ptr<Database> db(config.openDB(fs));
 
-#ifdef PARALLEL
+#ifdef WS_PARALLEL
             // FIXME: error handling
             if (shortlisting) {
                 for(auto const &id: db->matchPattern(pattern, fs, userpattern, grouplist, listexpired, listgroups)) {

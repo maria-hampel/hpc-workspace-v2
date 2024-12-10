@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 
-#ifndef SETUID
+#ifndef WS_SETUID
 #include <sys/capability.h>
 #else
 typedef int cap_value_t;

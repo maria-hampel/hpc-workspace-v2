@@ -10,8 +10,8 @@
 // drop effective capabilities, except CAP_DAC_OVERRIDE | CAP_CHOWN
 void drop_cap(cap_value_t cap_arg, int dbuid)
 {
-#ifndef USERMODE
-#ifndef SETUID
+#ifndef WS_USERMODE
+#ifndef WS_SETUID
     cap_t caps;
     cap_value_t cap_list[1];
 
@@ -48,8 +48,8 @@ void drop_cap(cap_value_t cap_arg, int dbuid)
 
 void drop_cap(cap_value_t cap_arg1, cap_value_t cap_arg2, int dbuid)
 {
-#ifndef USERMODE
-#ifndef SETUID
+#ifndef WS_USERMODE
+#ifndef WS_SETUID
     cap_t caps; 
     cap_value_t cap_list[2];
     
@@ -89,8 +89,8 @@ void drop_cap(cap_value_t cap_arg1, cap_value_t cap_arg2, int dbuid)
 // remove a capability from the effective set
 void lower_cap(int cap, int dbuid)
 {
-#ifndef USERMODE
-#ifndef SETUID
+#ifndef WS_USERMODE
+#ifndef WS_SETUID
     cap_t caps; 
     cap_value_t cap_list[1];
     
@@ -126,8 +126,8 @@ void lower_cap(int cap, int dbuid)
 // add a capability to the effective set
 void raise_cap(int cap)
 {
-#ifndef USERMODE
-#ifndef SETUID
+#ifndef WS_USERMODE
+#ifndef WS_SETUID
     cap_t caps;
     cap_value_t cap_list[1];
 

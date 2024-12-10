@@ -370,7 +370,7 @@ void DBEntryV1::writeEntry()
         fmt::print(stderr, "Error  : could not change permissions of database entry\n");
     }
     lower_cap(CAP_FOWNER, dbuid);
-#ifdef SETUID
+#ifdef WS_SETUID
     if(seteuid(0)|| setegid(0)) {
             fmt::print(stderr, "Error  : can not seteuid or setgid. Bad installation?\n");
             exit(-1);
@@ -378,7 +378,7 @@ void DBEntryV1::writeEntry()
 #endif
     lower_cap(CAP_DAC_OVERRIDE, dbuid);
 
-#ifndef SETUID
+#ifndef WS_SETUID
     raise_cap(CAP_CHOWN);
     if (chown(dbfilepath.c_str(), dbuid, dbgid)) {
         lower_cap(CAP_CHOWN, dbuid);
