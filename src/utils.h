@@ -35,7 +35,21 @@
 #include <string>
 #include <vector>
 
+#include "fmt/core.h"
+
 namespace utils {
+
+    class SrcPos {
+        std::string file;
+        int line;
+        std::string func;
+
+    public:
+        SrcPos(const char* _file, const int _line, const char* _func) :  file(_file), line(_line), func(_func) {};
+        std::string getSrcPos() {
+            return fmt::format("{}:{}[{}]", file, line, func);
+        }
+    };
 
     std::vector<std::string> getgroupnames(std::string username);
     std::string getFileContents(const char *filename);

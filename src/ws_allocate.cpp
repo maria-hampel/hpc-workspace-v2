@@ -48,10 +48,16 @@ using namespace std;
 #include <filesystem>
 namespace cppfs = std::filesystem;
 
+// global variables
+
 bool debugflag = false;
 bool traceflag = false;
 
-// TODO: cout < -> fmt::print for option parser !?!?!?
+// init caps here, when euid!=uid
+Cap caps{};
+
+
+
 
 /* 
  *  parse the commandline and see if all required arguments are passed, and check the workspace name for 
@@ -430,7 +436,7 @@ int main(int argc, char **argv) {
     int reminder = 0;
     po::variables_map opt;
 
-    Cap caps;
+
 
     // we only support C locale, if the used local is not installed on the system
     // ws_allocate fails
@@ -472,8 +478,8 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    // lower capabilities to minimum, before interpreting any data from user
-    caps.drop_cap(CAP_DAC_OVERRIDE, CAP_CHOWN, db_uid);
+    // lower capabilities to user, before interpreting any data from user
+    caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     // check commandline, get flags which are used to create ws object or for workspace allocation
     commandline(opt, name, duration, durationdefault , filesystem, extensionflag,

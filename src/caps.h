@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "utils.h"
+
 #ifdef WS_CAPA
 #include <sys/capability.h>
 #else
@@ -26,10 +28,9 @@ public:
     Cap();
 
     // functions that can be called to raise and lower caps
-    void drop_cap(cap_value_t cap_arg, int dbuid);
-    void drop_cap(cap_value_t cap_arg1, cap_value_t cap_arg2, int dbuid);
-    void lower_cap(int cap, int dbuid);
-    void raise_cap(int cap);
+    void drop_caps(std::vector<cap_value_t>cap_arg, int uid, utils::SrcPos srcpos);
+    void lower_cap(int cap, int dbuid, utils::SrcPos);
+    void raise_cap(int cap, utils::SrcPos);
 
     bool isSetuid() {return issetuid;};
 };

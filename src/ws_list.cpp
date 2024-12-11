@@ -58,6 +58,10 @@
 #include "fmt/ranges.h"
 //#include "fmt/ostream.h"
 
+#include "caps.h"
+
+// init caps here, when euid!=uid
+Cap caps{};
 
 namespace po = boost::program_options;
 using namespace std;

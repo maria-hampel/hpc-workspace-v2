@@ -64,13 +64,9 @@ using namespace std;
 
 extern bool debugflag;
 extern bool traceflag;
+extern Cap caps;
 
 namespace cppfs = std::filesystem;
-
-
-DBEntryV1::DBEntryV1() {
-    caps = Cap();
-}
 
 
 vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string user, const vector<string> groups,
@@ -347,7 +343,7 @@ void DBEntryV1::writeEntry()
     // suppress ctrl-c to prevent broken DB entries when FS is hanging and user gets nervous
     signal(SIGINT,SIG_IGN);
 
-    caps.raise_cap(CAP_DAC_OVERRIDE);   // === Section with raised capabuility START ====
+    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));   // === Section with raised capabuility START ====
 
     long dbgid=0, dbuid=0;    
 
@@ -377,22 +373,22 @@ void DBEntryV1::writeEntry()
         perm = 0644;
     }
 
-    caps.raise_cap(CAP_FOWNER);
+    caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__));
     if (chmod(dbfilepath.c_str(), perm) != 0) {
         fmt::print(stderr, "Error  : could not change permissions of database entry\n");
     }
 
-    caps.lower_cap(CAP_FOWNER, dbuid);
-    caps.lower_cap(CAP_DAC_OVERRIDE, dbuid); // === Section with raised capabuility END ===
+    caps.lower_cap(CAP_FOWNER, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.lower_cap(CAP_DAC_OVERRIDE, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__)); // === Section with raised capabuility END ===
 
 
     if (caps.isSetuid()) {
-        caps.raise_cap(CAP_CHOWN);
+        caps.raise_cap(CAP_CHOWN, utils::SrcPos(__FILE__, __LINE__, __func__));
         if (chown(dbfilepath.c_str(), dbuid, dbgid)) {
-            caps.lower_cap(CAP_CHOWN, dbuid);
+            caps.lower_cap(CAP_CHOWN, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
             fmt::print(stderr, "Error  : could not change owner of database entry.\n");
         }
-        caps.lower_cap(CAP_CHOWN, dbuid);
+        caps.lower_cap(CAP_CHOWN, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
     }
 
     // normal signal handling

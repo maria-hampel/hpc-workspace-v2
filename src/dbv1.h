@@ -67,11 +67,8 @@ private:
         // pointer to DB containing this entry (to get access to config)
         FilesystemDBV1 *db;
 
-        // for capability usage
-        Cap caps;
-        
+
 public:
-        DBEntryV1();
 
         // read yaml entry from file
         void readFromFile(const WsID id, const string filesystem, const string filename);
