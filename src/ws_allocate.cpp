@@ -39,13 +39,11 @@
 #include "config.h"
 #include "user.h"
 #include "utils.h"
-#include "capability.h"
+#include "caps.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 using namespace std;
-
-#include "ws.h"
 
 #include <filesystem>
 namespace cppfs = std::filesystem;
@@ -432,6 +430,8 @@ int main(int argc, char **argv) {
     int reminder = 0;
     po::variables_map opt;
 
+    Cap caps;
+
     // we only support C locale, if the used local is not installed on the system
     // ws_allocate fails
     setenv("LANG","C",1);
@@ -473,7 +473,7 @@ int main(int argc, char **argv) {
     }
 
     // lower capabilities to minimum, before interpreting any data from user
-    drop_cap(CAP_DAC_OVERRIDE, CAP_CHOWN, db_uid);
+    caps.drop_cap(CAP_DAC_OVERRIDE, CAP_CHOWN, db_uid);
 
     // check commandline, get flags which are used to create ws object or for workspace allocation
     commandline(opt, name, duration, durationdefault , filesystem, extensionflag,

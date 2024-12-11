@@ -58,7 +58,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "capability.h"
+#include "caps.h"
 
 using namespace std;
 
@@ -66,6 +66,11 @@ extern bool debugflag;
 extern bool traceflag;
 
 namespace cppfs = std::filesystem;
+
+
+DBEntryV1::DBEntryV1() {
+    caps = Cap();
+}
 
 
 vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string user, const vector<string> groups,
@@ -342,7 +347,7 @@ void DBEntryV1::writeEntry()
     // suppress ctrl-c to prevent broken DB entries when FS is hanging and user gets nervous
     signal(SIGINT,SIG_IGN);
 
-    raise_cap(CAP_DAC_OVERRIDE);   // === Section with raised capabuility START ====
+    caps.raise_cap(CAP_DAC_OVERRIDE);   // === Section with raised capabuility START ====
 
     long dbgid=0, dbuid=0;    
 
@@ -372,25 +377,23 @@ void DBEntryV1::writeEntry()
         perm = 0644;
     }
 
-    raise_cap(CAP_FOWNER);
+    caps.raise_cap(CAP_FOWNER);
     if (chmod(dbfilepath.c_str(), perm) != 0) {
         fmt::print(stderr, "Error  : could not change permissions of database entry\n");
     }
 
-    lower_cap(CAP_FOWNER, dbuid);
-    lower_cap(CAP_DAC_OVERRIDE, dbuid); // === Section with raised capabuility END ===
+    caps.lower_cap(CAP_FOWNER, dbuid);
+    caps.lower_cap(CAP_DAC_OVERRIDE, dbuid); // === Section with raised capabuility END ===
 
 
-    if (user::isSetuid()) {
-        raise_cap(CAP_CHOWN);
+    if (caps.isSetuid()) {
+        caps.raise_cap(CAP_CHOWN);
         if (chown(dbfilepath.c_str(), dbuid, dbgid)) {
-            lower_cap(CAP_CHOWN, dbuid);
-            // FIXME: usermode? 
+            caps.lower_cap(CAP_CHOWN, dbuid);
             fmt::print(stderr, "Error  : could not change owner of database entry.\n");
         }
-        lower_cap(CAP_CHOWN, dbuid);
+        caps.lower_cap(CAP_CHOWN, dbuid);
     }
-
 
     // normal signal handling
     signal(SIGINT,SIG_DFL);

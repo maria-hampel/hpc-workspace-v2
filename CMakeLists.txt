@@ -163,8 +163,8 @@ ADD_LIBRARY(ws_common OBJECT
 	${workspace_SOURCE_DIR}/src/user.cpp 
 	${workspace_SOURCE_DIR}/src/config.h
 	${workspace_SOURCE_DIR}/src/config.cpp
-	${workspace_SOURCE_DIR}/src/capability.h
-	${workspace_SOURCE_DIR}/src/capability.cpp
+	${workspace_SOURCE_DIR}/src/caps.h
+	${workspace_SOURCE_DIR}/src/caps.cpp
 	)
 
 TARGET_LINK_LIBRARIES(ws_common PUBLIC yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core)
