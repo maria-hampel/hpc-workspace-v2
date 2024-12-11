@@ -15,6 +15,9 @@ extern bool debugflag;
 
 // constructor, check if we are setuid or have capabilites (only if linked with libcap)
 Cap::Cap() {
+    // use those to enable tracing here, is called before aruments are parsed
+        // debugflag = true;
+        // traceflag = true;
     if (traceflag) fmt::println(stderr, "Trace  : Cap::Cap()");
     if (debugflag) fmt::println(stderr, "euid={}, uid={}", geteuid(), getuid());
     if (user::isSetuid()) issetuid = true; else issetuid = false;
@@ -27,7 +30,7 @@ Cap::Cap() {
 
     oldcaps = caps = cap_get_proc();
 
-    cap_list[0] = CAP_DAC_READ_SEARCH;
+    cap_list[0] = CAP_DAC_OVERRIDE;  // this has to be set for all executables using this!
 
     if (cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, CAP_SET) == -1) {
         fmt::print(stderr, "Error  : problem with capabilities, should not happen\n");
@@ -66,12 +69,8 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
         for(const auto &ca: cap_arg) {
             cap_list[arg++] = ca;
         }
-        //cap_list[0] = cap_arg;
 
         caps = cap_init();
-
-        // cap_list[0] = CAP_DAC_OVERRIDE;
-        // cap_list[1] = CAP_CHOWN;
 
         if (cap_set_flag(caps, CAP_PERMITTED, 1, cap_list, CAP_SET) == -1) {
             fmt::print(stderr, "Error  : problem with capabilities.\n");
