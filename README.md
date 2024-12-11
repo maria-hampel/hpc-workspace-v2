@@ -50,14 +50,14 @@ boost program_options + boost system
  
 ## Todo
 
-- move from single file ws.conf to multifile ws.d
-- move to compiletime+runtime detected capability/setuid/usermode switch (usermode is for testing mainly, does not elevate privileges)
-- get CMake setup in better shape
-- add more unit tests to existing code
-- build a better test framework for the tools
-- debug what is there
-- migrate more tools: finish ws_allocate, migrate ws_release, ws_restore, ws_find, ws_expirer, ws_validate
-- define and implement new DB formart
+[ ] move from single file ws.conf to multifile ws.d
+[x] move to compiletime+runtime detected capability/setuid/usermode switch (usermode is for testing mainly, does not elevate privileges)
+[ ] get CMake setup in better shape
+[ ] add more unit tests to existing code
+[ ] build a better test framework for the tools
+[ ] debug what is there
+[ ] migrate more tools: finish ws_allocate, migrate ws_release, ws_restore, ws_find, ws_expirer, ws_validate
+[ ] define and implement new DB formart
 
 ## Input and ideas and contributions needed
 
