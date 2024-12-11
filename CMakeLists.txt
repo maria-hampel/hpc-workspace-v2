@@ -11,6 +11,9 @@ add_definitions("-DWS_VERSION=\"${workspace_VERSION}\"")
 message(STATUS "build type: " ${CMAKE_BUILD_TYPE})
 message(STATUS "use cmake -DCMAKE_BUILD_TYPE=debug for debug build")
 
+add_link_options($<$<CONFIG:Release>:-s>)
+add_link_options($<$<CONFIG:MinSizeRel>:-s>)
+
 SET(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 ")
 SET(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -g -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 -fstack-protector-all -fcf-protection=full  -fsanitize=address -D_GLIBCXX_ASSERTIONS")
 SET(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 ")
@@ -106,10 +109,6 @@ IF (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/.git")
 ENDIF ()
 
 SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${workspace_BINARY_DIR}/bin)
-
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
-
 
 ADD_LIBRARY(ws_common OBJECT 
 	${workspace_SOURCE_DIR}/src/db.h
