@@ -35,9 +35,13 @@
 #include <string>
 #include <vector>
 
-std::vector<std::string> getgroupnames(std::string username);
-std::string getFileContents(const char *filename);
-inline std::string getFileContents(const std::string filename) { return getFileContents(filename.c_str()); }
-std::vector<std::string> dirEntries(const std::string path, const std::string pattern);
+namespace utils {
+
+    std::vector<std::string> getgroupnames(std::string username);
+    std::string getFileContents(const char *filename);
+    inline std::string getFileContents(const std::string filename) { return getFileContents(filename.c_str()); }
+    std::vector<std::string> dirEntries(const std::string path, const std::string pattern);
+
+}
 
 #endif

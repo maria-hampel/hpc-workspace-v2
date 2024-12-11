@@ -80,7 +80,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
         if(debugflag) fmt::print("listdir({},{})\n", pathname, filepattern);
         // in case of groupworkspace, read entry
         if (groupworkspaces) {
-            auto filelist = dirEntries(pathname, filepattern);
+            auto filelist = utils::dirEntries(pathname, filepattern);
             vector<string> list;
             for(auto const &f: filelist) {  
 #ifndef RAPIDYAML
@@ -93,7 +93,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 
                 string group = dbentry["group"].as<string>();
 #else
-                string filecontent = getFileContents((cppfs::path(pathname) / f).string().c_str());
+                string filecontent = utils::getFileContents((cppfs::path(pathname) / f).string().c_str());
                 ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(filecontent));                // FIXME: error check?
 
                 ryml::NodeRef node;
@@ -107,7 +107,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
             }         
             return list;   
         } else {
-            return dirEntries(pathname, filepattern);
+            return utils::dirEntries(pathname, filepattern);
         }
     };
 
@@ -182,7 +182,7 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
 void DBEntryV1::readFromFile(const WsID id, const string filesystem, const string filename) {
     if(traceflag) fmt::print(stderr, "Trace  : readFromFile_RAPIDYAML(id={},filesystem={},filename={})\n", id, filesystem, filename);
 
-    string filecontent = getFileContents(filename.c_str());
+    string filecontent = utils::getFileContents(filename.c_str());
     if(filecontent=="") {
         fmt::print(stderr,"Error  : Could not read db entry {}", filename);
         throw DatabaseException("could not read db entry");
@@ -344,7 +344,7 @@ void DBEntryV1::writeEntry()
 
     raise_cap(CAP_DAC_OVERRIDE);   // === Section with raised capabuility START ====
 
-    long dbgid, dbuid;    
+    long dbgid=0, dbuid=0;    
 
     if (user::isSetuid()) {
         // for filesystem with root_squash, we need to be DB user here

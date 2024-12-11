@@ -38,6 +38,7 @@
 #include "config.h"
 #include "db.h"
 #include "dbv1.h"
+#include "utils.h"
 
 #include <iostream>
 #include <string>
@@ -46,12 +47,11 @@
 extern bool debugflag;
 extern bool traceflag;
 
-std::string getFileContents(const char *filename);
 
 // read config from file or directory
 Config::Config(cppfs::path filename) {
     // FIXME: check if file or directory
-    string yaml = getFileContents(filename.c_str());
+    string yaml = utils::getFileContents(filename.c_str());
     readYAML(yaml);
 }
 
