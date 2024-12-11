@@ -2,20 +2,23 @@
 
 This is the construction site of next major version of hpc-workspace++ tool.
 
-**DO NOT USE - it does not work**
+**DO NOT USE - it does not work - it is incomplete - it might even not compiler - it might eat your dog**
 
-This is very rough and not ment for usage
+This is very rough and not ment for usage, and I will for the time being also
+not expect or accept contributions, until some things are settled.
+
+Please use the discussion tab if you would like to share input.
 
 ## Motivation/Goals
 
-The codebase got harder to maintain and needs a major cleanup and modernization.
+The codebase got harder and scarier to maintain and needs a major cleanup and modernization.
 
 - Separation of configuration and database implementation from the client tools
 is the first goal.
 
 - Better Testing is the second goal.
 
-- It is likely that all python tools will be replaced with C++ tools.
+- It is likely that all python tools will be replaced with C++ tools on the long run.
 
 Functional extension is possible after this is achieved.
 
@@ -33,15 +36,15 @@ future test platforms:
 
 no intention to support old platforms like centos7, but it might work.
 
-target might evolve from c++17 to c++20 if there is reasons.
+language level might evolve from c++17 to c++20 if there is reasons.
 
 ## Dependencies
 
 yaml-cpp (to be removed)
 {fmt} 
 rapidyaml
-Catch2
 boost program_options + boost system
+Catch2 (if tests are used)
 
 ## Status
 
@@ -70,7 +73,11 @@ boost program_options + boost system
 - how to automate testing? VMs? container?
 - missing features in current version?
 
-## Unit Testing with catch2
+## Howto Build
+
+stay tuned.
+
+## Howto Unit Testing with catch2
 
 mkdir build-debug
 cd build-debug
