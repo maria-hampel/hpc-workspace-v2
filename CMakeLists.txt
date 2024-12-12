@@ -113,33 +113,6 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 
 
-
-
-
-#ADD_EXECUTABLE(ws_allocate ${workspace_SOURCE_DIR}/src/ws_allocate.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.h
-#							 ${workspace_SOURCE_DIR}/src/wsdb.cpp 
-#							 ${workspace_SOURCE_DIR}/src/wsdb.h)
-#
-#ADD_EXECUTABLE(ws_release ${workspace_SOURCE_DIR}/src/ws_release.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.h
-#							 ${workspace_SOURCE_DIR}/src/wsdb.cpp 
-#							 ${workspace_SOURCE_DIR}/src/wsdb.h)
-#
-#ADD_EXECUTABLE(ws_restore ${workspace_SOURCE_DIR}/src/ws_restore.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ruh.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ruh.h
-#							 ${workspace_SOURCE_DIR}/src/ws.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.h
-#							 ${workspace_SOURCE_DIR}/src/wsdb.cpp 
-#							 ${workspace_SOURCE_DIR}/src/wsdb.h)
-#
-#TARGET_LINK_LIBRARIES( ws_allocate "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${LUALIB} ${CAP} yaml-cpp ${EXTRA_STATIC_LIBS})
-#TARGET_LINK_LIBRARIES( ws_release "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${LUALIB} ${CAP} yaml-cpp ${EXTRA_STATIC_LIBS})
-#TARGET_LINK_LIBRARIES( ws_restore "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${LUALIB} ${CAP} yaml-cpp ${TLIB} ${EXTRA_STATIC_LIBS})
-
 ADD_LIBRARY(ws_common OBJECT 
 	${workspace_SOURCE_DIR}/src/db.h
 	${workspace_SOURCE_DIR}/src/dbv1.cpp 
