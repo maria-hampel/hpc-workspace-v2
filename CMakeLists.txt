@@ -157,10 +157,10 @@ ADD_LIBRARY(ws_common OBJECT
 TARGET_LINK_LIBRARIES(ws_common PUBLIC yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core)
 
 ADD_EXECUTABLE( ws_list ${workspace_SOURCE_DIR}/src/ws_list.cpp )
-TARGET_LINK_LIBRARIES( ws_list "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+TARGET_LINK_LIBRARIES( ws_list "-L${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
 
 ADD_EXECUTABLE( ws_allocate ${workspace_SOURCE_DIR}/src/ws_allocate.cpp )
-TARGET_LINK_LIBRARIES( ws_allocate "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+TARGET_LINK_LIBRARIES( ws_allocate "-L${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
 
 
 
