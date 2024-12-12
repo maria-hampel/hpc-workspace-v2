@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
-PROJECT(workspace)
+project(workspace
+    VERSION 2.0.0
+    DESCRIPTION "Future sucessor of hpc-workspace"
+    LANGUAGES C CXX
+)
 # set to version number of the latest release
-add_definitions("-DWS_VERSION=\"2.0\"")
+add_definitions("-DWS_VERSION=\"${workspace_VERSION}\"")
 
 #workaround for old Redhat 6 cmake
 set(Boost_NO_BOOST_CMAKE ON)
