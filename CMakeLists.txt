@@ -15,8 +15,6 @@ SET(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wn
 SET(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -g -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 -fstack-protector-all -fcf-protection=full  -fsanitize=address -D_GLIBCXX_ASSERTIONS")
 SET(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 ")
 
-SET(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=mold")
-
 
 OPTION(WS_STATIC "static linking" FALSE)
 IF (WS_STATIC)
