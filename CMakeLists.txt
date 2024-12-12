@@ -8,9 +8,6 @@ project(workspace
 # set to version number of the latest release
 add_definitions("-DWS_VERSION=\"${workspace_VERSION}\"")
 
-#workaround for old Redhat 6 cmake
-set(Boost_NO_BOOST_CMAKE ON)
-
 message(STATUS "build type: " ${CMAKE_BUILD_TYPE})
 message(STATUS "use cmake -DCMAKE_BUILD_TYPE=debug for debug build")
 
@@ -39,13 +36,6 @@ IF (WS_ALLOW_USER_DEBUG)
 ENDIF (WS_ALLOW_USER_DEBUG)
 
 
-# FIXME remove this, forget redhat 7
-OPTION(WS_USE_BOOST_REGEXP "use boost regexp in case std::regexp is broken (rh7 gcc)" FALSE)
-IF (WS_USE_BOOST_REGEXP)
-	ADD_DEFINITIONS("-DWS_USE_BOOST_REGEXP")
-ENDIF (WS_USE_BOOST_REGEXP)
-
-
 FIND_LIBRARY(HAVECAP NAMES libcap.a libcap.so)
 IF (HAVECAP)
     MESSAGE("-- Found libcap")
@@ -56,15 +46,8 @@ ELSE (HAVECAP)
 ENDIF (HAVECAP)
 
 
-# FIXME see above
-set(Boost_USE_MULTITHREADED OFF)  
-IF (USE_BOOST_REGEXP)
-	FIND_PACKAGE(Boost COMPONENTS system filesystem regex program_options REQUIRED)
-ELSE (USE_BOOST_REGEXP)
-	FIND_PACKAGE(Boost COMPONENTS system filesystem program_options REQUIRED)
-ENDIF (USE_BOOST_REGEXP)
-include_directories(${Boost_INCLUDE_DIRS})
-link_directories(${Boost_LIBRARY_DIRS})
+list(APPEND BOOST_COMPONENTS system program_options)
+find_package(Boost COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 
 
 # find terminfo for "are you human" checker
