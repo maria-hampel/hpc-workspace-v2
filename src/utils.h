@@ -39,6 +39,7 @@
 
 namespace utils {
 
+    // helper to show sourcelocation in debugging
     class SrcPos {
         std::string file;
         int line;
@@ -51,10 +52,18 @@ namespace utils {
         }
     };
 
+    // return names of groups of user given
     std::vector<std::string> getgroupnames(std::string username);
+
+    // read a small file and returnm as string
     std::string getFileContents(const char *filename);
     inline std::string getFileContents(const std::string filename) { return getFileContents(filename.c_str()); }
+
+    // retrurn list of filesnames mit unix name globbing
     std::vector<std::string> dirEntries(const std::string path, const std::string pattern);
+
+    // print CMake flags
+    void printBuildFlags();
 
 }
 
