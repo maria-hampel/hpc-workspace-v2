@@ -45,6 +45,7 @@ yaml-cpp (to be removed)
 rapidyaml
 boost program_options + boost system
 Catch2 (if tests are used)
+Guidelines Support Library (GSL)
 
 ## Status
 
