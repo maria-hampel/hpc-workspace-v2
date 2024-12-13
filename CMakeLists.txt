@@ -1,11 +1,12 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.14)
+cmake_minimum_required(VERSION 3.20)
 
-PROJECT(workspace)
+project(workspace
+    VERSION 2.0.0
+    DESCRIPTION "Future sucessor of hpc-workspace"
+    LANGUAGES C CXX
+)
 # set to version number of the latest release
-add_definitions("-DWS_VERSION=\"2.0\"")
-
-#workaround for old Redhat 6 cmake
-set(Boost_NO_BOOST_CMAKE ON)
+add_definitions("-DWS_VERSION=\"${workspace_VERSION}\"")
 
 message(STATUS "build type: " ${CMAKE_BUILD_TYPE})
 message(STATUS "use cmake -DCMAKE_BUILD_TYPE=debug for debug build")
@@ -13,8 +14,6 @@ message(STATUS "use cmake -DCMAKE_BUILD_TYPE=debug for debug build")
 SET(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 ")
 SET(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -g -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 -fstack-protector-all -fcf-protection=full  -fsanitize=address -D_GLIBCXX_ASSERTIONS")
 SET(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-effc++ -std=c++17 -Os -DTBB_SUPPRESS_DEPRECATED_MESSAGES=1 ")
-
-SET(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=mold")
 
 
 OPTION(WS_STATIC "static linking" FALSE)
@@ -35,13 +34,6 @@ IF (WS_ALLOW_USER_DEBUG)
 ENDIF (WS_ALLOW_USER_DEBUG)
 
 
-# FIXME remove this, forget redhat 7
-OPTION(WS_USE_BOOST_REGEXP "use boost regexp in case std::regexp is broken (rh7 gcc)" FALSE)
-IF (WS_USE_BOOST_REGEXP)
-	ADD_DEFINITIONS("-DWS_USE_BOOST_REGEXP")
-ENDIF (WS_USE_BOOST_REGEXP)
-
-
 FIND_LIBRARY(HAVECAP NAMES libcap.a libcap.so)
 IF (HAVECAP)
     MESSAGE("-- Found libcap")
@@ -52,15 +44,8 @@ ELSE (HAVECAP)
 ENDIF (HAVECAP)
 
 
-# FIXME see above
-set(Boost_USE_MULTITHREADED OFF)  
-IF (USE_BOOST_REGEXP)
-	FIND_PACKAGE(Boost COMPONENTS system filesystem regex program_options REQUIRED)
-ELSE (USE_BOOST_REGEXP)
-	FIND_PACKAGE(Boost COMPONENTS system filesystem program_options REQUIRED)
-ENDIF (USE_BOOST_REGEXP)
-include_directories(${Boost_INCLUDE_DIRS})
-link_directories(${Boost_LIBRARY_DIRS})
+list(APPEND BOOST_COMPONENTS system program_options)
+find_package(Boost COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 
 
 # find terminfo for "are you human" checker
@@ -100,10 +85,9 @@ else (WS_PARALLEL)
     SET(PARLIB "")
 endif (WS_PARALLEL)
 
-ADD_SUBDIRECTORY(${workspace_SOURCE_DIR}/external/yaml-cpp)
+add_subdirectory(${workspace_SOURCE_DIR}/external/yaml-cpp)
 add_subdirectory(${workspace_SOURCE_DIR}/external/rapidyaml ryml)
-include_directories(${RYAML_INCLUDE_DIR})
-ADD_SUBDIRECTORY(${workspace_SOURCE_DIR}/external/fmt)
+add_subdirectory(${workspace_SOURCE_DIR}/external/fmt)
 
 get_directory_property(LINKER_VAR LINK_DIRECTORIES)
 message(STATUS "LINKER_VAR: ${LINKER_VAR}")
@@ -126,33 +110,6 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 
 
-
-
-
-#ADD_EXECUTABLE(ws_allocate ${workspace_SOURCE_DIR}/src/ws_allocate.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.h
-#							 ${workspace_SOURCE_DIR}/src/wsdb.cpp 
-#							 ${workspace_SOURCE_DIR}/src/wsdb.h)
-#
-#ADD_EXECUTABLE(ws_release ${workspace_SOURCE_DIR}/src/ws_release.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.h
-#							 ${workspace_SOURCE_DIR}/src/wsdb.cpp 
-#							 ${workspace_SOURCE_DIR}/src/wsdb.h)
-#
-#ADD_EXECUTABLE(ws_restore ${workspace_SOURCE_DIR}/src/ws_restore.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ruh.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ruh.h
-#							 ${workspace_SOURCE_DIR}/src/ws.cpp 
-#							 ${workspace_SOURCE_DIR}/src/ws.h
-#							 ${workspace_SOURCE_DIR}/src/wsdb.cpp 
-#							 ${workspace_SOURCE_DIR}/src/wsdb.h)
-#
-#TARGET_LINK_LIBRARIES( ws_allocate "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${LUALIB} ${CAP} yaml-cpp ${EXTRA_STATIC_LIBS})
-#TARGET_LINK_LIBRARIES( ws_release "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${LUALIB} ${CAP} yaml-cpp ${EXTRA_STATIC_LIBS})
-#TARGET_LINK_LIBRARIES( ws_restore "-L ${LINKER_VAR}" ${Boost_LIBRARIES} ${LUALIB} ${CAP} yaml-cpp ${TLIB} ${EXTRA_STATIC_LIBS})
-
 ADD_LIBRARY(ws_common OBJECT 
 	${workspace_SOURCE_DIR}/src/db.h
 	${workspace_SOURCE_DIR}/src/dbv1.cpp 
@@ -167,13 +124,13 @@ ADD_LIBRARY(ws_common OBJECT
 	${workspace_SOURCE_DIR}/src/caps.cpp
 	)
 
-TARGET_LINK_LIBRARIES(ws_common PUBLIC yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core)
+TARGET_LINK_LIBRARIES(ws_common PUBLIC yaml-cpp::yaml-cpp fmt::fmt ryml::ryml)
 
 ADD_EXECUTABLE( ws_list ${workspace_SOURCE_DIR}/src/ws_list.cpp )
-TARGET_LINK_LIBRARIES( ws_list "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+TARGET_LINK_LIBRARIES( ws_list "-L${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} fmt::fmt ${PARLIB})
 
 ADD_EXECUTABLE( ws_allocate ${workspace_SOURCE_DIR}/src/ws_allocate.cpp )
-TARGET_LINK_LIBRARIES( ws_allocate "-L ${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+TARGET_LINK_LIBRARIES( ws_allocate "-L${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} fmt::fmt ${PARLIB})
 
 
 
