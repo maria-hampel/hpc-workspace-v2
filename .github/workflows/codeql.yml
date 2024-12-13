@@ -31,6 +31,10 @@ jobs:
           build-mode: manual
 
     steps:
+    - name: Install OS package dependencies
+      run: |
+        sudo apt install libboost-all-dev
+
     - name: Checkout repository
       uses: actions/checkout@v4
 
