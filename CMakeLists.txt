@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 if(CMAKE_VERSION GREATER_EQUAL 3.30)
     cmake_policy(SET CMP0167 NEW) # prefer cmake configuration provided by the boost package itself
 endif()
+if(CMAKE_VERSION GREATER_EQUAL 3.31)
+    cmake_policy(SET CMP0177 NEW) # normalize all install DESTINATION values except for INCLUDES DESTINATION
+endif()
 
 project(workspace
     VERSION 2.0.0
