@@ -196,7 +196,7 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
  * 
  *  changes duration and maxextensions, does return true if they are out of bounds
  */
-bool validateFsAndGroup(const Config config, const po::variables_map &opt, const std::string username)
+bool validateFsAndGroup(const Config &config, const po::variables_map &opt, const std::string username)
 {
     if (traceflag) fmt::print(stderr, "validateFsAndGroup(username={})", username);
 
@@ -223,7 +223,7 @@ bool validateFsAndGroup(const Config config, const po::variables_map &opt, const
     return true;
 }
 
-bool validateDurationAndExtensions(const Config config, const po::variables_map &opt, const std::string filesystem, int &duration, int &maxextensions) {
+bool validateDurationAndExtensions(const Config &config, const po::variables_map &opt, const std::string filesystem, int &duration, int &maxextensions) {
     if (traceflag) fmt::print(stderr, "validateDurationAndExtensions(filesystem={},duration={},maxextension={})", filesystem, duration, maxextensions);
 
     // change duration if limits exceeded and warn
@@ -254,7 +254,7 @@ bool validateDurationAndExtensions(const Config config, const po::variables_map 
  */
 void allocate(  
             const Config &config,
-            const po::variables_map opt,  int duration, string filesystem,
+            const po::variables_map &opt,  int duration, string filesystem,
             const string name, const bool extensionflag, const int reminder, 
             const string mailaddress, string user_option, const string groupname, const string comment
             ) 
