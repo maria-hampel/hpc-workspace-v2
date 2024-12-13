@@ -158,6 +158,8 @@ namespace utils {
 				back_str = --str;	/* Allow zero-length match */
 				break;
 			case '[': {	/* Character class */
+				if (c == '\0')	/* No possible match */
+					return false;
 				bool match = false, inverted = (*pat == '!');
 				char const *cclass = pat + inverted;
 				unsigned char a = *cclass++;
