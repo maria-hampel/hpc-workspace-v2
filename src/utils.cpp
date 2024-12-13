@@ -128,13 +128,15 @@ namespace utils {
 	static bool glob_match(char const *pat, char const *str)
 	{
 		if (traceflag) fmt::print("glob_match({},{})\n", pat, str);
+
 		/*
 		* Backtrack to previous * on mismatch and retry starting one
 		* character later in the string.  Because * matches all characters
 		* (no exception for /), it can be easily proved that there's
 		* never a need to backtrack multiple levels.
 		*/
-		char const *back_pat = NULL, *back_str = back_str;
+		char const *back_pat = NULL, *back_str = NULL;
+
 		/*
 		* Loop over each token (character or class) in pat, matching
 		* it against the remaining unmatched tail of str.  Return false
@@ -143,6 +145,7 @@ namespace utils {
 		for (;;) {
 			unsigned char c = *str++;
 			unsigned char d = *pat++;
+
 			switch (d) {
 			case '?':	/* Wildcard: anything but nul */
 				if (c == '\0')
