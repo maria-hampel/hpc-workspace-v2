@@ -236,17 +236,14 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
         if(comment!="")
             fmt::print("    comment              : {}\n", comment);
         if (creation>0)
-            char creation_buf[26];
-            fmt::print("    creation time        : {}", ctime_r(&creation, creation_buf));
-        char expiration_buf[26];
-        fmt::print("    expiration time      : {}", ctime_r(&expiration, expiration_buf));
+            fmt::print("    creation time        : {}", ctime(&creation));
+        fmt::print("    expiration time      : {}", ctime(&expiration));
         fmt::print("    filesystem name      : {}\n", filesystem);
     }
     fmt::print("    available extensions : {}\n", extensions);
     if (verbose) {
         long rd = expiration - reminder/(24*3600);
-        char rd_buf[26];
-        fmt::print("    reminder             : {}", ctime_r(&rd, rd_buf));
+        fmt::print("    reminder             : {}", ctime(&rd));
         fmt::print("    mailaddress          : {}\n", mailaddress);
     }
 };
