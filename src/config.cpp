@@ -65,13 +65,13 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
                     std::string filename = entry.path().filename().string();
                     std::string fullpath = entry.path().string();
                     if (cppfs::is_regular_file(fullpath)) {
-                        if (debugflag) fmt::println("Info   : Reading config file {}", configpath.string());
-                        string yaml = utils::getFileContents(filename.c_str());
+                        if (debugflag) fmt::println("Info   : Reading config file {}", fullpath);
+                        string yaml = utils::getFileContents(fullpath);
                         readYAML(yaml);                    
                     }
                 }
             } else {
-                fmt::println(stderr, "Info   : Unexpected filetypo of {}", configpath.string());
+                fmt::println(stderr, "Info   : Unexpected filetype of {}", configpath.string());
                 exit(-1); // bail out, someone is messing around
             }
         }
