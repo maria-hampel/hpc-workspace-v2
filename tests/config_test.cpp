@@ -1,6 +1,9 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include <catch2/catch_test_macros.hpp>
 #include <string>
+
+#include "../src/caps.h"
+
 #include "../src/config.h"
 
 
@@ -8,6 +11,8 @@ bool debugflag = false;
 bool traceflag = false;
 
 
+// init caps here, when euid!=uid
+Cap caps{};
 
 
 TEST_CASE( "config file", "[config]" ) {
