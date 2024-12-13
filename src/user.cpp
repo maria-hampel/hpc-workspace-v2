@@ -9,6 +9,7 @@
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
+ *  (c) Christoph Niethammer 2024
  * 
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -37,34 +38,32 @@
 
 #include "fmt/base.h"
 #include "fmt/ranges.h"
+#include <gsl/pointers>
 
 extern bool traceflag;
 extern bool debugflag;
 
 namespace user {
 
-    // get current username
+    // get current username via real user id and passwd
     std::string getUsername() {
-        auto pw = getpwuid(getuid());
-        std::string str(pw->pw_name);
-        return str;
+        gsl::not_null<struct passwd*> pw = getpwuid(getuid());
+        return std::string(pw->pw_name);
     }
 
-    // get home of current user, we have this to avoid $HOME
-    std::string getUserhome()
-    {
-        struct passwd *pw;
-
-        pw = getpwuid(getuid());
+    // get home of current user via real user id and pwassd
+    // we have this to avoid $HOME
+    std::string getUserhome() {
+        gsl::not_null<struct passwd*> pw = getpwuid(getuid());
         return std::string(pw->pw_dir);
     }
 
 
     // see if we are root
+    // return true if current user is root, false otherwise
     bool isRoot() {
         // uid is uid of caller, not 0 for setuid(root)
-        if (getuid()==0) return true;
-        else return false;
+        return getuid() == 0;
     }
 
 
@@ -84,17 +83,19 @@ namespace user {
         std::vector<std::string> grplist;
 
         // find first size and get list
-        auto size = getgroups(0, nullptr);
+        int size = getgroups(0, nullptr);
+
         if (size == -1) {
             fmt::print(stderr, "Error  : error in getgroups()!\n");
             return grplist;
         }
-        auto gids = new gid_t[size];
-        auto ret = getgroups(size, &gids[0]);
+
+        gsl::not_null<gid_t *> gids = new gid_t[size];
+        int ret = getgroups(size, gids);
 
         for(int i=0; i<ret; i++) {
-                auto grpentry = getgrgid(gids[i]);
-                grplist.push_back(std::string(grpentry->gr_name));
+            gsl::not_null<struct group*> group = getgrgid(gids.get()[i]);
+            grplist.push_back(std::string(group->gr_name));
         }
 
         delete[] gids;
