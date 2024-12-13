@@ -44,24 +44,47 @@
 #include <string>
 #include <sstream>
 
+#include <filesystem>
+namespace cppfs = std::filesystem;
+
 extern bool debugflag;
 extern bool traceflag;
 
 
-// read config from file or directory
-Config::Config(cppfs::path filename) {
-    // FIXME: check if file or directory
-    string yaml = utils::getFileContents(filename.c_str());
-    readYAML(yaml);
+// read a list of config files, in given order, can be used to check for /etc/ws.d first and /etc/ws.conf second
+Config::Config(const std::vector<cppfs::path> configpathes) {
+    for(const auto &configpath: configpathes) {
+        if (cppfs::exists(configpath)) {
+            if (cppfs::is_regular_file(configpath)) {
+                if (debugflag) fmt::println("Info   : Reading config file {}", configpath.string());
+                string yaml = utils::getFileContents(configpath);
+                readYAML(yaml);
+            } else if (cppfs::is_directory(configpath)) {
+                // FIXME: TODO: may be an order file file names would make sense here
+                for (const auto& entry : cppfs::directory_iterator(configpath)) {
+                    std::string filename = entry.path().filename().string();
+                    std::string fullpath = entry.path().string();
+                    if (cppfs::is_regular_file(fullpath)) {
+                        if (debugflag) fmt::println("Info   : Reading config file {}", configpath.string());
+                        string yaml = utils::getFileContents(filename.c_str());
+                        readYAML(yaml);                    
+                    }
+                }
+            } else {
+                fmt::println(stderr, "Info   : Unexpected filetypo of {}", configpath.string());
+                exit(-1); // bail out, someone is messing around
+            }
+        }
+    }
 }
 
 // read config from YAML node
-Config::Config(std::string configstring) {
+Config::Config(const std::string configstring) {
     readYAML(configstring);
 }
 
-
-void Config::readYAML(string yaml) {
+// parse YAML from a string (using yaml-cpp)
+void Config::readYAML(const string yaml) {
     auto config = YAML::Load(yaml);
     // global flags
     bool valid = true;
@@ -78,7 +101,7 @@ void Config::readYAML(string yaml) {
     if (config["dbgid"]) global.dbgid = config["dbgid"].as<int>(); else {fmt::print(stderr, "Error  : no db gid in config\n"); valid=false;}
     if (config["admins"]) global.admins = config["admins"].as<vector<string>>();
 
-    // SPEC:CHANGE accept filesystem as alias for workspaces
+    // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
     if (config["workspaces"] || config["filesystems"]) {
         // auto list = config["workspaces"] ? config["workspaces"] : config["filesystems"];
         for(auto key: std::vector<string>{"workspaces","filesystems"}) {
@@ -258,6 +281,7 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
 // get DB type for the fs 
 Database* Config::openDB(const string fs) const {
     if (traceflag) fmt::print(stderr, "Trace  : opendb {}\n", fs);
+    // FIXME: version check here to determine which DB to open
     return new FilesystemDBV1(this, fs);
 }
 
@@ -270,7 +294,7 @@ string Config::database(const string filesystem) const {
         return it->second.database;
 }
 
-// returnpath to deletedpath for given filesystem, or empty string
+// return path to deletedpath for given filesystem, or empty string
 string Config::deletedPath(const string filesystem) const {
     auto it = filesystems.find(filesystem);
     if (it == filesystems.end()) 

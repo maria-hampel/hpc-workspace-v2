@@ -91,8 +91,8 @@ private:
     std::map<string, Filesystem_config> filesystems;  // list of workspace filesystems
 
 public:
-    // read config from file or directory
-    Config(const cppfs::path filename);
+    // read config from list of files or directories, in given order
+    Config(const std::vector<cppfs::path> filenames);
     // read config from string
     Config(const string configstring);
 
