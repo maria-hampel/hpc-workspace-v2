@@ -88,6 +88,7 @@ endif (WS_PARALLEL)
 add_subdirectory(${workspace_SOURCE_DIR}/external/yaml-cpp)
 add_subdirectory(${workspace_SOURCE_DIR}/external/rapidyaml ryml)
 add_subdirectory(${workspace_SOURCE_DIR}/external/fmt)
+add_subdirectory(${workspace_SOURCE_DIR}/external/GSL)
 
 get_directory_property(LINKER_VAR LINK_DIRECTORIES)
 message(STATUS "LINKER_VAR: ${LINKER_VAR}")
@@ -124,7 +125,14 @@ ADD_LIBRARY(ws_common OBJECT
 	${workspace_SOURCE_DIR}/src/caps.cpp
 	)
 
-TARGET_LINK_LIBRARIES(ws_common PUBLIC yaml-cpp::yaml-cpp fmt::fmt ryml::ryml)
+target_link_libraries(ws_common
+    PUBLIC
+        fmt::fmt
+        ryml::ryml
+        yaml-cpp::yaml-cpp
+    PRIVATE
+        Microsoft.GSL::GSL
+)
 
 ADD_EXECUTABLE( ws_list ${workspace_SOURCE_DIR}/src/ws_list.cpp )
 TARGET_LINK_LIBRARIES( ws_list "-L${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} fmt::fmt ${PARLIB})
