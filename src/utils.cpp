@@ -186,7 +186,7 @@ namespace utils {
 				break;
 			case '\\':
 				d = *pat++;
-				/*FALLTHROUGH*/
+				[[fallthrough]];
 			default:	/* Literal character */
 	literal:
 				if (c == d) {
