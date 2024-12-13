@@ -118,10 +118,11 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
 
     if (opt.count("version")) {
 #ifdef IS_GIT_REPOSITORY
-        fmt::print("workspace build from git commit hash {} on top of release {}\n", GIT_COMMIT_HASH, WS_VERSION);
+        fmt::println("workspace build from git commit hash {} on top of release {}", GIT_COMMIT_HASH, WS_VERSION);
 #else
-        fmt::print("workspace version {}", WS_VERSION );
+        fmt::println("workspace version {}", WS_VERSION );
 #endif
+        utils::printBuildFlags();
         exit(1);
     }
 
@@ -449,16 +450,18 @@ int main(int argc, char **argv) {
 
     // read config 
     //   user can change this if no setuid installation OR if root
-    string configfiletoread = "/etc/ws.conf"; 
+    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"}; 
     if (configfile != "") {
         if (user::isRoot() || user::isnotSetuid()) {      // FIXME: capability? this could be DANGEROUS!
-            configfiletoread = configfile;
+            configfilestoread = {configfile};
         } else {
             fmt::print(stderr, "WARNING: ignored config file options!\n");
         }
     }
 
-    auto config = Config(cppfs::path(configfiletoread));
+    
+    auto config = Config(configfilestoread);
+
 
     reminder = config.reminderdefault();
     durationdefault = config.durationdefault();

@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
     terselisting = opts.count("terse");
     verbose = opts.count("verbose");
 
-#ifndef WS_ALLOW_USER_DEBUG
+#ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
 #else
     {
@@ -165,26 +165,27 @@ int main(int argc, char **argv) {
 
     if (opts.count("version")) {
 #ifdef IS_GIT_REPOSITORY
-        fmt::print("workspace build from git commit hash {} on top of release {}\n", GIT_COMMIT_HASH,WS_VERSION);
+        fmt::println("workspace build from git commit hash {} on top of release {}", GIT_COMMIT_HASH,WS_VERSION);
 #else
-        fmt::print("workspace version {}", WS_VERSION);
+        fmt::println("workspace version {}", WS_VERSION);
 #endif
-        exit(1);
+        utils::printBuildFlags();
+        exit(0);
     }
 
 
     // read config 
     //   user can change this if no setuid installation OR if root
-    string configfiletoread = "/etc/ws.conf"; 
+    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"}; 
     if (configfile != "") {
         if (user::isRoot() || user::isnotSetuid()) {      // FIXME: capability? this could be DANGEROUS!
-            configfiletoread = configfile;
+            configfilestoread = {configfile};
         } else {
             fmt::print(stderr, "WARNING: ignored config file options!\n");
         }
     }
 
-    auto config = Config(cppfs::path(configfiletoread));
+    auto config = Config(configfilestoread);
 
 
     // root and admins can choose usernames
@@ -223,7 +224,7 @@ int main(int argc, char **argv) {
             if (canFind(validfs, filesystem)) {
                 fslist.push_back(filesystem);
             } else {
-                fmt::print(stderr, "Error  : invalid filesystem given.");
+                fmt::println(stderr, "Error  : invalid filesystem given.");
             }
         } else {
             fslist = validfs;
