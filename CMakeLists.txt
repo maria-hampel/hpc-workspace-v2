@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
+if(CMAKE_VERSION GREATER_EQUAL 3.30)
+    cmake_policy(SET CMP0167 NEW) # prefer cmake configuration provided by the boost package itself
+endif()
 
 project(workspace
     VERSION 2.0.0
