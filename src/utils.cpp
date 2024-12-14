@@ -113,6 +113,10 @@ namespace utils {
 	std::vector<string> dirEntries(const string path, const string pattern) {
 		if (traceflag) fmt::print("dirEntries({},{})\n", path, pattern);
 		vector<string> fl;
+		if (!fs::is_directory(path)) {
+			fmt::println("Error   : Directory {} does not exist.", path);
+			return fl;
+		}
 		for (const auto & entry : fs::directory_iterator(path)) {
 			if (entry.is_regular_file())
 				if (glob_match(pattern.c_str(), entry.path().filename().string().c_str())) {
