@@ -34,21 +34,20 @@ add_link_options($<$<CONFIG:Release>:-s>)
 add_link_options($<$<CONFIG:MinSizeRel>:-s>)
 
 
+option(WS_ALLOW_USER_DEBUG "allow users to enable debugging and tracing" FALSE)
+if(WS_ALLOW_USER_DEBUG)
+    add_definitions("-DWS_ALLOW_USER_DEBUG")
+endif()
 
-OPTION(WS_ALLOW_USER_DEBUG "allow users to enable debugging and tracing" FALSE)
-IF (WS_ALLOW_USER_DEBUG)
-    ADD_DEFINITIONS("-DWS_ALLOW_USER_DEBUG")
-ENDIF (WS_ALLOW_USER_DEBUG)
 
-
-FIND_LIBRARY(HAVECAP NAMES libcap.a libcap.so)
-IF (HAVECAP)
-    MESSAGE("-- Found libcap")
-	ADD_DEFINITIONS("-DWS_CAPA")
-	SET(LIBCAP "cap")
-ELSE (HAVECAP)
-	SET(LIBCAP "")
-ENDIF (HAVECAP)
+find_library(LIBCAP NAMES libcap.a libcap.so)
+if(LIBCAP)
+    message(STATUS "Found libcap (${LIBCAP}). Building with capability support.")
+    add_compile_definitions("-DWS_CAPA")
+else()
+    message(WARNING "No libcap found on the system. Falling back to SUID.")
+    set(LIBCAP "")
+endif()
 
 
 list(APPEND BOOST_COMPONENTS system program_options)
@@ -56,71 +55,38 @@ find_package(Boost COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 
 
 # find terminfo for "are you human" checker
-FIND_LIBRARY(TERMINFO NAMES libtinfo.so libtinfo.a)
-IF (TERMINFO)
-    MESSAGE("-- Found terminfo")
-    INCLUDE_DIRECTORIES(${TERMINFO_INCLUDE_DIRS})
-    SET(LIBS ${LIBS} ${TERMINFO_LIBRARIES})
-    SET(TLIB "tinfo")
-ELSE (TERMINFO)
-    MESSAGE("-- No terminfo, trying curses")
-    #find curses for terminfo for "are you human" checker
-    SET(CURSES_NEED_NCURSES TRUE)
+find_library(LIBTINFO NAMES libtinfo.so libtinfo.a)
+if(LIBTINFO)
+    message(STATUS "Found libtinfo")
+else()
+    message(WARNING "No libtinfo found, trying curses alternative ...")
+    set(CURSES_NEED_NCURSES TRUE)
     find_package(Curses REQUIRED)
     include_directories(${CURSES_INCLUDE_DIR})
     link_directories(${CURSES_LIBRARY_DIR})
-    SET(TLIB ${CURSES_LIBRARIES})
-ENDIF (TERMINFO)
+    set(LIBTINFO ${CURSES_LIBRARIES})
+endif()
 
 
-OPTION(WS_PARALLEL "std::par usage, needs TBB" FALSE)
-if (WS_PARALLEL)
+option(WS_PARALLEL "std::par usage, needs TBB" FALSE)
+if(WS_PARALLEL)
     find_package(TBB REQUIRED tbb)
-    ADD_DEFINITIONS("-DPARALLEL")
-    SET(PARLIB "TBB::tbb")
-else (WS_PARALLEL)
-    SET(PARLIB "")
-endif (WS_PARALLEL)
+    add_definitions("-DPARALLEL")
+    set(PARLIB "TBB::tbb")
+else()
+    set(PARLIB "")
+endif()
+
 
 add_subdirectory(${workspace_SOURCE_DIR}/external/yaml-cpp)
 add_subdirectory(${workspace_SOURCE_DIR}/external/rapidyaml ryml)
 add_subdirectory(${workspace_SOURCE_DIR}/external/fmt)
 add_subdirectory(${workspace_SOURCE_DIR}/external/GSL)
 
-get_directory_property(LINKER_VAR LINK_DIRECTORIES)
-message(STATUS "LINKER_VAR: ${LINKER_VAR}")
 
-SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${workspace_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${workspace_BINARY_DIR}/bin)
 
-ADD_LIBRARY(ws_common OBJECT 
-	${workspace_SOURCE_DIR}/src/db.h
-	${workspace_SOURCE_DIR}/src/dbv1.cpp 
-	${workspace_SOURCE_DIR}/src/dbv1.h 
-	${workspace_SOURCE_DIR}/src/utils.h
-	${workspace_SOURCE_DIR}/src/utils.cpp 
-	${workspace_SOURCE_DIR}/src/user.h
-	${workspace_SOURCE_DIR}/src/user.cpp 
-	${workspace_SOURCE_DIR}/src/config.h
-	${workspace_SOURCE_DIR}/src/config.cpp
-	${workspace_SOURCE_DIR}/src/caps.h
-	${workspace_SOURCE_DIR}/src/caps.cpp
-	)
-
-target_link_libraries(ws_common
-    PUBLIC
-        fmt::fmt
-        ryml::ryml
-        yaml-cpp::yaml-cpp
-    PRIVATE
-        Microsoft.GSL::GSL
-)
-
-ADD_EXECUTABLE( ws_list ${workspace_SOURCE_DIR}/src/ws_list.cpp )
-TARGET_LINK_LIBRARIES( ws_list "-L${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} fmt::fmt ${PARLIB})
-
-ADD_EXECUTABLE( ws_allocate ${workspace_SOURCE_DIR}/src/ws_allocate.cpp )
-TARGET_LINK_LIBRARIES( ws_allocate "-L${LINKER_VAR}" ws_common ${Boost_LIBRARIES} ${EXTRA_STATIC_LIBS} ${LIBCAP} fmt::fmt ${PARLIB})
-
+add_subdirectory(src)
 
 
 if(BUILD_TESTS)
