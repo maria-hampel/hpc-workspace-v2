@@ -30,8 +30,20 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Use cmake -DCMAKE_BUILD_TYPE=Release for release build")
 
 add_compile_options(-Wall -Wextra)
-add_link_options($<$<CONFIG:Release>:-s>)
-add_link_options($<$<CONFIG:MinSizeRel>:-s>)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    message(STATUS "Setting Release compiler flags")
+    add_compile_options(-O3 -D_GLIBCXX_ASSERTIONS -DNDEBUG)
+    add_link_options(-s)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(STATUS "Setting Debug compiler flags")
+    add_compile_options(-g3 -fstack-protector-all -fcf-protection=full  -fsanitize=address -D_GLIBCXX_ASSERTIONS)
+    add_link_options(-fsanitize=address )
+elseif(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+    add_compile_options(-Os -D_GLIBCXX_ASSERTIONS -DNDEBUG)
+    add_link_options(-s)
+endif()
+
 
 
 option(WS_ALLOW_USER_DEBUG "allow users to enable debugging and tracing" FALSE)
