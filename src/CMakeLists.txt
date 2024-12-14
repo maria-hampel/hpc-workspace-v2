@@ -1,0 +1,45 @@
+add_library(ws_common
+    caps.cpp
+    caps.h
+    config.cpp
+    config.h
+    db.h
+    dbv1.cpp
+    dbv1.h
+    user.cpp
+    user.h
+    utils.cpp
+    utils.h
+)
+
+target_link_libraries(ws_common
+    PUBLIC
+        fmt::fmt
+        ryml::ryml
+        yaml-cpp::yaml-cpp
+        ${LIBCAP}
+        ${LIBTINFO}
+        ${PARLIB}
+    PRIVATE
+        Microsoft.GSL::GSL
+)
+
+add_executable(ws_list
+    ws_list.cpp
+)
+target_link_libraries(ws_list
+    PRIVATE
+        ws_common
+        ${Boost_LIBRARIES}
+        fmt::fmt
+)
+
+add_executable(ws_allocate
+    ws_allocate.cpp
+)
+target_link_libraries(ws_allocate
+    PRIVATE
+        ws_common
+        ${Boost_LIBRARIES}
+        fmt::fmt
+)
