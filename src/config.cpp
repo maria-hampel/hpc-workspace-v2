@@ -60,16 +60,23 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
                 string yaml = utils::getFileContents(configpath);
                 readYAML(yaml);
             } else if (cppfs::is_directory(configpath)) {
-                // FIXME: TODO: may be an order file file names would make sense here
+
+                std::vector<std::string> pathesToSort;
+
                 for (const auto& entry : cppfs::directory_iterator(configpath)) {
-                    std::string filename = entry.path().filename().string();
-                    std::string fullpath = entry.path().string();
-                    if (cppfs::is_regular_file(fullpath)) {
-                        if (debugflag) fmt::println("Info   : Reading config file {}", fullpath);
-                        string yaml = utils::getFileContents(fullpath);
-                        readYAML(yaml);                    
-                    }
+                    pathesToSort.push_back(entry.path().string());
                 }
+
+                std::sort(pathesToSort.begin(), pathesToSort.end());
+
+                for(const auto &cfile: pathesToSort) {
+                    if (cppfs::is_regular_file(cfile)) {
+                        if (debugflag) fmt::println("Info   : Reading config file {}", cfile);
+                        string yaml = utils::getFileContents(cfile);
+                        readYAML(yaml);                    
+                    } 
+                }
+
             } else {
                 fmt::println(stderr, "Info   : Unexpected filetype of {}", configpath.string());
                 exit(-1); // bail out, someone is messing around
