@@ -123,16 +123,11 @@ TARGET_LINK_LIBRARIES( ws_allocate "-L${LINKER_VAR}" ws_common ${Boost_LIBRARIES
 
 
 
-
-
 if(BUILD_TESTS)
-	ADD_SUBDIRECTORY(${workspace_SOURCE_DIR}/external/Catch2)
-	#find_package(Catch2 REQUIRED)
-	#add_executable(config_test tests/config_test.cpp src/config.cpp src/utils.cpp src/dbv1.cpp src/capability.cpp)
-	add_executable(config_test tests/config_test.cpp src/config.cpp src/config.h src/utils.h src/utils.cpp src/dbv1.cpp src/dbv1.h src/capability.cpp)
-	target_link_libraries(config_test PRIVATE  Catch2::Catch2WithMain yaml-cpp::yaml-cpp fmt::fmt ryml::ryml c4core::c4core ${PARLIB})
+    add_subdirectory(${workspace_SOURCE_DIR}/external/Catch2)
 
-	include(CTest)
-	include(Catch)
-	catch_discover_tests(config_test)
-ENDIF (BUILD_TESTS)
+    include(CTest)
+    include(Catch)
+
+    add_subdirectory(tests)
+endif()
