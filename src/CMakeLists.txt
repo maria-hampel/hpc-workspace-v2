@@ -11,6 +11,7 @@ add_library(ws_common
     utils.cpp
     utils.h
 )
+target_compile_features(ws_common PUBLIC cxx_std_17)
 
 target_link_libraries(ws_common
     PUBLIC
