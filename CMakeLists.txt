@@ -14,8 +14,20 @@ project(workspace
 # set to version number of the latest release
 add_definitions("-DWS_VERSION=\"${workspace_VERSION}\"")
 
-message(STATUS "build type: " ${CMAKE_BUILD_TYPE})
-message(STATUS "use cmake -DCMAKE_BUILD_TYPE=debug for debug build")
+if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/.git")
+    add_definitions(-DIS_GIT_REPOSITORY)
+    # git commit hash macro
+    execute_process(
+        COMMAND git log -1 --format=%h
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Use cmake -DCMAKE_BUILD_TYPE=Release for release build")
 
 add_compile_options(-Wall -Wextra)
 add_link_options($<$<CONFIG:Release>:-s>)
@@ -89,18 +101,6 @@ add_subdirectory(${workspace_SOURCE_DIR}/external/GSL)
 
 get_directory_property(LINKER_VAR LINK_DIRECTORIES)
 message(STATUS "LINKER_VAR: ${LINKER_VAR}")
-
-IF (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/.git")
-    add_definitions(-DIS_GIT_REPOSITORY)
-    # git commit hash macro
-    execute_process(
-       COMMAND git log -1 --format=%h
-       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-       OUTPUT_VARIABLE GIT_COMMIT_HASH
-       OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
-ENDIF ()
 
 SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${workspace_BINARY_DIR}/bin)
 
