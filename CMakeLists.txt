@@ -35,18 +35,6 @@ add_link_options($<$<CONFIG:MinSizeRel>:-s>)
 
 
 
-OPTION(WS_STATIC "static linking" FALSE)
-IF (WS_STATIC)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
-    set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
-    SET(EXTRA_STATIC_LIBS "pthread")
-#    set(Boost_USE_STATIC_LIBS ON)
-#    set(Boost_USE_STATIC_RUNTIME ON) 
-ELSE (WS_STATIC)
-    set(Boost_USE_STATIC_LIBS OFF)
-    set(Boost_USE_STATIC_RUNTIME OFF) 
-ENDIF (WS_STATIC)
-
 OPTION(WS_ALLOW_USER_DEBUG "allow users to enable debugging and tracing" FALSE)
 IF (WS_ALLOW_USER_DEBUG)
     ADD_DEFINITIONS("-DWS_ALLOW_USER_DEBUG")
