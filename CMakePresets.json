@@ -1,0 +1,116 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "config_common",
+      "description": "Common configuration settings for all configurations",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "warnings": {
+        "dev": true,
+        "deprecated": true,
+        "uninitialized": false
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "hidden": false,
+      "inherits": [
+        "config_common"
+      ],
+      "binaryDir": "build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "BUILD_TESTS": true,
+        "WS_ALLOW_USER_DEBUG": true,
+        "CMAKE_CXX_FLAGS": "-fstack-protector-all -fcf-protection=full -fsanitize=address -fsanitize=undefined -fsanitize=leak"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "hidden": false,
+      "inherits": [
+        "config_common"
+      ],
+      "binaryDir": "build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "release-static",
+      "displayName": "Release (static)",
+      "hidden": false,
+      "inherits": [
+        "config_common",
+        "release"
+      ],
+      "binaryDir": "build/release-static",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release (static)",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "CMAKE_FIND_LIBRARY_SUFFIXES": ".a",
+        "BUILD_SHARED_LIBS": false,
+        "CMAKE_EXE_LINKER_FLAGS": "-static"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build_common",
+      "hidden": true
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug build",
+      "hidden": false,
+      "configurePreset": "debug",
+      "configuration": "Debug",
+      "inherits": [
+        "build_common"
+      ]
+    },
+    {
+      "name": "release",
+      "displayName": "Release build",
+      "hidden": false,
+      "configurePreset": "release",
+      "configuration": "Release",
+      "inherits": [
+        "build_common"
+      ]
+    },
+    {
+      "name": "release-static",
+      "displayName": "Release (static) build",
+      "hidden": false,
+      "configurePreset": "release-static",
+      "configuration": "Release (static)",
+      "inherits": [
+        "build_common",
+        "release"
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug tests",
+      "hidden": false,
+      "configurePreset": "debug",
+      "output": {
+        "verbosity": "default",
+        "labelSummary": false
+      }
+    }
+  ]
+}
