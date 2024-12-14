@@ -75,16 +75,6 @@ ELSE (TERMINFO)
 ENDIF (TERMINFO)
 
 
-# find termcap for "are you human" checker
-#FIND_LIBRARY(TERMCAP NAMES libtermcap.so libtermcap.a)
-#IF (TERMCAP)
-    #MESSAGE("-- Found termcap")
-    #INCLUDE_DIRECTORIES(${TERMCAP_INCLUDE_DIRS})
-    #SET(LIBS ${LIBS} ${TERMCAP_LIBRARIES})
-#ELSE (TERMCAP)
-    #MESSAGE(FATAL_ERROR "-- No termcap, please get a termcap library!")
-#ENDIF (TERMCAP)
-
 OPTION(WS_PARALLEL "std::par usage, needs TBB" FALSE)
 if (WS_PARALLEL)
     find_package(TBB REQUIRED tbb)
@@ -147,22 +137,6 @@ TARGET_LINK_LIBRARIES( ws_allocate "-L${LINKER_VAR}" ws_common ${Boost_LIBRARIES
 
 
 
-# Get install target
-#set(PROGRAM_PERMISSIONS_DEFAULT
-#    OWNER_WRITE OWNER_READ OWNER_EXECUTE
-#    GROUP_READ GROUP_EXECUTE
-#    WORLD_READ WORLD_EXECUTE)
-#install (FILES bin/ws_extend bin/ws_find bin/ws_list bin/ws_register bin/ws_send_ical DESTINATION bin PERMISSIONS ${PROGRAM_PERMISSIONS_DEFAULT})
-#install(TARGETS
-#      ws_allocate ws_release ws_restore
-#      DESTINATION bin
-#      PERMISSIONS ${PROGRAM_PERMISSIONS_DEFAULT} SETUID)
-#install (FILES sbin/ws_expirer sbin/ws_restore sbin/ws_validate_config DESTINATION sbin PERMISSIONS ${PROGRAM_PERMISSIONS_DEFAULT})
-#
-## Install man pages
-#INSTALL(FILES man/ws_allocate.1 man/ws_find.1 man/ws_register.1
-#              man/ws_restore.1 man/ws_extend.1 man/ws_list.1 man/ws_release.1
-#              man/ws_send_ical.1             DESTINATION share/man/man1)
 
 
 if(BUILD_TESTS)
