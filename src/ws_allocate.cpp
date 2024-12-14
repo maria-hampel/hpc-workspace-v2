@@ -474,7 +474,9 @@ int main(int argc, char **argv) {
     if (!cppfs::is_symlink(user_conf_filename)) {
         // std::ifstream t(user_conf_filename.c_str());
         // user_conf << t.rdbuf();
-        user_conf = utils::getFileContents(user_conf_filename.c_str());
+        if (cppfs::is_regular_file(user_conf_filename)) {
+            user_conf = utils::getFileContents(user_conf_filename.c_str());
+        }
         // FIXME: could be parsed here and passed as object not string
     } else {
         fmt::print(stderr,"Error  : ~/.ws_user.conf can not be symlink!");
