@@ -53,12 +53,13 @@ extern bool traceflag;
 
 // tries to read a list of config files, in given order, can be used to check for /etc/ws.d first and /etc/ws.conf second
 // stops when file can be read, but reads all files in case of directory given
+//  unittest: yes
 Config::Config(const std::vector<cppfs::path> configpathes) {
     // some defaults
     global.dbuid = 0;
     global.dbgid = 0;
     global.maxextensions = 10;
-    global.duration = 100;
+    global.maxduration = 100;
     global.durationdefault = 30;
     global.reminderdefault = 0;
 
@@ -100,14 +101,14 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
     if (!filefound) {
         isvalid = false;
         fmt::println(stderr, "Error  : None of the config file exists!");
-        return;
+    } else {
+        validate();
     }
-    validate();
 
 }
 
 
-// read config from YAML node
+// read config from YAML node (no validation)
 Config::Config(const std::string configstring) {
     readYAML(configstring);
 }
@@ -132,7 +133,7 @@ bool Config::validate() {
         fmt::println(stderr, "Error  : No adminmail in config!");
     }    
     // SPEC:CHANGE: require default workspace
-    if (global.default_workspace.empty()) {
+    if (global.defaultWorkspace.empty()) {
         valid = false;
         fmt::println(stderr, "Error  : No default filesystem in config!");
     }    
@@ -166,9 +167,9 @@ void Config::readYAML(const string yaml) {
     if (config["clustername"]) global.clustername = config["clustername"].as<string>();
     if (config["smtphost"]) global.smtphost = config["smtphost"].as<string>();
     if (config["mail_from"]) global.mail_from= config["mail_from"].as<string>();
-    if (config["default_workspace"]) global.default_workspace = config["default_workspace"].as<string>();  // SPEC:CHANGE accept alias default_workspace
-    if (config["default"]) global.default_workspace = config["default"].as<string>();
-    if (config["duration"]) global.duration = config["duration"].as<int>(); 
+    if (config["default_workspace"]) global.defaultWorkspace = config["default_workspace"].as<string>();  // SPEC:CHANGE accept alias default_workspace
+    if (config["default"]) global.defaultWorkspace = config["default"].as<string>();
+    if (config["duration"]) global.maxduration = config["duration"].as<int>(); 
     if (config["durationdefault"]) global.durationdefault = config["durationdefault"].as<int>(); 
     if (config["reminderdefault"]) global.reminderdefault = config["reminderdefault"].as<int>(); 
     if (config["maxextensions"]) global.maxextensions = config["maxextensions"].as<int>(); 
@@ -323,13 +324,13 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
 
         // global default last
         if (debugflag) {
-            fmt::println(stderr, "global.default_workspace={}", global.default_workspace);
-            fmt::println(stderr, "hasAccess({}, {}, {})={}", user, groups, global.default_workspace,hasAccess(user, groups, global.default_workspace));
-            fmt::println(stderr, "canFind({}, {})={}", validfs, global.default_workspace, canFind(validfs, global.default_workspace));
+            fmt::println(stderr, "global.default_workspace={}", global.defaultWorkspace);
+            fmt::println(stderr, "hasAccess({}, {}, {})={}", user, groups, global.defaultWorkspace,hasAccess(user, groups, global.defaultWorkspace));
+            fmt::println(stderr, "canFind({}, {})={}", validfs, global.defaultWorkspace, canFind(validfs, global.defaultWorkspace));
         }
-        if ((global.default_workspace != "") && hasAccess(user, groups, global.default_workspace) && !canFind(validfs, global.default_workspace) ) {
-            if (debugflag) fmt::print(stderr,"  adding default_workspace <{}>\n", global.default_workspace);
-            validfs.push_back(global.default_workspace);
+        if ((global.defaultWorkspace != "") && hasAccess(user, groups, global.defaultWorkspace) && !canFind(validfs, global.defaultWorkspace) ) {
+            if (debugflag) fmt::print(stderr,"  adding default_workspace <{}>\n", global.defaultWorkspace);
+            validfs.push_back(global.defaultWorkspace);
         }
 
         // now all others with access

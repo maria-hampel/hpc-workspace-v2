@@ -192,7 +192,7 @@ workspaces:
         REQUIRE(config5.isValid() == false);        
     }
 
-
+    // TODO: could use more tests for errors in config file
 
 }
 

@@ -49,10 +49,10 @@ struct Global_config {
     string clustername;             // name of cluster for mails
     string smtphost;                // smtp host for sending mails
     string mail_from;               // sender for mails
-    string default_workspace;       // workspace to use if several are allowed
+    string defaultWorkspace;        // workspace to use if several are allowed
     strings admins;                 // people allowed to see all workspaces
     strings adminmail;              // mail addresses to alert in case of problems
-    int duration;                   // max duration user can choose
+    int maxduration;                // max duration user can choose
     int durationdefault;            // default duration
     int reminderdefault;            // when to send a reminder, 0 no default reminder
     int maxextensions;              // max extensions a user gets
@@ -129,6 +129,7 @@ public:
     long dbgid() const {return global.dbgid;};
     string clustername() const {return global.clustername;};
     int maxextensions() const {return global.maxextensions;};
+    int maxduration() const {return global.maxduration;};
 
 private:
     // read config from YAML string
