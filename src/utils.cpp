@@ -230,4 +230,16 @@ namespace utils {
 		fmt::println("Flags: WS_PARALLEL={}, WS_CAPA={}, WS_ALLOW_USER_DEBUG={}",parallel,capa,userdebug);
 	}
 
+	// we only support C locale, if the used local is not installed on the system
+	// ws_allocate fails, this should be called in all tools
+	//  problem showed with a remote SuSE machine with DE locale, coming through ssh
+	void setCLocal() {
+		setenv("LANG","C",1);
+		setenv("LC_CTYPE","C",1);
+		setenv("LC_ALL","C",1);
+		std::setlocale(LC_ALL, "C");
+		std::locale::global(std::locale("C"));
+		// boost::filesystem::path::imbue(std::locale()); // FIXME: what is this in cpp filesystem?
+	}
+
 }

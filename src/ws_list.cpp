@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
 
     po::variables_map opts;
 
-    // FIXME: locals settiongs as in ws_allocate
+    // locals settiongs to prevent strange effects
+    utils::setCLocal();
 
     // define options
     po::options_description cmd_options( "\nOptions" );

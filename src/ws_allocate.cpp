@@ -438,17 +438,10 @@ int main(int argc, char **argv) {
     po::variables_map opt;
 
 
+    // locals settiongs to prevent strange effects
+    utils::setCLocal();
 
-    // we only support C locale, if the used local is not installed on the system
-    // ws_allocate fails
-    setenv("LANG","C",1);
-    setenv("LC_CTYPE","C",1);
-    setenv("LC_ALL","C",1);
-    std::setlocale(LC_ALL, "C");
-    std::locale::global(std::locale("C"));
-    // boost::filesystem::path::imbue(std::locale()); // FIXME: what is this in cpp filesystem?
-
-    // read config 
+    // find which config files to read
     //   user can change this if no setuid installation OR if root
     auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"}; 
     if (configfile != "") {
@@ -459,9 +452,8 @@ int main(int argc, char **argv) {
         }
     }
 
-    
+    // read the config
     auto config = Config(configfilestoread);
-
 
     reminder = config.reminderdefault();
     durationdefault = config.durationdefault();
