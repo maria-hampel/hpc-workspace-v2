@@ -5,22 +5,25 @@ setup() {
     export ws_name
 }
 
-@test "ws_allocate present" {
-    which ws_allocate
+@test "ws_find present" {
+    which ws_find
 }
 
-@test "ws_allocate print version" {
-    run ws_allocate --version
+# bats test_tags=broken:v1-5-0
+@test "ws_find print version" {
+    run ws_find --version
     assert_output --partial "workspace"
 }
 
-@test "ws_allocate print help" {
-    run ws_allocate --help
+@test "ws_find print help" {
+    run ws_find --help
     assert_output --partial "Usage"
 }
 
-@test "ws_allocate creates directory" {
+@test "ws_find finds directory" {
     wsdir=$(ws_allocate $ws_name)
+    assert_dir_exist $wsdir
+    wsdir=$(ws_find $ws_name)
     assert_dir_exist $wsdir
 }
 
