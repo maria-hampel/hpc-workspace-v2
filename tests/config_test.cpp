@@ -2,8 +2,18 @@
 #include <catch2/catch_test_macros.hpp>
 #include <string>
 
-#include "../src/caps.h"
+#include <filesystem>
+#include <iostream>
 
+namespace fs = std::filesystem;
+
+#include "fmt/core.h"
+#include "fmt/ostream.h"
+
+#include <sys/types.h>
+#include <unistd.h>
+
+#include "../src/caps.h"
 #include "../src/config.h"
 
 
@@ -14,8 +24,182 @@ bool traceflag = false;
 // init caps here, when euid!=uid
 Cap caps{};
 
+////// MULTIPLE FILES ///////
 
-TEST_CASE( "config file", "[config]" ) {
+TEST_CASE("config file: multiple files and order", "[config]") {
+    auto tmpbase = fs::temp_directory_path();
+    auto id = getpid();
+    auto basedirname = tmpbase / fs::path(fmt::format("wstest{}",id));
+
+    fs::create_directories(basedirname / "ws.d");
+
+    // TODO: 
+    //   test for bad configs (no workspaces, no uid etc)
+
+    // create a normal config file, V1 way
+    std::ofstream wsconf(basedirname / "ws.conf"); 
+    fmt::println(wsconf, 
+R"yaml(
+admins: [root]
+clustername: old_ws_conf
+adminmail: [root]
+dbgid: 2
+dbuid: 2
+duration: 10
+maxextensions: 1
+smtphost: mailhost
+default: ws2
+workspaces:
+    ws1:
+        database: /tmp
+        deleted: .removed
+        spaces: [/tmp]
+    ws2:
+        database: /tmp
+        deleted: .removed
+        spaces: [/tmp/ws2-old]
+)yaml"    
+    );
+    wsconf.close();
+
+    // create a bad normal config file, V1 way
+    std::ofstream wsconfbad(basedirname / "ws.conf-bad"); 
+    fmt::println(wsconfbad, 
+R"yaml(
+admins: [root]
+clustername: old_ws_conf
+adminmail: [root]
+duration: 10
+maxextensions: 1
+smtphost: mailhost
+default: ws2
+workspaces:
+    ws1:
+        database: /tmp
+        deleted: .removed
+        spaces: [/tmp]
+    ws2:
+        database: /tmp
+        deleted: .removed
+        spaces: [/tmp/ws2-old]
+)yaml"    
+    );
+    wsconfbad.close();
+
+    // create new style multi file config
+
+    std::ofstream wsconf1(basedirname / "ws.d" / "0-global.conf"); 
+    fmt::println(wsconf1, 
+R"yaml(
+admins: [root]
+clustername: new_ws_conf
+adminmail: [root]
+dbgid: 2
+dbuid: 2
+duration: 10
+smtphost: mailhost
+default: ws2
+)yaml"    
+    );
+    wsconf1.close();
+
+    std::ofstream wsconf2(basedirname / "ws.d" / "1-ws2.conf"); 
+    fmt::println(wsconf2, 
+R"yaml(
+workspaces:
+    ws2:
+        database: /tmp
+        deleted: .removed
+        spaces: [/tmp/ws2]
+)yaml"    
+    );
+    wsconf2.close();
+
+    // write a file first with a name later in sorted list
+    std::ofstream wsconf4(basedirname / "ws.d" / "3-ws3.conf"); 
+    fmt::println(wsconf4, 
+R"yaml(
+workspaces:
+    ws3:
+        database: /tmp
+        deleted: .removed
+        spaces: [/tmp/ws3-overwrite]
+)yaml"    
+    );
+    wsconf4.close();
+
+    std::ofstream wsconf3(basedirname / "ws.d" / "2-ws3.conf"); 
+    fmt::println(wsconf3, 
+R"yaml(
+workspaces:
+    ws3:
+        database: /tmp
+        deleted: .removed
+        spaces: [/tmp/ws3]
+)yaml"    
+    );
+    wsconf3.close();
+
+
+    SECTION("readconfig") {
+        
+        auto config = Config(std::vector<fs::path>{basedirname / "ws.conf"});
+
+        REQUIRE(config.clustername() == "old_ws_conf");
+        REQUIRE(config.dbuid() == 2);
+
+        auto filesystem = config.getFsConfig("ws2");
+        REQUIRE(filesystem.name == "ws2");
+        REQUIRE(filesystem.spaces == vector<string>{"/tmp/ws2-old"});
+        REQUIRE(config.isValid());
+        
+        // check if stop after first file works
+
+        auto config2 = Config(std::vector<fs::path>{
+                                basedirname / "ws.conf",
+                                basedirname / "ws.d"
+                            });
+
+        REQUIRE(config2.clustername() == "old_ws_conf");  
+        REQUIRE(config2.isValid());
+
+
+        // check if multiple files are read and accumulated
+        auto config3 = Config(std::vector<fs::path>{
+                                basedirname / "ws.d",
+                                basedirname / "ws.conf"
+                            });
+
+        REQUIRE(config3.clustername() == "new_ws_conf");  
+        REQUIRE(config3.maxextensions() ==10); // default form code
+        REQUIRE(config3.dbuid() == 2);
+        REQUIRE(config3.dbgid() == 2);
+        auto filesystem2 = config3.getFsConfig("ws2");
+        auto filesystem3 = config3.getFsConfig("ws3");
+        REQUIRE(filesystem2.name == "ws2");
+        REQUIRE(filesystem3.name == "ws3");
+        // check if sorting works
+        REQUIRE(filesystem3.spaces == vector<string>{"/tmp/ws3-overwrite"});
+        REQUIRE(config3.isValid());
+
+        // check validation
+
+        auto config4 = Config(std::vector<fs::path>{basedirname / "ws.conf-bad"});
+        REQUIRE(config4.isValid() == false);        
+
+        // check bad file
+        auto config5= Config(std::vector<fs::path>{basedirname / "invalid-file"});
+        REQUIRE(config5.isValid() == false);        
+    }
+
+
+
+}
+
+
+/////  PERMISSIONS AND ORDER /////
+
+TEST_CASE("config file: permissions and order", "[config]") {
 
     SECTION("canFind") {
         REQUIRE(canFind(std::vector<string>{"a","b"},string("a")) == true);
@@ -30,8 +214,10 @@ TEST_CASE( "config file", "[config]" ) {
         auto config =  Config(std::string(R"(
 default: third
 admins: [e]
-dbuid: 0
-dbgid: 0
+dbuid: 2
+dbgid: 2
+adminmail: [root]
+clustername: test
 workspaces:
     first:
         user_acl: [+a,-b,d]
@@ -75,8 +261,10 @@ filesystems:
     SECTION( "hasAccess") {
         auto config =  Config(std::string(R"(
 admins: [d]
-dbuid: 0
-dbgid: 0
+dbuid: 2
+dbgid: 2
+adminmail: [root]
+clustername: test
 workspaces:
     testacl:
         user_acl: [+a,-b]
@@ -110,8 +298,10 @@ filesystems:
     SECTION("isAdmin") {
         auto config =  Config(std::string(R"(
 admins: [d]
-dbuid: 0
-dbgid: 0
+dbuid: 2
+dbgid: 2
+adminmail: [root]
+clustername: test
 workspaces:
     testacl:
         user_acl: [+a,-b]
@@ -129,5 +319,7 @@ filesystems:
 
         REQUIRE(config.hasAccess("d", std::vector<string>{""},"testacl") == true);
     }
+
+
  }
 

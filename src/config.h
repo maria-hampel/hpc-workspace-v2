@@ -50,13 +50,14 @@ struct Global_config {
     string smtphost;                // smtp host for sending mails
     string mail_from;               // sender for mails
     string default_workspace;       // workspace to use if several are allowed
+    strings admins;                 // people allowed to see all workspaces
+    strings adminmail;              // mail addresses to alert in case of problems
     int duration;                   // max duration user can choose
     int durationdefault;            // default duration
     int reminderdefault;            // when to send a reminder, 0 no default reminder
     int maxextensions;              // max extensions a user gets
     int dbuid;                      // uid of DB user
     int dbgid;                      // gid of DB user
-    strings admins;                 // people allowed to see all workspaces
 };
 
 // config of filesystem
@@ -90,12 +91,20 @@ private:
     // Filesystems
     std::map<string, Filesystem_config> filesystems;  // list of workspace filesystems
 
+    // validation helpers
+    bool validate();
+    bool isvalid;
+
+
 public:
-    // read config from list of files or directories, in given order
+    // read config from list of files or directories, in given order, stops after first existing file
+    // (even if invalid!) but reads all fiels if a directory is given.
     Config(const std::vector<cppfs::path> filenames);
     // read config from string
     Config(const string configstring);
 
+    // check if config is valid
+    bool isValid() {return isvalid;};
 
     // check if user is an admin
     bool isAdmin(const string user);
@@ -107,7 +116,7 @@ public:
     // return DB handle of right version
     Database* openDB(const string fs) const;
 
-    // get config a filesystem
+    // get config of a filesystem
     Filesystem_config getFsConfig(const std::string filesystem) const;
 
     // return path to database for given filesystem
@@ -118,7 +127,8 @@ public:
     int durationdefault() const {return global.durationdefault;};
     long dbuid() const {return global.dbuid;};
     long dbgid() const {return global.dbgid;};
-
+    string clustername() const {return global.clustername;};
+    int maxextensions() const {return global.maxextensions;};
 
 private:
     // read config from YAML string

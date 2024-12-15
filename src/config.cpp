@@ -51,22 +51,34 @@ extern bool debugflag;
 extern bool traceflag;
 
 
-// read a list of config files, in given order, can be used to check for /etc/ws.d first and /etc/ws.conf second
+// tries to read a list of config files, in given order, can be used to check for /etc/ws.d first and /etc/ws.conf second
+// stops when file can be read, but reads all files in case of directory given
 Config::Config(const std::vector<cppfs::path> configpathes) {
+    // some defaults
+    global.dbuid = 0;
+    global.dbgid = 0;
+    global.maxextensions = 10;
+    global.duration = 100;
+    global.durationdefault = 30;
+    global.reminderdefault = 0;
+
+    bool filefound = false;
+
     for(const auto &configpath: configpathes) {
         if (cppfs::exists(configpath)) {
+            filefound = true;
             if (cppfs::is_regular_file(configpath)) {
                 if (debugflag) fmt::println("Info   : Reading config file {}", configpath.string());
                 string yaml = utils::getFileContents(configpath);
                 readYAML(yaml);
             } else if (cppfs::is_directory(configpath)) {
+                if (debugflag) fmt::println("Info   : Reading config directory {}", configpath.string());
 
+                // sort pathes
                 std::vector<std::string> pathesToSort;
-
                 for (const auto& entry : cppfs::directory_iterator(configpath)) {
                     pathesToSort.push_back(entry.path().string());
                 }
-
                 std::sort(pathesToSort.begin(), pathesToSort.end());
 
                 for(const auto &cfile: pathesToSort) {
@@ -81,36 +93,92 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
                 fmt::println(stderr, "Info   : Unexpected filetype of {}", configpath.string());
                 exit(-1); // bail out, someone is messing around
             }
+            break; // stop after first file
         }
     }
+
+    if (!filefound) {
+        isvalid = false;
+        fmt::println(stderr, "Error  : None of the config file exists!");
+        return;
+    }
+    validate();
+
 }
+
 
 // read config from YAML node
 Config::Config(const std::string configstring) {
     readYAML(configstring);
 }
 
+// validate config, return false if invalid 
+bool Config::validate() {
+    bool valid = true;
+    if (global.dbuid==0) {
+        valid = false;
+        fmt::println(stderr, "Error  : No dbuid in config!");
+    }
+    if (global.dbgid==0) {
+        valid = false;
+        fmt::println(stderr, "Error  : No dbgid in config!");
+    }
+    if (global.clustername.empty()) {
+        valid = false;
+        fmt::println(stderr, "Error  : No clustername in config!");
+    }
+    if (global.adminmail.empty()) {
+        valid = false;
+        fmt::println(stderr, "Error  : No adminmail in config!");
+    }    
+    // SPEC:CHANGE: require default workspace
+    if (global.default_workspace.empty()) {
+        valid = false;
+        fmt::println(stderr, "Error  : No default filesystem in config!");
+    }    
+    if (filesystems.empty()) {
+        valid = false;
+        fmt::println(stderr, "Error  : No filesystems in config!");        
+    }
+
+    for (auto const &[fsname, fsdata]: filesystems) {
+        if (fsdata.spaces.empty()) {
+            valid = false;
+            fmt::println(stderr, "Error  : No spaces in filesystem <> in config!", fsname);      
+        }
+        if (fsdata.database.empty()) {
+            valid = false;
+            fmt::println(stderr, "Error  : No database path in filesystem <> in config!", fsname);      
+        }
+        if (fsdata.deletedPath.empty()) {
+            valid = false;
+            fmt::println(stderr, "Error  : No deleted name in filesystem <> in config!", fsname);      
+        }
+    }
+    isvalid = valid;
+    return valid;
+}
+
 // parse YAML from a string (using yaml-cpp)
 void Config::readYAML(const string yaml) {
     auto config = YAML::Load(yaml);
     // global flags
-    bool valid = true;
     if (config["clustername"]) global.clustername = config["clustername"].as<string>();
     if (config["smtphost"]) global.smtphost = config["smtphost"].as<string>();
     if (config["mail_from"]) global.mail_from= config["mail_from"].as<string>();
-    if (config["default_workspace"]) global.default_workspace = config["default_workspace"].as<string>();  // SPEC:CHANGE accept a;ias default_workspace
+    if (config["default_workspace"]) global.default_workspace = config["default_workspace"].as<string>();  // SPEC:CHANGE accept alias default_workspace
     if (config["default"]) global.default_workspace = config["default"].as<string>();
-    if (config["duration"]) global.duration = config["duration"].as<int>(); else global.duration = 30;
-    if (config["durationdefault"]) global.durationdefault = config["durationdefault"].as<int>(); else global.durationdefault = 1;
-    if (config["reminderdefault"]) global.reminderdefault = config["reminderdefault"].as<int>(); else global.reminderdefault = 0;
-    if (config["maxextensions"]) global.maxextensions = config["maxextensions"].as<int>(); else global.maxextensions = 100;
-    if (config["dbuid"]) global.dbuid = config["dbuid"].as<int>(); else {fmt::print(stderr, "Error  : no db uid in config\n"); valid=false;}
-    if (config["dbgid"]) global.dbgid = config["dbgid"].as<int>(); else {fmt::print(stderr, "Error  : no db gid in config\n"); valid=false;}
+    if (config["duration"]) global.duration = config["duration"].as<int>(); 
+    if (config["durationdefault"]) global.durationdefault = config["durationdefault"].as<int>(); 
+    if (config["reminderdefault"]) global.reminderdefault = config["reminderdefault"].as<int>(); 
+    if (config["maxextensions"]) global.maxextensions = config["maxextensions"].as<int>(); 
+    if (config["dbuid"]) global.dbuid = config["dbuid"].as<int>(); 
+    if (config["dbgid"]) global.dbgid = config["dbgid"].as<int>(); 
     if (config["admins"]) global.admins = config["admins"].as<vector<string>>();
+    if (config["adminmail"]) global.adminmail = config["admins"].as<vector<string>>();
 
     // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
     if (config["workspaces"] || config["filesystems"]) {
-        // auto list = config["workspaces"] ? config["workspaces"] : config["filesystems"];
         for(auto key: std::vector<string>{"workspaces","filesystems"}) {
             if (config[key]) { 
 
@@ -121,10 +189,10 @@ void Config::readYAML(const string yaml) {
                     fs.name = it.first.as<string>();
                     if (debugflag) fmt::print(stderr, "debug: config, reading workspace {}\n", fs.name);
                     auto ws=it.second;
-                    if (ws["spaces"]) fs.spaces = ws["spaces"].as<vector<string>>(); else {fmt::print(stderr, "Error  : no spaces path for {}\n", fs.name); valid=false;}
+                    if (ws["spaces"]) fs.spaces = ws["spaces"].as<vector<string>>(); 
                     if (ws["spaceselection"]) fs.spaceselection = ws["spaceselection"].as<string>(); else fs.spaceselection = "random";
-                    if (ws["deleted"]) fs.deletedPath = ws["deleted"].as<string>(); else {fmt::print(stderr, "Error  : no deleted path for {}\n", fs.name); valid=false;}
-                    if (ws["database"]) fs.database = ws["database"].as<string>(); else {fmt::print(stderr, "Error  : no database path for {}\n", fs.name); valid=false;}
+                    if (ws["deleted"]) fs.deletedPath = ws["deleted"].as<string>(); 
+                    if (ws["database"]) fs.database = ws["database"].as<string>();
                     if (ws["groupdefault"]) fs.groupdefault = ws["groupdefault"].as<vector<string>>();
                     if (ws["userdefault"]) fs.userdefault = ws["userdefault"].as<vector<string>>();
                     if (ws["user_acl"]) fs.user_acl = ws["user_acl"].as<vector<string>>();
@@ -139,15 +207,7 @@ void Config::readYAML(const string yaml) {
                 }
             }
         }
-    } else {
-        fmt::print(stderr, "Error  : no workspaces in config!\n"); valid=false;
     }
-
-    if (!valid) {
-        fmt::print(stderr, "Error  : invalid config!\n");
-        exit(-1);
-    }
-    // FIXME add unit test for validator
 }
 
 // is user admin?
@@ -316,7 +376,7 @@ Filesystem_config Config::getFsConfig(const std::string filesystem) const {
     try {
         return filesystems.at(filesystem);
     } catch (const std::out_of_range &e) {
-        fmt::print(stderr, "no filesystem given in getFsConfig(), should not happen\n");
+        fmt::print(stderr, "no valid filesystem ({}) given in getFsConfig(), should not happen\n", filesystem);
         exit(-1); // should not be reached
     }
 }
