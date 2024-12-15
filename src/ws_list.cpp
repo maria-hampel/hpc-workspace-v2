@@ -187,6 +187,10 @@ int main(int argc, char **argv) {
     }
 
     auto config = Config(configfilestoread);
+    if (!config.isValid()) {
+        fmt::println(stderr, "Error  : No valid config file found!");
+        exit(-2);
+    }
 
 
     // root and admins can choose usernames

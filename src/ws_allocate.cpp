@@ -454,6 +454,10 @@ int main(int argc, char **argv) {
 
     // read the config
     auto config = Config(configfilestoread);
+    if (!config.isValid()) {
+        fmt::println(stderr, "Error  : No valid config file found!");
+        exit(-2);
+    }
 
     reminder = config.reminderdefault();
     durationdefault = config.durationdefault();
