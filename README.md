@@ -75,16 +75,16 @@ bats
  
 ## Todo
 
-- [ ] move from single file ws.conf to multifile ws.d
+- [x] move from single file ws.conf to multifile ws.d
 - [ ] migrate config from yaml-cpp to ryaml and remove yaml-cpp dependency
 - [x] move to compiletime+runtime detected capability/setuid/usermode switch (usermode is for testing mainly, does not elevate privileges)
 - [ ] add more unit tests to existing code
-- [ ] build a better test framework for the tools
+- [ ] build/select a better test framework for the tools
 - [ ] debug what is there
 - [ ] migrate more tools: finish ws_allocate, migrate ws_release, ws_restore, ws_find, ws_expirer, ws_validate
 - [ ] add tests for new tools
 - [ ] debug what is there
-- [ ] get CMake setup in better shape
+- [x] get CMake setup in better shape
 - [ ] migrate and check/correct/add documentation, guides and man pages
 - [ ] test with more compilers and distributions
 - [ ] do real live tests
