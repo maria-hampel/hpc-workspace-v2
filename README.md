@@ -2,7 +2,7 @@
 
 This is the construction site of next major version of hpc-workspace++ tool.
 
-**DO NOT USE - it does not work - it is incomplete - it might even not compiler - it might eat your dog**
+**DO NOT USE - it does not work - it is incomplete - it might even not compile - it might eat your dog**
 
 This is very rough and not ment for usage, and I will for the time being also
 not expect or accept contributions, until some things are settled.
@@ -16,9 +16,11 @@ The codebase got harder and scarier to maintain and needs a major cleanup and mo
 - Separation of configuration and database implementation from the client tools
 is the first goal.
 
-- Better Testing is the second goal.
+- Better testing is the second goal.
 
 - It is likely that all python tools will be replaced with C++ tools on the long run.
+
+- backwards compatibility will be maintained, might have some restrictions.
 
 Functional extension is possible after this is achieved.
 
@@ -26,13 +28,28 @@ Functional extension is possible after this is achieved.
 
 at the moment main development platform is
 
-- gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
-- Description:    Ubuntu 22.04.5 LTS
+- Ubuntu 22.04.5 LTS
+- CMake 3.22.1
+- gcc 11.4.0
 
 future test platforms:
 
+- Ubuntu 22.04.5 LTS
+- CMake 3.22.1
+- gcc 11.4.0
+- clang 14.0.0
+
 - Ubuntu 23.4 LTS
-- Rocky Linux 9.4+
+- CMake 3.28.3
+- gcc 13.3.0
+- clang 18.1.3
+
+- Rocky linux 8.10
+- CMake 3.26.5
+- gcc 8.5.0
+
+
+this list can be extended.
 
 no intention to support old platforms like centos7, but it might work.
 
@@ -44,8 +61,12 @@ yaml-cpp (to be removed)
 {fmt} 
 rapidyaml
 boost program_options + boost system
-Catch2 (if tests are used)
 Guidelines Support Library (GSL)
+
+for testing:
+
+Catch2 
+bats
 
 ## Status
 
