@@ -60,6 +60,8 @@ public:
     void raise_cap(int cap, utils::SrcPos);
 
     bool isSetuid() {return issetuid;};
+    bool hasCaps() {return hascaps;};
+    bool isUserMode() {return isusermode;};
 };
 
 
