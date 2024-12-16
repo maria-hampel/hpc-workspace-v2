@@ -35,6 +35,13 @@
 #include "fmt/base.h"
 #include "fmt/ranges.h"
 
+#define RYML_USE_ASSERT 0 
+#include "ryml.hpp"
+#include "ryml_std.hpp" 
+#include "c4/format.hpp" 
+#include "c4/std/std.hpp"
+
+
 #include "config.h"
 #include "db.h"
 #include "dbv1.h"
@@ -160,8 +167,85 @@ bool Config::validate() {
     return valid;
 }
 
+
+// helper to read a sequence of strings from a yaml node 
+static void readRyamlSequence(const ryml::NodeRef parent, const std::string key, std::vector<std::string>&target) {
+    if (parent.has_child(key.c_str())) {
+        auto node = parent[key.c_str()];
+        for(auto n: node.children()) {
+            target.push_back(  {n.val().str, n.val().len} );  // c4::cstr -> std::string
+        }
+    }
+}
+
 // parse YAML from a string (using yaml-cpp)
-void Config::readYAML(const string yaml) {
+void Config::readYAML(string yamlstr) {
+
+    ryml::Tree config = ryml::parse_in_place(ryml::to_substr(yamlstr));  // FIXME: error check?
+    ryml::NodeRef node;
+
+    // TODO: type checks if nodes are of right type?
+
+    // global flags
+
+    if (node=config["clustername"]; node.has_val()) node>>global.clustername;
+    if (node=config["smtphost"]; node.has_val()) node>>global.smtphost;
+    if (node=config["mail_from"]; node.has_val()) node>>global.mail_from;
+    if (node=config["default_workspace"]; node.has_val()) node>>global.defaultWorkspace; // SPEC:CHANGE: accept alias
+    if (node=config["default"]; node.has_val()) node>>global.defaultWorkspace;
+    if (node=config["duration"]; node.has_val()) node>>global.maxduration;
+    if (node=config["durationdefault"]; node.has_val()) node>>global.durationdefault; 
+    if (node=config["reminderdefault"]; node.has_val()) node>>global.reminderdefault; 
+    if (node=config["maxextensions"]; node.has_val()) node>>global.maxextensions; 
+    if (node=config["dbuid"]; node.has_val()) node>>global.dbuid; 
+    if (node=config["dbgid"]; node.has_val()) node>>global.dbgid; 
+    readRyamlSequence(config, "admins", global.admins);
+    readRyamlSequence(config, "adminmail", global.adminmail);
+
+    // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
+
+   ryml::NodeRef root = config.rootref();
+   if (root.has_child("workspaces") || root.has_child("filesystems")) {
+        for(auto key: vector<const char*>{"workspaces","filesystems"}) {
+            if (root.has_child(key)) { 
+
+                auto list = root[key];
+
+                for(auto it: list.children()) {
+                    Filesystem_config fs;
+                    auto name = it.key();
+                    fs.name = {name.str, name.len}; // c4::string -> std::string
+                    
+                    if (debugflag) fmt::print(stderr, "debug: config, reading workspace {}\n", fs.name);
+
+                    auto ws=it[fs.name.c_str()];
+                    if (node=ws["deleted"]; node.has_val()) node>>fs.deletedPath;
+                    if (node=ws["spaceselection"]; node.has_val()) node>>fs.spaceselection;
+                    if (node=ws["database"]; node.has_val()) node>>fs.database;
+                    if (node=ws["keeptime"]; node.has_val()) node>>fs.keeptime;
+                    if (node=ws["maxduration"]; node.has_val()) node>>fs.maxduration;
+                    if (node=ws["maxextensions"]; node.has_val()) node>>fs.maxextensions;
+                    if (node=ws["allocatable"]; node.has_val()) node>>fs.allocatable;
+                    if (node=ws["extendable"]; node.has_val()) node>>fs.extendable;
+                    if (node=ws["restorable"]; node.has_val()) node>>fs.restorable;
+
+                    readRyamlSequence(ws, "spaces", fs.spaces);
+                    readRyamlSequence(ws, "groupdefault", fs.groupdefault);
+                    readRyamlSequence(ws, "userdefault", fs.userdefault);
+                    readRyamlSequence(ws, "user_acl", fs.user_acl);
+                    readRyamlSequence(ws, "group_acl", fs.group_acl);
+
+                    filesystems[fs.name] = fs;
+                }
+            }
+        }
+    }
+}
+
+
+/*
+// parse YAML from a string (using yaml-cpp)
+void Config::readYAML_yaml_cpp(const string yaml) {
     auto config = YAML::Load(yaml);
     // global flags
     if (config["clustername"]) global.clustername = config["clustername"].as<string>();
@@ -210,6 +294,8 @@ void Config::readYAML(const string yaml) {
         }
     }
 }
+*/
+
 
 // is user admin?
 // unittest: yes
