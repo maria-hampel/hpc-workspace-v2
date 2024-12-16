@@ -28,7 +28,7 @@
  */
 
 
-#include <stdlib.h>
+#include <cstdlib>
 
 
 #include "fmt/base.h"
