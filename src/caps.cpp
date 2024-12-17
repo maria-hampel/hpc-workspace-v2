@@ -9,6 +9,7 @@
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
+ *  (c) Christoph Niethammer 2024
  * 
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -28,7 +29,7 @@
  */
 
 
-#include <stdlib.h>
+#include <cstdlib>
 
 
 #include "fmt/base.h"
@@ -49,7 +50,8 @@ Cap::Cap() {
         // traceflag = true;
     if (traceflag) fmt::println(stderr, "Trace  : Cap::Cap()");
     if (debugflag) fmt::println(stderr, "euid={}, uid={}", geteuid(), getuid());
-    if (user::isSetuid()) issetuid = true; else issetuid = false;
+
+    issetuid = user::isSetuid();
     hascaps = false;
     isusermode = false;
 
@@ -57,21 +59,25 @@ Cap::Cap() {
     cap_t caps, oldcaps;
     cap_value_t cap_list[1];
 
-    oldcaps = caps = cap_get_proc();
+    caps = cap_get_proc();
+    oldcaps = cap_dup(caps);
 
     cap_list[0] = CAP_DAC_OVERRIDE;  // this has to be set for all executables using this!
 
     if (cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, CAP_SET) == -1) {
         fmt::print(stderr, "Error  : problem with capabilities, should not happen\n");
+        cap_free(caps);
+        cap_free(oldcaps);
         exit(1);
     }
 
-    if (cap_set_proc(caps) != -1) {
+    if (cap_set_proc(caps) == 0) {
         hascaps = true;
         cap_set_proc(oldcaps);
     }
 
     cap_free(caps);
+    cap_free(oldcaps);
 #endif
 
     if (!issetuid && !hascaps) isusermode = true;
@@ -92,7 +98,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 #ifdef WS_CAPA
     if(hascaps) {
         cap_t caps;
-        cap_value_t cap_list[1];
+        cap_value_t cap_list[cap_arg.size()];
 
         int arg=0;
         for(const auto &ca: cap_arg) {
@@ -106,11 +112,14 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
             exit(1);
         }
 
-        if (cap_set_proc(caps) == -1) {
+        if (cap_set_proc(caps) != 0) {
             fmt::print(stderr, "Error  : problem dropping capabilities.\n");
             cap_t cap = cap_get_proc();
-            fmt::print(stderr, "Info   : running with capabilities: {}\n", cap_to_text(cap, NULL));
+            char * cap_text = cap_to_text(cap, NULL);
+            fmt::print(stderr, "Info   : running with capabilities: {}\n", cap_text);
+            cap_free(cap_text);
             cap_free(cap);
+            cap_free(caps);
             exit(1);
         }
 
@@ -128,7 +137,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 }
 
 // remove a capability from the effective set
-void Cap::lower_cap(int cap, int dbuid, utils::SrcPos srcpos)
+void Cap::lower_cap(cap_value_t cap, int dbuid, utils::SrcPos srcpos)
 {
 #ifdef WS_CAPA
     if(hascaps) {   
