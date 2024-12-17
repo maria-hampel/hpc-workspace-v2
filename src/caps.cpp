@@ -115,7 +115,9 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
         if (cap_set_proc(caps) != 0) {
             fmt::print(stderr, "Error  : problem dropping capabilities.\n");
             cap_t cap = cap_get_proc();
-            fmt::print(stderr, "Info   : running with capabilities: {}\n", cap_to_text(cap, NULL));
+            char * cap_text = cap_to_text(cap, NULL);
+            fmt::print(stderr, "Info   : running with capabilities: {}\n", cap_text);
+            cap_free(cap_text);
             cap_free(cap);
             cap_free(caps);
             exit(1);
