@@ -66,6 +66,8 @@ Cap::Cap() {
 
     if (cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, CAP_SET) == -1) {
         fmt::print(stderr, "Error  : problem with capabilities, should not happen\n");
+        cap_free(caps);
+        cap_free(oldcaps);
         exit(1);
     }
 
@@ -115,6 +117,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
             cap_t cap = cap_get_proc();
             fmt::print(stderr, "Info   : running with capabilities: {}\n", cap_to_text(cap, NULL));
             cap_free(cap);
+            cap_free(caps);
             exit(1);
         }
 
