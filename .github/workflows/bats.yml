@@ -1,0 +1,68 @@
+name: "Bats CLI tests"
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  # allow manual triggering of the workflow in the github UI
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: CLI tests
+    runs-on: 'ubuntu-24.04'
+    permissions:
+      # required for all workflows
+      security-events: write
+
+      # required to fetch internal or private CodeQL packs
+      packages: read
+
+      # only required for workflows in private repositories
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        cmake_preset: ["debug", "release"]
+
+    steps:
+    - name: Install additional OS package dependencies to build hpc-workspace
+      run: |
+        sudo apt install \
+          libboost-system-dev \
+          libboost-program-options-dev \
+          libcap-dev
+
+    - name: Install Bats and its support libraries for testing
+      # for the moment continue if we fail installing the support libraries bats-assert and bats-file
+      continue-on-error: true
+      run: |
+        sudo apt update
+        sudo apt install \
+          bats \
+          bats-assert \
+          bats-file
+      
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Fetch external sources
+      run: |
+        cd external
+        ./get_externals.sh
+
+    - name: Configure and build code
+      run: |
+        cmake --preset ${{ matrix.cmake_preset }}
+        cmake --build --preset ${{ matrix.cmake_preset }}
+
+    - name: Run bats non-sudo tests
+      run: |
+        bats --filter-tags \!sudo  bats/test/
+
+    - name: Run bats sudo tests
+      run: |
+        sudo bats --filter-tags sudo  bats/test/
