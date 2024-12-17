@@ -69,7 +69,7 @@ Cap::Cap() {
         exit(1);
     }
 
-    if (cap_set_proc(caps) != -1) {
+    if (cap_set_proc(caps) == 0) {
         hascaps = true;
         cap_set_proc(oldcaps);
     }
@@ -110,7 +110,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
             exit(1);
         }
 
-        if (cap_set_proc(caps) == -1) {
+        if (cap_set_proc(caps) != 0) {
             fmt::print(stderr, "Error  : problem dropping capabilities.\n");
             cap_t cap = cap_get_proc();
             fmt::print(stderr, "Info   : running with capabilities: {}\n", cap_to_text(cap, NULL));
