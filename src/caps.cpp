@@ -9,6 +9,7 @@
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
+ *  (c) Christoph Niethammer 2024
  * 
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -58,7 +59,8 @@ Cap::Cap() {
     cap_t caps, oldcaps;
     cap_value_t cap_list[1];
 
-    oldcaps = caps = cap_get_proc();
+    caps = cap_get_proc();
+    oldcaps = cap_dup(caps);
 
     cap_list[0] = CAP_DAC_OVERRIDE;  // this has to be set for all executables using this!
 
@@ -73,6 +75,7 @@ Cap::Cap() {
     }
 
     cap_free(caps);
+    cap_free(oldcaps);
 #endif
 
     if (!issetuid && !hascaps) isusermode = true;
