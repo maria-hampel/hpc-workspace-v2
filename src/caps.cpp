@@ -96,7 +96,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 #ifdef WS_CAPA
     if(hascaps) {
         cap_t caps;
-        cap_value_t cap_list[1];
+        cap_value_t cap_list[cap_arg.size()];
 
         int arg=0;
         for(const auto &ca: cap_arg) {
