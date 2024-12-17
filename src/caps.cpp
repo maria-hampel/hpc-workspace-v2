@@ -132,7 +132,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 }
 
 // remove a capability from the effective set
-void Cap::lower_cap(int cap, int dbuid, utils::SrcPos srcpos)
+void Cap::lower_cap(cap_value_t cap, int dbuid, utils::SrcPos srcpos)
 {
 #ifdef WS_CAPA
     if(hascaps) {   
