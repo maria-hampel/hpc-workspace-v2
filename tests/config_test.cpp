@@ -24,6 +24,52 @@ bool traceflag = false;
 // init caps here, when euid!=uid
 Cap caps{};
 
+////// user config //////
+
+TEST_CASE("user config file", "[userconfig]") {
+    std::string userconf =
+R"yaml(
+mail: address@mail.com
+reminder: 1
+groupname: beatles
+)yaml";
+
+    UserConfig uc(userconf);
+
+    // check valid email
+    REQUIRE( uc.getMailaddress() == "address@mail.com");
+    // check string
+    REQUIRE( uc.getGroupname() == "beatles");
+    // check if default is used for missing entries
+    REQUIRE( uc.getDuration() == -1);
+    // check int
+    REQUIRE( uc.getReminder() == 1);
+
+    // check old format, no yaml
+userconf =
+R"yaml(address@mail.com
+)yaml";    
+
+    UserConfig uc2(userconf);
+
+    REQUIRE( uc2.getMailaddress() == "address@mail.com");
+
+    userconf =
+R"yaml(
+mail: address@mail.com@
+reminder: 1
+groupname: beatles
+)yaml";
+
+    UserConfig uc3(userconf);
+
+    // check valid email
+    REQUIRE( uc3.getMailaddress() == "");
+
+
+}
+
+
 ////// MULTIPLE FILES ///////
 
 TEST_CASE("config file: multiple files and order", "[config]") {
@@ -323,3 +369,86 @@ filesystems:
 
  }
 
+TEST_CASE("config file: full sample", "[config]") {
+
+auto config =  Config(std::string(R"(
+# this file illustrates and documents the workspace++ config files
+# use ws_validate_config to validate a config file
+clustername: aName              # mandatory, a name to identify the system
+smtphost: localhost             # mandatory, a host accepting smtp connections to send emails
+mail_from: noreply@mydomain.de  # sender address for reminders
+default: lustre                 # mandatory, the default workspace to choose
+duration: 10                    # mandatory, the max duration in days, if not specified in workspace
+durationdefault: 1              # optional, if user does not give duration, this will be used
+reminderdefault: 2              # optional, if set, users will always get mail, in doubt local mail to username
+maxextensions: 1                # mandatory, the number of extensions, if not specified in workspace
+pythonpath: /path/to/my/python  # optional, path which is appended to python search path for ws_list and other pythons scripts to find yaml
+dbuid: 9999                     # mandatory
+dbgid: 9999                     # mandatory
+admins: [root]                  # list of admin users, for ws_list
+adminmail: [root@localhost.com] # mail addresses for admins, used by ws_expirer to alert about bad situations
+deldir_timeout: 3600            # maximum time in secs to delete a single workspace.
+workspaces:                     # now the list of the workspaces
+  lustre:                       # name of workspace as shown with ws_list -l
+    keeptime: 1                 # mandatory, time in days to keep workspaces after they expired
+    spaces: [/lustre1/ws, /lustre2/ws]  # mandatory, list of directories
+    spaceselection: random      # "random" (default), "uid" (uid%#spaces), "gid" (gid%#spaces), "mostspace"
+    deleted: .removed           # mandatory, will be appended to spaces and database 
+                                # to move deleted files to
+    database: /lustre-db        # mandatory, the DB directory, this is where DB files will end
+    duration: 30                # max duration, overwrites global value
+    groupdefault: [inst1,inst2] # users of those groups will have this workspace as default
+    userdefault: [user1]        # those users will have this workspace as default
+    user_acl: [user1]           # as soon as user_acl or group_acl exist, 
+                                # the workspace is access restricted to those users/groups listed
+    group_acl: [adm]
+    maxextensions: 5            # maximum extensions allowed
+    allocatable: yes             # do not allow new allocations in this workspace if no
+    extendable: no              # do not allow extensions in this workspace if no
+    restorable: no              # do not allow restores from this workspace if no
+  nfs:                          # second workspace, minimum example
+    keeptime: 2                 # mandatory, time in days to keep workspaces after they expired
+    database: /nfs-db
+    spaces: [/nfs1/ws]
+    deleted: .trash
+)"));
+
+    SECTION("canFind") {
+
+
+        REQUIRE(config.clustername() == "aName");  
+        REQUIRE(config.smtphost() == "localhost");
+        REQUIRE(config.mailfrom() == "noreply@mydomain.de");
+        REQUIRE(config.defaultworkspace() == "lustre");
+        REQUIRE(config.maxduration() == 10);
+        REQUIRE(config.durationdefault() == 1);
+        REQUIRE(config.reminderdefault() == 2);
+        REQUIRE(config.maxextensions() ==1);
+        REQUIRE(config.dbuid() == 9999);
+        REQUIRE(config.dbgid() == 9999);
+        REQUIRE(config.admins() == vector<string>{"root"});
+        REQUIRE(config.adminmail() == vector<string>{"root@localhost.com"});
+
+        auto filesystem1 = config.getFsConfig("lustre");
+        auto filesystem2 = config.getFsConfig("nfs");
+        REQUIRE(filesystem1.name == "lustre");
+        REQUIRE(filesystem2.name == "nfs");
+
+        REQUIRE(filesystem1.keeptime == 1);
+        REQUIRE(filesystem1.spaces == vector<string>{"/lustre1/ws", "/lustre2/ws"});
+        REQUIRE(filesystem1.spaceselection == "random");
+        REQUIRE(filesystem1.database == "/lustre-db");
+        REQUIRE(filesystem1.maxduration == 30);
+        REQUIRE(filesystem1.groupdefault == vector<string>{"inst1","inst2"});
+        REQUIRE(filesystem1.userdefault == vector<string>{"user1"});
+        REQUIRE(filesystem1.user_acl == vector<string>{"user1"});
+        REQUIRE(filesystem1.group_acl == vector<string>{"adm"});
+        REQUIRE(filesystem1.maxextensions == 5);
+        REQUIRE(filesystem1.allocatable == true);
+        REQUIRE(filesystem1.extendable == false);
+        REQUIRE(filesystem1.restorable == false);
+
+
+        REQUIRE(config.isValid());
+    }
+}
