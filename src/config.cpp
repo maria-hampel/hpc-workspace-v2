@@ -31,9 +31,19 @@
 #include <vector>
 #include <algorithm>
 
-#include "yaml-cpp/yaml.h"
+
 #include "fmt/base.h"
 #include "fmt/ranges.h"
+
+#ifdef WS_RAPIDYAML_CONFIG
+    #define RYML_USE_ASSERT 0 
+    #include "ryml.hpp"
+    #include "ryml_std.hpp" 
+    #include "c4/format.hpp" 
+    #include "c4/std/std.hpp"
+#else
+    #include "yaml-cpp/yaml.h"
+#endif
 
 #include "config.h"
 #include "db.h"
@@ -160,6 +170,95 @@ bool Config::validate() {
     return valid;
 }
 
+#ifdef RYAML
+// helper to read a sequence of strings from a yaml node 
+static void readRyamlSequence(const ryml::NodeRef parent, const std::string key, std::vector<std::string>&target) {
+    if (parent.has_child(key.c_str())) {
+        auto node = parent[key.c_str()];
+        for(auto n: node.children()) {
+            target.push_back(  {n.val().str, n.val().len} );  // c4::cstr -> std::string
+        }
+    }
+}
+
+template <typename T>
+static void readRyamlScalar(ryml::Tree config, const char* key, T &target) {
+    ryml::NodeRef root = config.rootref();
+    if (root.has_child(key)) {
+        auto node = config[key]; node>>target;
+    }    
+}
+
+// parse YAML from a string (using yaml-cpp)
+void Config::readYAML(string yamlstr) {
+
+    ryml::Tree config = ryml::parse_in_place(ryml::to_substr(yamlstr));  // FIXME: error check?
+    ryml::NodeRef root = config.rootref();
+    ryml::NodeRef node;
+
+    // TODO: type checks if nodes are of right type?
+
+    // global flags
+
+    readRyamlScalar(config, "clustername", global.clustername);
+    readRyamlScalar(config, "smtphost", global.smtphost);
+    readRyamlScalar(config, "mail_from", global.mail_from);
+    readRyamlScalar(config, "default_workspace", global.defaultWorkspace); // SPEC:CHANGE: accept alias
+    readRyamlScalar(config, "default", global.defaultWorkspace);
+    readRyamlScalar(config, "duration", global.maxduration);
+    readRyamlScalar(config, "durationdefault", global.durationdefault);
+    readRyamlScalar(config, "reminderdefault", global.reminderdefault);
+    readRyamlScalar(config, "maxextensions", global.maxextensions);
+    readRyamlScalar(config, "dbuid", global.dbuid);
+    readRyamlScalar(config, "dbgid", global.dbgid);
+
+    readRyamlSequence(config, "admins", global.admins);
+    readRyamlSequence(config, "adminmail", global.adminmail);
+
+    // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
+
+  
+   if (root.has_child("workspaces") || root.has_child("filesystems")) {
+        for(auto key: vector<const char*>{"workspaces","filesystems"}) {
+            if (root.has_child(key)) { 
+
+                auto list = root[key];
+
+                for(auto it: list.children()) {
+                    Filesystem_config fs;
+                    auto name = it.key();
+                    fs.name = {name.str, name.len}; // c4::string -> std::string
+                    
+                    if (debugflag) fmt::print(stderr, "debug: config, reading workspace {}\n", fs.name);
+
+                    auto ws=it[fs.name.c_str()];
+
+                    if (node=ws["deleted"]; node.has_val()) node>>fs.deletedPath;
+                    if (node=ws["spaceselection"]; node.has_val()) node>>fs.spaceselection;
+                    if (node=ws["database"]; node.has_val()) node>>fs.database;
+                    if (node=ws["keeptime"]; node.has_val()) node>>fs.keeptime;
+                    if (node=ws["maxduration"]; node.has_val()) node>>fs.maxduration;
+                    if (node=ws["maxextensions"]; node.has_val()) node>>fs.maxextensions;
+                    if (node=ws["allocatable"]; node.has_val()) node>>fs.allocatable;
+                    if (node=ws["extendable"]; node.has_val()) node>>fs.extendable;
+                    if (node=ws["restorable"]; node.has_val()) node>>fs.restorable;
+
+                    readRyamlSequence(ws, "spaces", fs.spaces);
+                    readRyamlSequence(ws, "groupdefault", fs.groupdefault);
+                    readRyamlSequence(ws, "userdefault", fs.userdefault);
+                    readRyamlSequence(ws, "user_acl", fs.user_acl);
+                    readRyamlSequence(ws, "group_acl", fs.group_acl);
+
+                    filesystems[fs.name] = fs;
+                }
+            }
+        }
+    }
+}
+
+#else
+
+
 // parse YAML from a string (using yaml-cpp)
 void Config::readYAML(const string yaml) {
     auto config = YAML::Load(yaml);
@@ -176,7 +275,7 @@ void Config::readYAML(const string yaml) {
     if (config["dbuid"]) global.dbuid = config["dbuid"].as<int>(); 
     if (config["dbgid"]) global.dbgid = config["dbgid"].as<int>(); 
     if (config["admins"]) global.admins = config["admins"].as<vector<string>>();
-    if (config["adminmail"]) global.adminmail = config["admins"].as<vector<string>>();
+    if (config["adminmail"]) global.adminmail = config["adminmail"].as<vector<string>>();
 
     // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
     if (config["workspaces"] || config["filesystems"]) {
@@ -200,6 +299,8 @@ void Config::readYAML(const string yaml) {
                     if (ws["group_acl"]) fs.group_acl = ws["group_acl"].as<vector<string>>();
                     if (ws["keeptime"]) fs.keeptime = ws["keeptime"].as<int>(); else fs.keeptime = 10;
                     if (ws["maxduration"]) fs.maxduration = ws["maxduration"].as<int>(); else fs.maxduration = 0;
+                    // SPEC:CHANGE alias
+                    if (ws["duration"]) fs.maxduration = ws["duration"].as<int>(); else fs.maxduration = 0;
                     if (ws["maxextensions"]) fs.maxextensions = ws["maxextensions"].as<int>(); else fs.maxextensions = 0;
                     if (ws["allocatable"]) fs.allocatable = ws["allocatable"].as<bool>(); else fs.allocatable = true;
                     if (ws["extendable"]) fs.extendable = ws["extendable"].as<bool>(); else fs.extendable = true;
@@ -210,6 +311,8 @@ void Config::readYAML(const string yaml) {
         }
     }
 }
+#endif
+
 
 // is user admin?
 // unittest: yes
@@ -383,6 +486,40 @@ Filesystem_config Config::getFsConfig(const std::string filesystem) const {
 }
 
 
+
+
+#ifdef WS_RAPIDYAML_CONFIG
+// read user config from string (has to be read before dropping privileges)
+UserConfig::UserConfig(std::string userconf) {    
+    // get first line, this is either a mailaddress or something like key: value
+    //  this is for compatibility with very old tools, which did not have a yaml file here
+    // check if file looks like yaml
+    if (userconf.find(":",0) != string::npos) {
+ 
+        ryml::Tree config = ryml::parse_in_place(ryml::to_substr(userconf));  // FIXME: error check?
+        ryml::NodeRef node;
+        ryml::NodeRef root = config.rootref();
+
+        // TODO: type checks if nodes are of right type?
+
+        readRyamlScalar(config, "mail", mailaddress);
+        
+        //if (node=config["mailaddress"]; node.has_val()) node>>mailaddress; else mailaddress="";
+        if (node=config["groupname"]; node.has_val()) node>>groupname; else groupname="";
+        if (root.has_child("duration")) { node=config["duration"]; node>>duration; } else duration=-1;
+        if (node=config["reminder"]; node.has_val()) node>>reminder; else reminder=-1;
+ 
+    } else {
+        // get first line of userconf only
+        mailaddress = utils::getFirstLine(userconf);
+    }
+
+    if (!utils::isValidEmail(mailaddress)) {
+        fmt::println(stderr, "Error  : invalid email address in ~/.ws_user.conf, ignored.");
+        mailaddress="";
+    }
+}
+#else
 // read user config from string (has to be read before dropping privileges)
 UserConfig::UserConfig(std::string userconf) {    
     YAML::Node user_home_config;  // load yaml file from home here, not used anywhere else so far
@@ -391,13 +528,27 @@ UserConfig::UserConfig(std::string userconf) {
     // check if file looks like yaml
     if (userconf.find(":",0) != string::npos) {
         user_home_config = YAML::Load(userconf);
-        try {
+        if (user_home_config["mail"])
             mailaddress = user_home_config["mail"].as<std::string>();
-            // FIXME: validate mail address
-        } catch (...) {
-            mailaddress = "";
-        }
+        if (user_home_config["groupname"])
+            groupname = user_home_config["groupname"].as<std::string>();
+        if (user_home_config["duration"])
+            duration = user_home_config["duration"].as<int>();
+        else
+            duration = -1;
+        if (user_home_config["reminder"])
+            reminder = user_home_config["reminder"].as<int>();
+        else
+            reminder = -1;
     } else {
-        mailaddress = userconf;
+        // get first line of userconf only
+        mailaddress = utils::getFirstLine(userconf);
     }
+
+    if (!utils::isValidEmail(mailaddress)) {
+        fmt::println(stderr, "Error  : invalid email address in ~/.ws_user.conf, ignored.");
+        mailaddress="";
+    }
+
 }
+#endif

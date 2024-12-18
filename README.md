@@ -44,10 +44,13 @@ future test platforms:
 - gcc 13.3.0
 - clang 18.1.3
 
-- Rocky linux 8.10
+- Rocky Linux 8.10
 - CMake 3.26.5
 - gcc 8.5.0
 
+- Rocky Linux 9.4
+- Cmake 3.26.5
+- gcc 11.4.1
 
 this list can be extended.
 

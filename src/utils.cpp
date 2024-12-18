@@ -242,4 +242,41 @@ namespace utils {
 		// boost::filesystem::path::imbue(std::locale()); // FIXME: what is this in cpp filesystem?
 	}
 
+	// validate email address
+	bool isValidEmail(const std::string& email) {
+		// Regular expression for basic email validation (improved)
+		const std::regex email_regex(
+			R"((?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\]))",
+			std::regex_constants::icase); // Case-insensitive
+
+		if (!std::regex_match(email, email_regex)) {
+			return false;
+		}
+
+		// Additional checks (length limits, etc.)
+		if (email.length() > 254) { // RFC 5321 maximum length
+			return false;
+		}
+
+		//Check for consecutive dots or @ at the beginning/end
+		if (email.find("..") != std::string::npos || email.front() == '@' || email.back() == '@' || email.find(".@") != std::string::npos || email.find("@.") != std::string::npos)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	// get first line of a multiline string
+	std::string getFirstLine(const std::string& multilineString) {
+		size_t pos = multilineString.find('\n'); 
+		if (pos == std::string::npos) { 
+			// No newline found, return the entire string
+			return multilineString;
+		} else {
+			// Extract the first line
+			return multilineString.substr(0, pos); 
+		}
+	}
+
 }

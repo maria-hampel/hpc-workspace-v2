@@ -58,6 +58,7 @@ struct Global_config {
     int maxextensions;              // max extensions a user gets
     int dbuid;                      // uid of DB user
     int dbgid;                      // gid of DB user
+    int deldirtimeout;              // timeout for directory deletion
 };
 
 // config of filesystem
@@ -123,13 +124,19 @@ public:
     string database(const string filesystem) const;
     // return path to deletedpath for given filesystem
     string deletedPath(const string filesystem) const;
-    int reminderdefault() const {return global.reminderdefault;};
-    int durationdefault() const {return global.durationdefault;};
-    long dbuid() const {return global.dbuid;};
-    long dbgid() const {return global.dbgid;};
-    string clustername() const {return global.clustername;};
-    int maxextensions() const {return global.maxextensions;};
-    int maxduration() const {return global.maxduration;};
+    int reminderdefault() const { return global.reminderdefault; };
+    int durationdefault() const { return global.durationdefault; };
+    long dbuid() const { return global.dbuid; };
+    long dbgid() const { return global.dbgid; };
+    string clustername() const { return global.clustername; };
+    int maxextensions() const { return global.maxextensions; };
+    int maxduration() const { return global.maxduration; };
+    string defaultworkspace() const { return global.defaultWorkspace; };
+    int deldirtimeout() const { return global.deldirtimeout; };
+    string mailfrom() const { return global.mail_from; };
+    string smtphost() const { return global.smtphost; };
+    vector<string> admins() const { return global.admins ; };
+    vector<string> adminmail() const { return global.adminmail ; };
 
 private:
     // read config from YAML string
@@ -140,13 +147,19 @@ private:
 // config in user home
 class UserConfig {
 private:
-    std::string mailaddress;
+    std::string mailaddress;        // default mailaddress for reminder
+    std::string groupname;          // FIXME: TODO: does this make sense?
+    int reminder;                   // days before expiration to send reminder email
+    int duration;                   // default diration
 
 public:
     // read config from string, either YAML or single line
     UserConfig(std::string userconf);
     // get mailaddress
-    std::string getMailaddress() { return mailaddress; };
+    std::string getMailaddress() const { return mailaddress; };
+    std::string getGroupname() const { return groupname; };
+    int getReminder() const { return reminder; };
+    int getDuration() const { return duration; };
 };
 
 
