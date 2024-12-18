@@ -3,6 +3,7 @@
 _common_setup() {
     bats_load_library 'bats-support'
     bats_load_library 'bats-assert'
+    bats_load_library 'bats-file'
 
     # get the containing directory of this file
     # use $BATS_TEST_FILENAME instead of ${BASH_SOURCE[0]} or $0,
