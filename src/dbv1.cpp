@@ -33,9 +33,10 @@
 #include <vector>
 #include <filesystem>
 
-#define RAPIDYAML
+// use for speed, but needs testing // FIXME:
+#define WS_RAPIDYAML_DB
 
-#ifdef RAPIDYAML
+#ifdef WS_RAPIDYAML_DB
     #define RYML_USE_ASSERT 0 
     #include "ryml.hpp"
     #include "ryml_std.hpp" 
@@ -84,7 +85,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
             auto filelist = utils::dirEntries(pathname, filepattern);
             vector<string> list;
             for(auto const &f: filelist) {  
-#ifndef RAPIDYAML
+#ifndef WS_RAPIDYAML_DB
                 YAML::Node dbentry;
                 try {
                     dbentry = YAML::LoadFile((cppfs::path(pathname) / f).string().c_str());
@@ -143,7 +144,7 @@ DBEntry* FilesystemDBV1::readEntry(const WsID id, const bool deleted) {
 
 
 
-#ifndef RAPIDYAML
+#ifndef WS_RAPIDYAML_DB
 
 // read db entry from yaml file
 //  throws on error
@@ -156,7 +157,7 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
         dbentry = YAML::LoadFile(filename);
     } catch (const YAML::BadFile& e) {
         fmt::print(stderr,"Error  : Could not read db entry {}: {}", filename, e.what());
-        throw DatabaseNoEntry();
+        throw DatabaseException("could not read db entry");
     }
 
     dbfilepath = filename; // store location if db entry for later writing
@@ -304,12 +305,12 @@ void DBEntryV1::writeEntry()
 {
     if(traceflag) fmt::print(stderr, "Trace  : writeEntry()\n");
     int perm;
-#ifndef RAPIDYAML
+#ifndef WS_RAPIDYAML_DB
     YAML::Node entry;
-    entry["workspace"] = wsdir;
+    entry["workspace"] = workspace;
     entry["expiration"] = expiration;
     entry["extensions"] = extensions;
-    entry["acctcode"] = acctcode;
+    // entry["acctcode"] = acctcode;  // FIXME: ???
     entry["reminder"] = reminder;
     entry["mailaddress"] = mailaddress;
     if (group.length()>0) {
