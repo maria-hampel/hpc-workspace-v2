@@ -34,6 +34,7 @@
 
 #include <string>
 #include <vector>
+#include <regex>
 
 #include "fmt/core.h"
 
@@ -67,6 +68,13 @@ namespace utils {
 
     // set C local in every thinkable way
     void setCLocal();
+
+    // validate an email address (approximation)
+    bool isValidEmail(const std::string& email);
+
+    // get first line of a multiline string
+    std::string getFirstLine(const std::string& multilineString);
+    
 }
 
 #endif
