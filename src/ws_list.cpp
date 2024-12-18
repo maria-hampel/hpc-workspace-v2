@@ -179,10 +179,10 @@ int main(int argc, char **argv) {
     //   user can change this if no setuid installation OR if root
     auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"}; 
     if (configfile != "") {
-        if (user::isRoot() || user::isnotSetuid()) {      // FIXME: capability? this could be DANGEROUS!
+        if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "WARNING: ignored config file options!\n");
+            fmt::print(stderr, "Warning: ignored config file options!\n");
         }
     }
 
