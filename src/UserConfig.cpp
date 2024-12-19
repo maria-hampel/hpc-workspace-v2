@@ -64,12 +64,8 @@ UserConfig::UserConfig(std::string userconf) {
             groupname = user_home_config["groupname"].as<std::string>();
         if (user_home_config["duration"])
             duration = user_home_config["duration"].as<int>();
-        else
-            duration = -1;
         if (user_home_config["reminder"])
             reminder = user_home_config["reminder"].as<int>();
-        else
-            reminder = -1;
     } else {
         // get first line of userconf only that will include the mailaddress for reminder mails
         mailaddress = utils::getFirstLine(userconf);
