@@ -37,7 +37,7 @@ UserConfig::UserConfig(std::string userconf) {
         if (node=config["reminder"]; node.has_val()) node>>reminder; else reminder=-1;
 
     } else {
-        // get first line of userconf only
+        // get first line of userconf only that will include the mailaddress for reminder mails
         mailaddress = utils::getFirstLine(userconf);
     }
 
@@ -71,7 +71,7 @@ UserConfig::UserConfig(std::string userconf) {
         else
             reminder = -1;
     } else {
-        // get first line of userconf only
+        // get first line of userconf only that will include the mailaddress for reminder mails
         mailaddress = utils::getFirstLine(userconf);
     }
 
