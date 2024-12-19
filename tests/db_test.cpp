@@ -14,8 +14,8 @@ namespace fs = std::filesystem;
 
 Cap caps{}; 
 
-bool debugflag = true;
-bool traceflag = true;
+bool debugflag = false;
+bool traceflag = false;
 
 TEST_CASE( "Database Test", "[db]" ) {
 
@@ -73,7 +73,7 @@ reminder: 0
 mailaddress: ""
 comment: ""
 )yaml");
-    wsconf.close();    
+    wsentry1.close();    
 
     // create a DB entry
     std::ofstream wsentry2(ws1dbname / "user2-TEST1"); 
@@ -86,7 +86,7 @@ reminder: 0
 mailaddress: ""
 comment: ""
 )yaml");
-    wsconf.close();  
+    wsentry2.close();  
 
         // create a DB entry
     std::ofstream wsentry3(ws1dbname / "user2-TEST2"); 
@@ -99,7 +99,7 @@ reminder: 0
 mailaddress: ""
 comment: ""
 )yaml");
-    wsconf.close();  
+    wsentry3.close();  
 
         // create a DB entry
     std::ofstream wsentry4(ws2dbname / "user1-TEST1"); 
@@ -112,11 +112,11 @@ reminder: 0
 mailaddress: ""
 comment: ""
 )yaml");
-    wsconf.close();  
+    wsentry4.close();  
 
         // create a DB entry
-    std::ofstream wsentry(ws2dbname / "user2-TEST2"); 
-    fmt::println(wsconf, 
+    std::ofstream wsentry5(ws2dbname / "user2-TEST2"); 
+    fmt::println(wsentry5, 
 R"yaml(
 workspace: /a/path22
 expiration: 1734701876
@@ -125,7 +125,7 @@ reminder: 0
 mailaddress: ""
 comment: ""
 )yaml");
-    wsconf.close();  
+    wsentry5.close();  
 
     auto config = Config(std::vector<fs::path>{basedirname / "ws.conf"});
 
@@ -141,7 +141,9 @@ comment: ""
     }
 
     SECTION("read entry") {
-      REQUIRE( db1->readEntry("user1-TEST1", false) != nullptr);
+      
+      std::unique_ptr<DBEntry> entry(db1->readEntry("user1-TEST1", false));
+      REQUIRE( entry != nullptr);
 
     }
  
