@@ -219,7 +219,7 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
 
 
 
-// print entry to stdout, for ws_list
+// print entry to stdout, for ws_list, should be only called lock protected, is not thread safe due to std::ctime
 void DBEntryV1::print(const bool verbose, const bool terse) const {
     string repr;
     long remaining = expiration - time(0L);

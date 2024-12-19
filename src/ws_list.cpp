@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
                         std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
                         // if entry is valid
                         if (entry) {
-                            std::lock_guard<std::mutex> guard(m);
+                            std::lock_guard<std::mutex> guard(m); // this lock should make usage of ctime in DBEntryv1::print ok
                             // if no sorting, print, otherwise append to list
                             if (!sort) {
                                 entry->print(verbose, terselisting);
