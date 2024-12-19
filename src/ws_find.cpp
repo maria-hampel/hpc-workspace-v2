@@ -36,11 +36,6 @@
 #include <iostream>
 #include <memory>
 
-#ifdef WS_PARALLEL
-#include <mutex>
-#include <execution>
-#endif
-
 #include <boost/program_options.hpp>
 #include "config.h"
 
@@ -216,22 +211,7 @@ int main(int argc, char **argv) {
         for(auto const &fs: fslist) {
             if (debugflag) fmt::print("loop over fslist {} in {}\n", fs, fslist);
             std::unique_ptr<Database> db(config.openDB(fs));
-
-#ifdef WS_PARALLEL
-            // FIXME: error handling
-
-            std::mutex m;
-            auto el = db->matchPattern(name, userpattern, grouplist, listexpired, listgroups);
-            std::for_each(std::execution::par, std::begin(el), std::end(el), [&](const auto &id)
-                {
-                    std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
-                    // if entry is valid
-                    if (entry) {
-                        fmt::print("{}\n",entry->getWSPath());    
-                    }                  
-                });
-            
-#else                   
+                 
             // catch DB access errors, if DB directory or DB is accessible
             //try {
                 for(auto const &id: db->matchPattern(name, userpattern, grouplist, listexpired, listgroups)) {
@@ -239,6 +219,7 @@ int main(int argc, char **argv) {
                     // if entry is valid
                     if (entry) {
                         fmt::print("{}\n",entry->getWSPath());
+                        goto found;
                     }
                 }
             //}
@@ -246,8 +227,9 @@ int main(int argc, char **argv) {
             //catch (std.file.FileException e) {
                 //if(debugflag) fmt::print("DB access error for fs <{}>: {}\n", fs, e.msg);
             //}
-#endif
+
         } // loop fslist
+        found:;
 
     }
   
