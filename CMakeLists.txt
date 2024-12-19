@@ -89,7 +89,7 @@ else()
     set(PARLIB "")
 endif()
 
-
+set(YAML_CPP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(${workspace_SOURCE_DIR}/external/yaml-cpp)
 add_subdirectory(${workspace_SOURCE_DIR}/external/rapidyaml ryml)
 add_subdirectory(${workspace_SOURCE_DIR}/external/fmt)

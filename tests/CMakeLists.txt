@@ -28,3 +28,23 @@ target_link_libraries(UserConfig_test
         Catch2::Catch2WithMain
 )
 catch_discover_tests(UserConfig_test)
+
+add_executable(dbv1_test
+    dbv1_test.cpp
+)
+target_link_libraries(dbv1_test
+    PRIVATE
+        ws_common
+        Catch2::Catch2WithMain
+)
+catch_discover_tests(dbv1_test)
+
+add_executable(db_test
+    db_test.cpp
+)
+target_link_libraries(db_test
+    PRIVATE
+        ws_common
+        Catch2::Catch2WithMain
+)
+catch_discover_tests(db_test)

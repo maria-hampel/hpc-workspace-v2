@@ -34,9 +34,6 @@ TEST_CASE("config file: multiple files and order", "[config]") {
 
     fs::create_directories(basedirname / "ws.d");
 
-    // TODO: 
-    //   test for bad configs (no workspaces, no uid etc)
-
     // create a normal config file, V1 way
     std::ofstream wsconf(basedirname / "ws.conf"); 
     fmt::println(wsconf, 
