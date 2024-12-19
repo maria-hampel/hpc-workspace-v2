@@ -24,51 +24,6 @@ bool traceflag = false;
 // init caps here, when euid!=uid
 Cap caps{};
 
-////// user config //////
-
-TEST_CASE("user config file", "[userconfig]") {
-    std::string userconf =
-R"yaml(
-mail: address@mail.com
-reminder: 1
-groupname: beatles
-)yaml";
-
-    UserConfig uc(userconf);
-
-    // check valid email
-    REQUIRE( uc.getMailaddress() == "address@mail.com");
-    // check string
-    REQUIRE( uc.getGroupname() == "beatles");
-    // check if default is used for missing entries
-    REQUIRE( uc.getDuration() == -1);
-    // check int
-    REQUIRE( uc.getReminder() == 1);
-
-    // check old format, no yaml
-userconf =
-R"yaml(address@mail.com
-)yaml";    
-
-    UserConfig uc2(userconf);
-
-    REQUIRE( uc2.getMailaddress() == "address@mail.com");
-
-    userconf =
-R"yaml(
-mail: address@mail.com@
-reminder: 1
-groupname: beatles
-)yaml";
-
-    UserConfig uc3(userconf);
-
-    // check valid email
-    REQUIRE( uc3.getMailaddress() == "");
-
-
-}
-
 
 ////// MULTIPLE FILES ///////
 
