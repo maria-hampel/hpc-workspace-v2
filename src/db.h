@@ -35,6 +35,7 @@
 #include <string>
 #include <vector>
 #include <exception>
+#include <memory>
 
 using namespace std;
 
@@ -81,7 +82,7 @@ public:
 		// FIXME: acctcode? where is it?
 	
 	// read specific entry
-	virtual DBEntry* readEntry(const WsID id, const bool deleted) = 0;
+	virtual std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted) = 0;
 	
 	// return a list of entries
 	virtual std::vector<WsID> matchPattern(const string pattern, const string user, 

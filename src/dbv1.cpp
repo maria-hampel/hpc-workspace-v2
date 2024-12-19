@@ -129,9 +129,9 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 
 // read entry
 // unittest: TODO: error handling
-DBEntry* FilesystemDBV1::readEntry(const WsID id, const bool deleted) {
+std::unique_ptr<DBEntry> FilesystemDBV1::readEntry(const WsID id, const bool deleted) {
     if(traceflag) fmt::print(stderr, "Trace  : readEntry({},{})\n", id, deleted);
-    auto *entry = new DBEntryV1;
+    std::unique_ptr<DBEntry> entry( new DBEntryV1 );
     string filename;
     if (deleted) 
         filename = cppfs::path(config->database(fs)) / config->deletedPath(fs) / id;

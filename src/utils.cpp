@@ -43,9 +43,8 @@ namespace fs = std::filesystem;
 #include <grp.h>
 #include <sys/types.h>
 
-
-
 #include "utils.h"
+#include "db.h"
 
 using namespace std;
 
@@ -102,7 +101,7 @@ namespace utils {
 		std::ifstream in(filename, std::ios::in | std::ios::binary);
 		if (!in) {
 			fmt::print(stderr, "Error  : could not open <{}>\n", filename);
-			exit(1);
+			throw DatabaseException("could not open file");
 		}
 		std::ostringstream contents;
 		contents << in.rdbuf();

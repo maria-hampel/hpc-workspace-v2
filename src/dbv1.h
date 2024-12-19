@@ -112,7 +112,7 @@ public:
 			const string group, const string mailaddress, const string comment) {} // TODO: };
 
 	// read entry
-	DBEntry* readEntry(const WsID id, const bool deleted);
+	std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted);
 
         // access to config
         const Config *getconfig() {

@@ -144,6 +144,12 @@ comment: ""
       
       std::unique_ptr<DBEntry> entry(db1->readEntry("user1-TEST1", false));
       REQUIRE( entry != nullptr);
+      REQUIRE( entry->getExpiration() == 1734701876);
+      REQUIRE( entry->getWSPath() == "/a/path");
+
+      REQUIRE_THROWS( [&]() {
+        std::unique_ptr<DBEntry> entry2(db1->readEntry("user-TEST", false));
+      }() );
 
     }
  
