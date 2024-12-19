@@ -3,7 +3,7 @@
  *
  *  config.cpp
  * 
- *  - deals with all configuration files, global or user local
+ *  - deals with glocal configuration files
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
