@@ -101,7 +101,7 @@ namespace utils {
 	{
 		std::ifstream in(filename, std::ios::in | std::ios::binary);
 		if (!in) {
-			fmt::print(stderr, "Error  : could not open {}\n", filename);
+			fmt::print(stderr, "Error  : could not open <{}>\n", filename);
 			exit(1);
 		}
 		std::ostringstream contents;

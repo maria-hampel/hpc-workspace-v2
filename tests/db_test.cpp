@@ -14,10 +14,12 @@ namespace fs = std::filesystem;
 
 Cap caps{}; 
 
-bool debugflag = false;
-bool traceflag = false;
+bool debugflag = true;
+bool traceflag = true;
 
 TEST_CASE( "Database Test", "[db]" ) {
+
+
 
   // create a stub/mockup  of everything
   //   - config
@@ -127,16 +129,21 @@ comment: ""
 
     auto config = Config(std::vector<fs::path>{basedirname / "ws.conf"});
 
-    auto db1 = config.openDB("ws1");
-    auto db2 = config.openDB("ws2");
+    std::unique_ptr<Database> db1(config.openDB("ws1"));
+    std::unique_ptr<Database> db2(config.openDB("ws2"));
 
     SECTION("list entries") {
       REQUIRE(db1->matchPattern("TEST*", "user1", vector<string>{}, false, false) ==  vector<string>{"user1-TEST1"});
       REQUIRE(db1->matchPattern("*EST*", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2", "user2-TEST1"});
       REQUIRE(db1->matchPattern("*Pest*", "user1", vector<string>{}, false, false) ==  vector<string>{});
+      REQUIRE(db2->matchPattern("T*T2", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2"});
+      // TODO: test for groups and deleted workspaces
     }
 
-    delete db1;
-    delete db2;
+    SECTION("read entry") {
+      REQUIRE( db1->readEntry("user1-TEST1", false) != nullptr);
+
+    }
+ 
 
 }
