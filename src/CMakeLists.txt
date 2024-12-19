@@ -55,3 +55,13 @@ target_link_libraries(ws_allocate
         ${Boost_LIBRARIES}
         fmt::fmt
 )
+
+add_executable(ws_release
+    ws_release.cpp
+)
+target_link_libraries(ws_release
+    PRIVATE
+        ws_common
+        ${Boost_LIBRARIES}
+        fmt::fmt
+)
