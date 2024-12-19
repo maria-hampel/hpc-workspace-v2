@@ -80,7 +80,7 @@ else()
 endif()
 
 
-option(WS_PARALLEL "std::par usage, needs TBB" FALSE)
+option(WS_PARALLEL "std::par usage, needs TBB" TRUE)
 if(WS_PARALLEL)
     find_package(TBB REQUIRED tbb)
     add_definitions("-DPARALLEL")
