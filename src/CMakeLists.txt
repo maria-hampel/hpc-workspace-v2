@@ -36,6 +36,16 @@ target_link_libraries(ws_list
         fmt::fmt
 )
 
+add_executable(ws_find
+    ws_find.cpp
+)
+target_link_libraries(ws_find
+    PRIVATE
+        ws_common
+        ${Boost_LIBRARIES}
+        fmt::fmt
+)
+
 add_executable(ws_allocate
     ws_allocate.cpp
 )
