@@ -219,22 +219,18 @@ int main(int argc, char **argv) {
 
 #ifdef WS_PARALLEL
             // FIXME: error handling
-            if (shortlisting) {
-                for(auto const &id: db->matchPattern(name, fs, userpattern, grouplist, listexpired, listgroups)) {
-                    fmt::print("{}\n", id);
-                }
-            } else {
-                std::mutex m;
-                auto el = db->matchPattern(name, fs, userpattern, grouplist, listexpired, listgroups);
-                std::for_each(std::execution::par, std::begin(el), std::end(el), [&](const auto &id)
-                    {
-                        std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
-                        // if entry is valid
-                        if (entry) {
-                            fmt::print("{}\n",entry->getWSPath())    
-                        }                  
-                    });
-            }
+
+            std::mutex m;
+            auto el = db->matchPattern(name, userpattern, grouplist, listexpired, listgroups);
+            std::for_each(std::execution::par, std::begin(el), std::end(el), [&](const auto &id)
+                {
+                    std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
+                    // if entry is valid
+                    if (entry) {
+                        fmt::print("{}\n",entry->getWSPath());    
+                    }                  
+                });
+            
 #else                   
             // catch DB access errors, if DB directory or DB is accessible
             //try {
