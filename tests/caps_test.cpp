@@ -4,7 +4,9 @@
 
 #include "../src/caps.h"
 
+#ifdef WS_CAPA
 #include <sys/capability.h>
+#endif
 
 
 bool debugflag = false;
