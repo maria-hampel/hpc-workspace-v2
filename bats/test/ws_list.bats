@@ -12,20 +12,17 @@ setup() {
 
 # bats test_tags=broken:v1-5-0
 @test "ws_list print version" {
-    run ws_list --version
-    assert_failure
+    run -127 ws_list --version
     assert_output --partial "workspace"
 }
 
 @test "ws_list print help" {
-    run ws_list --help
-    assert_failure
+    run -127 ws_list --help
     assert_output --partial "Usage"
 }
 
 @test "ws_list shows created workspace" {
     ws_allocate $ws_name
-    assert_failure
     ws_list | grep $ws_name
 }
 
