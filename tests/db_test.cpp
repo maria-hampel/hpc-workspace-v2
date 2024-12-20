@@ -88,7 +88,7 @@ comment: ""
 )yaml");
     wsentry2.close();  
 
-        // create a DB entry
+    // create a DB entry
     std::ofstream wsentry3(ws1dbname / "user2-TEST2"); 
     fmt::println(wsentry3, 
 R"yaml(
@@ -101,7 +101,7 @@ comment: ""
 )yaml");
     wsentry3.close();  
 
-        // create a DB entry
+    // create a DB entry
     std::ofstream wsentry4(ws2dbname / "user1-TEST1"); 
     fmt::println(wsentry4, 
 R"yaml(
@@ -114,7 +114,7 @@ comment: ""
 )yaml");
     wsentry4.close();  
 
-        // create a DB entry
+    // create a DB entry
     std::ofstream wsentry5(ws2dbname / "user2-TEST2"); 
     fmt::println(wsentry5, 
 R"yaml(
@@ -127,31 +127,55 @@ comment: ""
 )yaml");
     wsentry5.close();  
 
+    // create a BROKEN DB entry
+    std::ofstream wsentry6(ws2dbname / "user3-BROKEN"); 
+    fmt::print(wsentry6, 
+R"yaml(works)yaml");
+    wsentry6.close();  
+
+        // create a BROKEN DB entry
+    std::ofstream wsentry7(ws2dbname / "user3-BROKEN2"); 
+    fmt::print(wsentry7, 
+R"yaml(yaml: dabadu
+)yaml");
+    wsentry7.close();  
+
     auto config = Config(std::vector<fs::path>{basedirname / "ws.conf"});
 
     std::unique_ptr<Database> db1(config.openDB("ws1"));
     std::unique_ptr<Database> db2(config.openDB("ws2"));
 
     SECTION("list entries") {
-      REQUIRE(db1->matchPattern("TEST*", "user1", vector<string>{}, false, false) ==  vector<string>{"user1-TEST1"});
-      REQUIRE(db1->matchPattern("*EST*", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2", "user2-TEST1"});
-      REQUIRE(db1->matchPattern("*Pest*", "user1", vector<string>{}, false, false) ==  vector<string>{});
-      REQUIRE(db2->matchPattern("T*T2", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2"});
-      // TODO: test for groups and deleted workspaces
+        REQUIRE(db1->matchPattern("TEST*", "user1", vector<string>{}, false, false) ==  vector<string>{"user1-TEST1"});
+        REQUIRE(db1->matchPattern("*EST*", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2", "user2-TEST1"});
+        REQUIRE(db1->matchPattern("*", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2", "user2-TEST1"});
+        REQUIRE(db1->matchPattern("*Pest*", "user1", vector<string>{}, false, false) ==  vector<string>{});
+        REQUIRE(db2->matchPattern("T*T2", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2"});
+
+        // TODO: test for groups and deleted workspaces
     }
 
     SECTION("read entry") {
       
-      std::unique_ptr<DBEntry> entry(db1->readEntry("user1-TEST1", false));
-      REQUIRE( entry != nullptr);
-      REQUIRE( entry->getExpiration() == 1734701876);
-      REQUIRE( entry->getWSPath() == "/a/path");
+        std::unique_ptr<DBEntry> entry(db1->readEntry("user1-TEST1", false));
+        REQUIRE( entry != nullptr);
+        REQUIRE( entry->getExpiration() == 1734701876);
+        REQUIRE( entry->getWSPath() == "/a/path");
 
-      REQUIRE_THROWS( [&]() {
-        std::unique_ptr<DBEntry> entry2(db1->readEntry("user-TEST", false));
-      }() );
+        // does not exist
+        REQUIRE_THROWS( [&]() {
+            std::unique_ptr<DBEntry> entry2(db1->readEntry("user-TEST", false));
+        }() );
+
+        // is no yaml
+        REQUIRE_THROWS( [&]() {
+            std::unique_ptr<DBEntry> entry3(db2->readEntry("user3-BROKEN", false));
+        }() );
+
+        // is yaml, but has no known entries, should give default
+        std::unique_ptr<DBEntry> entry4(db2->readEntry("user3-BROKEN2", false));
+        REQUIRE( entry4->getExtension() == 0);
 
     }
  
-
 }
