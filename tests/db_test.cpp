@@ -36,6 +36,7 @@ TEST_CASE( "Database Test", "[db]" ) {
 
     fs::create_directories(ws1dbname);
     fs::create_directories(ws2dbname);
+    fs::create_directories(ws2dbname / fs::path(".removed"));
 
     // create a normal config file, V1 way
     std::ofstream wsconf(basedirname / "ws.conf"); 
@@ -68,7 +69,7 @@ workspaces:
 R"yaml(
 workspace: /a/path
 expiration: 1734701876
-extensions: 3
+extensions: 1
 reminder: 0
 mailaddress: ""
 comment: ""
@@ -83,6 +84,7 @@ workspace: /a/path11
 expiration: 1734701876
 extensions: 3
 reminder: 0
+group: group1             #  group workspace, entry with comment
 mailaddress: ""
 comment: ""
 )yaml");
@@ -140,19 +142,38 @@ R"yaml(yaml: dabadu
 )yaml");
     wsentry7.close();  
 
+    // create a DB entry
+    std::ofstream wsentry8(ws2dbname / ".removed" / "user2-TEST5-111111"); 
+    fmt::println(wsentry8, 
+R"yaml(
+workspace: /a/path22
+expiration: 1734701876
+extensions: 3
+reminder: 0
+mailaddress: ""
+comment: ""
+)yaml");
+    wsentry8.close();  
+
+
     auto config = Config(std::vector<fs::path>{basedirname / "ws.conf"});
 
     std::unique_ptr<Database> db1(config.openDB("ws1"));
     std::unique_ptr<Database> db2(config.openDB("ws2"));
 
     SECTION("list entries") {
+
+	// test some patterns
         REQUIRE(db1->matchPattern("TEST*", "user1", vector<string>{}, false, false) ==  vector<string>{"user1-TEST1"});
         REQUIRE(db1->matchPattern("*EST*", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2", "user2-TEST1"});
         REQUIRE(db1->matchPattern("*", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2", "user2-TEST1"});
         REQUIRE(db1->matchPattern("*Pest*", "user1", vector<string>{}, false, false) ==  vector<string>{});
         REQUIRE(db2->matchPattern("T*T2", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2"});
+	// deleted workspace
+        REQUIRE(db2->matchPattern("*", "user2", vector<string>{}, true, false) ==  vector<string>{"user2-TEST5-111111"});
+	// group workspace
+        REQUIRE(db1->matchPattern("*", "user1", vector<string>{"group1"}, false, true) ==  vector<string>{"user2-TEST1"});
 
-        // TODO: test for groups and deleted workspaces
     }
 
     SECTION("read entry") {
@@ -175,6 +196,21 @@ R"yaml(yaml: dabadu
         // is yaml, but has no known entries, should give default
         std::unique_ptr<DBEntry> entry4(db2->readEntry("user3-BROKEN2", false));
         REQUIRE( entry4->getExtension() == 0);
+
+    }
+
+    SECTION("modify entry") {
+
+        std::unique_ptr<DBEntry> entry(db1->readEntry("user1-TEST1", false));
+	REQUIRE( entry->getExtension() == 1 );
+	REQUIRE_NOTHROW( entry->useExtension( entry->getExpiration()+1, "mail@box.com", 5, "nice workspace") );
+	REQUIRE( entry->getExtension() == 0 );
+	// no extensions left
+	REQUIRE_THROWS( entry->useExtension( entry->getExpiration()+2, "mail@box.com", 5, "nice workspace") );
+
+	// read again from file
+        std::unique_ptr<DBEntry> entry2(db1->readEntry("user1-TEST1", false));
+	REQUIRE( entry->getMailaddress()  == "mail@box.com" );
 
     }
  
