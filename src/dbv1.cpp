@@ -158,7 +158,11 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
         throw DatabaseException("could not read file");
     }
 
-    readFromString(filecontent);
+    try {
+        readFromString(filecontent);
+    } catch (const std::exception &e) {
+        throw DatabaseException(fmt::format("Error  : while reading file <{}>\n{}", filename, e.what()));
+    } 
 
     if(debugflag) {
         fmt::print(stderr, "Debug  : creation={} released={} expiration={} reminder={} workspace={} extensions={} mailaddress={} comment={} group={}\n" , 
@@ -169,16 +173,16 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
 #ifndef WS_RAPIDYAML_DB
 // use yamlcpp
 
-void ::DBEntry::readFromString(std::string str) {
+void DBEntryV1::readFromString(std::string str) {
     if(traceflag) fmt::print(stderr, "Trace  : readFromString_YAMLCPP\n");
 
     YAML::Node dbentry;
     try {
         dbentry = YAML::Load(str);
     } catch (const YAML::BadFile& e) {
-        fmt::print(stderr,"Error  : Could not read db entry {}: {}", filename, e.what());
         throw DatabaseException("could not read db entry");
     }
+
 
     dbversion = dbentry["dbversion"] ? dbentry["dbversion"].as<int>() : 0;   // 0 = legacy
     creation = dbentry["creation"] ? dbentry["creation"].as<long>() : 0;  // FIXME: c++ tool does not write this field, but takes from stat
@@ -200,7 +204,12 @@ void DBEntryV1::readFromString(std::string str) {
 
     ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(str));  // FIXME: error check?
 
+    // error check, see if the file looks like yaml and is a map
     ryml::NodeRef node;
+    auto root = dbentry.crootref();
+    if (!root.is_map()) {
+        throw DatabaseException("Invalid DB entry! Empty file?");
+    }
 
     node=dbentry["dbversion"]; if(node.has_val()) node>>dbversion; else dbversion = 0;  // 0 = legacy
     node=dbentry["creation"]; if(node.has_val()) node>>creation; else creation = 0;  // FIXME: c++ tool does not write this field, but takes from stat
