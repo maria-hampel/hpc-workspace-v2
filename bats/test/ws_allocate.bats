@@ -11,16 +11,19 @@ setup() {
 
 @test "ws_allocate print version" {
     run ws_allocate --version
+    assert_failure
     assert_output --partial "workspace"
 }
 
 @test "ws_allocate print help" {
     run ws_allocate --help
+    assert_failure
     assert_output --partial "Usage"
 }
 
 @test "ws_allocate creates directory" {
     wsdir=$(ws_allocate $ws_name)
+    assert_failure
     assert_dir_exist $wsdir
 }
 
