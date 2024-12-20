@@ -102,11 +102,16 @@ public:
         : message(msg)
     {
     }
+	
+	DatabaseException(const std::string msg)
+        : message(msg)
+    {
+    }
 
     const char* what() const throw()
     {
         return message.c_str();
-    }
+	}
 };
 
 
