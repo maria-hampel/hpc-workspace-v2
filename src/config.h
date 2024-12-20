@@ -94,7 +94,6 @@ private:
     std::map<string, Filesystem_config> filesystems;  // list of workspace filesystems
 
     // validation helpers
-    bool validate();
     bool isvalid;
 
 
@@ -104,6 +103,9 @@ public:
     Config(const std::vector<cppfs::path> filenames);
     // read config from string
     Config(const string configstring);
+
+    // validate, public for tests, to be called after string constructor
+    bool validate();
 
     // check if config is valid
     bool isValid() {return isvalid;};

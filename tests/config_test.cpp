@@ -24,7 +24,6 @@ bool traceflag = false;
 // init caps here, when euid!=uid
 Cap caps{};
 
-
 ////// MULTIPLE FILES ///////
 
 TEST_CASE("config file: multiple files and order", "[config]") {
@@ -321,6 +320,7 @@ filesystems:
 
  }
 
+
 TEST_CASE("config file: full sample", "[config]") {
 
 auto config =  Config(std::string(R"(
@@ -365,8 +365,7 @@ workspaces:                     # now the list of the workspaces
     deleted: .trash
 )"));
 
-    SECTION("canFind") {
-
+    SECTION("check config") {
 
         REQUIRE(config.clustername() == "aName");  
         REQUIRE(config.smtphost() == "localhost");
@@ -400,6 +399,7 @@ workspaces:                     # now the list of the workspaces
         REQUIRE(filesystem1.extendable == false);
         REQUIRE(filesystem1.restorable == false);
 
+	config.validate();
 
         REQUIRE(config.isValid());
     }
