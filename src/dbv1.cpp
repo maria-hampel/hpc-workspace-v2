@@ -265,10 +265,11 @@ void DBEntryV1::useExtension(const long _expiration, const string _mailaddress, 
     if (_reminder!=0) reminder=_reminder;
     if (_comment!="") comment=_comment;
     // if root does this, we do not use an extension
-    if((getuid()!=0) && (_expiration!=-1) && (_expiration > expiration)) extensions--;
+    if((getuid()!=0) && (_expiration!=-1) && (_expiration > expiration)) {
+	extensions--;
+    }
     if((extensions<0) && (getuid()!=0)) {
-        fmt::print(stderr, "Error  : no more extensions.\n");
-        exit(-1);  // FIXME: throw!!
+	throw DatabaseException("Error  : no more extensions.");
     }
     if (_expiration!=-1) {
         expiration = _expiration;
@@ -301,6 +302,10 @@ string DBEntryV1::getWSPath() const {
 		
 string DBEntryV1::getMailaddress() const {
     return mailaddress;
+}
+
+string DBEntryV1::getComment() const {
+    return comment;
 }
 
 long DBEntryV1::getExpiration() const {
