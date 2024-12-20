@@ -82,6 +82,7 @@ public:
         long getRemaining() const;
         int getExtension() const;
         string getMailaddress() const;
+        string getComment() const;
         string getId() const;
         long getCreation() const;
         string getWSPath() const;
