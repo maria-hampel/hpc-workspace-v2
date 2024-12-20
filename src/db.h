@@ -51,25 +51,26 @@ struct WsID {
 
 class DBEntry {
 public:
-		// read from DB file // FIXME: this implies a file
-		virtual void readFromFile(const WsID id, const string filesystem, const string filename) = 0;
-		// consume an extension (writes entry back)
-		virtual void useExtension(const long expiration, const string mail, const int reminder, const string comment) = 0;
-		// write entry to DB after update (read with readEntry)
-		void writeEntry();
-		// print for ws_list
-        virtual void print(const bool verbose, const bool terse) const = 0;
+	// read from DB file // FIXME: this implies a file
+	virtual void readFromFile(const WsID id, const string filesystem, const string filename) = 0;
+	// consume an extension (writes entry back)
+	virtual void useExtension(const long expiration, const string mail, const int reminder, const string comment) = 0;
+	// write entry to DB after update (read with readEntry)
+	void writeEntry();
+	// print for ws_list
+	virtual void print(const bool verbose, const bool terse) const = 0;
 
 		// getters
-        virtual long getRemaining() const = 0;
-        virtual string getId() const = 0;
-        virtual int getExtension() const =0;
-		virtual long getCreation() const = 0;
-        virtual string getWSPath() const = 0;
-		virtual string getMailaddress() const = 0;
-		virtual long getExpiration() const = 0;
+	virtual long getRemaining() const = 0;
+	virtual string getId() const = 0;
+	virtual int getExtension() const =0;
+	virtual long getCreation() const = 0;
+	virtual string getWSPath() const = 0;
+	virtual string getMailaddress() const = 0;
+	virtual string getComment() const = 0;
+	virtual long getExpiration() const = 0;
 
-		virtual ~DBEntry() = default;  // address-sanitizer needs this
+	virtual ~DBEntry() = default;  // address-sanitizer needs this
 };
 
 
