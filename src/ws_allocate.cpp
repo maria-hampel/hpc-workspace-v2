@@ -82,7 +82,7 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
             ("group,g", "group workspace")
             ("groupname,G", po::value<string>(&groupname)->default_value(""), "groupname")
             ("comment,c", po::value<string>(&comment), "comment")
-            ("config,c", po::value<string>(&configfile), "config file")
+            ("config,C", po::value<string>(&configfile), "config file")
     ;
 
     po::options_description secret_options("Secret");
@@ -223,6 +223,11 @@ bool validateFsAndGroup(const Config &config, const po::variables_map &opt, cons
     return true;
 }
 
+/*
+ * validate duration and extions vs config
+ *
+ * return true if ok and false if not
+ */
 bool validateDurationAndExtensions(const Config &config, const po::variables_map &opt, const std::string filesystem, int &duration, int &maxextensions) {
     if (traceflag) fmt::print(stderr, "Trace  : validateDurationAndExtensions(filesystem={},duration={},maxextension={})", filesystem, duration, maxextensions);
 
@@ -251,6 +256,7 @@ bool validateDurationAndExtensions(const Config &config, const po::variables_map
  *  file accesses and config access are hidden in DB and config handling
  *  SPEC:CHANGE no LUA callout
  *  FIXME: make it -> int and return errors for tesing
+ *  FIXME: unit test this? make smaller functions to be able to test?
  */
 void allocate(  
             const Config &config,
@@ -328,6 +334,7 @@ void allocate(
     } // searchloop
 
     // workspace exists, change mailaddress, reminder settings or comment, and extend if requested
+    // consume an extension
 
     if(ws_exists) {
         auto wsdir = dbentry->getWSPath();
@@ -385,7 +392,7 @@ void allocate(
                 //}
                 if ( getuid()!=0 && ( (duration > configduration) || (duration < 0)) ) {
                     duration = configduration;
-                    fmt::print(stderr, "Error  : Duration longer than allowed for this workspace");
+                    fmt::print(stderr, "Error  : Duration longer than allowed for this workspace.");
                     fmt::print(stderr, "         setting to allowed maximum of {}\n", duration);
                 }
                 expiration = time(NULL)+duration*24*3600;
@@ -393,7 +400,7 @@ void allocate(
             } else {
                 dbentry->useExtension(-1, newmail, reminder, comment);
             }
-            extension = dbentry->getExtension(); // for output
+            //extension = dbentry->getExtension(); // for output // FIXME: see below?
 
         // if extensionflag
         } else {   
