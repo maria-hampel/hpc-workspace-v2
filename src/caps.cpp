@@ -116,7 +116,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
             fmt::print(stderr, "Error  : problem dropping capabilities.\n");
             cap_t cap = cap_get_proc();
             char * cap_text = cap_to_text(cap, NULL);
-            fmt::print(stderr, "Info   : running with capabilities: {}\n", cap_text);
+            if(debugflag) fmt::print(stderr, "Debug  : running with capabilities: {}\n", cap_text);  // FIXME: unconditional debug output
             cap_free(cap_text);
             cap_free(cap);
             cap_free(caps);
