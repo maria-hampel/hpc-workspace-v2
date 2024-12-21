@@ -243,7 +243,7 @@ void release(
 
     for (std::string cfilesystem: searchlist) {
         if (debugflag) {
-            fmt::print(stderr, "Debug: searching valid filesystems, currently {}\n", cfilesystem);
+            fmt::print(stderr, "Debug  : searching valid filesystems, currently {}\n", cfilesystem);
         }
 
         //auto db = config.openDB(cfilesystem);
@@ -263,7 +263,7 @@ void release(
             break;
         } catch (DatabaseException &e) {
             // silently ignore non existiong entries
-            if (debugflag) fmt::print(stderr, "Debug:  existence check failed for {}/{}\n", cfilesystem, dbid);
+            if (debugflag) fmt::print(stderr, "Debug  :  existence check failed for {}/{}\n", cfilesystem, dbid);
         }   
     } // searchloop
 
