@@ -47,6 +47,7 @@
 
 // TODO: FIXME: check if used correctly in the codebase!
 // read user config from string (has to be read before dropping privileges)
+//  unitest: yes
 UserConfig::UserConfig(std::string userconf) {
     // get first line, this is either a mailaddress or something like key: value
     //  this is for compatibility with very old tools, which did not have a yaml file here
@@ -81,6 +82,7 @@ UserConfig::UserConfig(std::string userconf) {
 
 // TODO: FIXME: check if used correctly in the codebase!
 // read user config from string (has to be read before dropping privileges)
+//  unitest: yes
 UserConfig::UserConfig(std::string userconf) {
     YAML::Node user_home_config;  // load yaml file from home here, not used anywhere else so far
     // get first line, this is either a mailaddress or something like key: value

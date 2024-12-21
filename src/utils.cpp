@@ -202,6 +202,7 @@ namespace utils {
 	}
 
 	// validate email address
+	//  TODO: unitest?
 	bool isValidEmail(const std::string& email) {
 		// Regular expression for basic email validation (improved)
 		const std::regex email_regex(

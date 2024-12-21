@@ -124,6 +124,7 @@ Config::Config(const std::string configstring) {
 }
 
 // validate config, return false if invalid 
+//  unitest: indirect
 bool Config::validate() {
     bool valid = true;
     if (global.dbuid==0) {
@@ -190,6 +191,7 @@ static void readRyamlScalar(ryml::Tree config, const char* key, T &target) {
 }
 
 // parse YAML from a string (using yaml-cpp)
+//  unittest: indirect
 void Config::readYAML(string yamlstr) {
 
     ryml::Tree config = ryml::parse_in_place(ryml::to_substr(yamlstr));  // FIXME: error check?
@@ -260,6 +262,7 @@ void Config::readYAML(string yamlstr) {
 
 
 // parse YAML from a string (using yaml-cpp)
+//  unittest: indirect
 void Config::readYAML(const string yaml) {
     auto config = YAML::Load(yaml);
     // global flags
@@ -452,7 +455,7 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
 // get DB type for the fs 
 Database* Config::openDB(const string fs) const {
     if (traceflag) fmt::print(stderr, "Trace  : opendb {}\n", fs);
-    // FIXME: version check here to determine which DB to open
+    // TODO: version check here to determine which DB to open
     return new FilesystemDBV1(this, fs);
 }
 

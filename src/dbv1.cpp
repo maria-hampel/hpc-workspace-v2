@@ -69,7 +69,8 @@ extern Cap caps;
 
 namespace cppfs = std::filesystem;
 
-
+// get a list of ids of matching DB entries for a user
+//  unittest: yes
 vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string user, const vector<string> groups,
                                                 const bool deleted, const bool groupworkspaces)
 {
@@ -128,7 +129,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 
 
 // read entry
-// unittest: TODO: error handling
+//  unittest: yes
 std::unique_ptr<DBEntry> FilesystemDBV1::readEntry(const WsID id, const bool deleted) {
     if(traceflag) fmt::print(stderr, "Trace  : readEntry({},{})\n", id, deleted);
     std::unique_ptr<DBEntry> entry( new DBEntryV1 );
@@ -144,6 +145,7 @@ std::unique_ptr<DBEntry> FilesystemDBV1::readEntry(const WsID id, const bool del
 
 
 // read db entry from yaml file
+//  unittest: yes
 void DBEntryV1::readFromFile(const WsID id, const string filesystem, const string filename) {
     if(traceflag) fmt::print(stderr, "Trace  : readFromFile({},{},{})\n", id, filesystem, filename);
 
@@ -173,6 +175,8 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
 #ifndef WS_RAPIDYAML_DB
 // use yamlcpp
 
+// read db entry from yaml file
+//  unittest: yes
 void DBEntryV1::readFromString(std::string str) {
     if(traceflag) fmt::print(stderr, "Trace  : readFromString_YAMLCPP\n");
 
@@ -199,6 +203,8 @@ void DBEntryV1::readFromString(std::string str) {
 #else
 // use rapidyaml
 
+// read db entry from yaml string
+//  unittest: yes
 void DBEntryV1::readFromString(std::string str) {
     if(traceflag) fmt::print(stderr, "Trace  : readFromString_RAPIDYAML\n");
 
@@ -228,6 +234,7 @@ void DBEntryV1::readFromString(std::string str) {
 
 
 // print entry to stdout, for ws_list, should be only called lock protected, is not thread safe due to std::ctime
+//  TODO: unittest
 void DBEntryV1::print(const bool verbose, const bool terse) const {
     string repr;
     long remaining = expiration - time(0L);
@@ -259,17 +266,19 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
 
 
 // Use extension or update content of entry
+//  unittest: yes
 void DBEntryV1::useExtension(const long _expiration, const string _mailaddress, const int _reminder, const string _comment) {
     if(traceflag) fmt::print(stderr, "Trace  : useExtension(expiration={},mailaddress={},reminder={},comment={})\n");
     if (_mailaddress!="") mailaddress=_mailaddress;
     if (_reminder!=0) reminder=_reminder;
     if (_comment!="") comment=_comment;
+
     // if root does this, we do not use an extension
     if((getuid()!=0) && (_expiration!=-1) && (_expiration > expiration)) {
-	extensions--;
+	    extensions--;
     }
     if((extensions<0) && (getuid()!=0)) {
-	throw DatabaseException("Error  : no more extensions.");
+	    throw DatabaseException("Error  : no more extensions.");
     }
     if (_expiration!=-1) {
         expiration = _expiration;
@@ -314,6 +323,7 @@ long DBEntryV1::getExpiration() const {
 
 
 // write data to file
+//  unittest: yes
 void DBEntryV1::writeEntry()
 {
     if(traceflag) fmt::print(stderr, "Trace  : writeEntry()\n");
