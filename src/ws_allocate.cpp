@@ -270,6 +270,7 @@ void allocate(
 
     int maxextensions;
     int fixed_duration = duration;
+    long exp;
 
     std::string username = user::getUsername(); // current user
 
@@ -398,14 +399,21 @@ void allocate(
                     fmt::print(stderr, "Error  : Duration longer than allowed for this workspace.");
                     fmt::print(stderr, "         setting to allowed maximum of {}\n", duration);
                 }
-                expiration = time(NULL)+duration*24*3600;
-                dbentry->useExtension(expiration, newmail, reminder, comment);
+                exp = time(NULL)+duration*24*3600;
             } else {
-                dbentry->useExtension(-1, newmail, reminder, comment);
+                exp = -1;
             }
+
+            try {
+                dbentry->useExtension(exp, newmail, reminder, comment);
+            } catch (const DatabaseException &e) {
+                fmt::println("{}", e.what() );
+                exit(-2);
+            }
+
             //extension = dbentry->getExtension(); // for output // FIXME: see below?
 
-        // if extensionflag
+        // extensionflag
         } else {   
             fmt::print(stderr, "Info   : reusing workspace\n");
             syslog(LOG_INFO, "reusing <%s/%s>.", foundfs.c_str(), dbid.c_str()); 

@@ -278,7 +278,7 @@ void DBEntryV1::useExtension(const long _expiration, const string _mailaddress, 
 	    extensions--;
     }
     if((extensions<0) && (getuid()!=0)) {
-	    throw DatabaseException("Error  : no more extensions.");
+	    throw DatabaseException("Error  : no more extensions!");
     }
     if (_expiration!=-1) {
         expiration = _expiration;
