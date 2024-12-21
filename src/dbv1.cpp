@@ -132,7 +132,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 //  unittest: yes
 std::unique_ptr<DBEntry> FilesystemDBV1::readEntry(const WsID id, const bool deleted) {
     if(traceflag) fmt::print(stderr, "Trace  : readEntry({},{})\n", id, deleted);
-    std::unique_ptr<DBEntry> entry( new DBEntryV1 );
+    std::unique_ptr<DBEntry> entry( new DBEntryV1(this) );
     string filename;
     if (deleted) 
         filename = cppfs::path(config->database(fs)) / config->deletedPath(fs) / id;
@@ -373,8 +373,8 @@ void DBEntryV1::writeEntry()
 
     if (user::isSetuid()) {
         // for filesystem with root_squash, we need to be DB user here
-        dbgid = db->getconfig()->dbgid();
-        dbuid = db->getconfig()->dbuid();
+        dbgid = parent_db->getconfig()->dbgid();
+        dbuid = parent_db->getconfig()->dbuid();
 
         if (setegid(dbgid)|| seteuid(dbuid)) {
                 // FIXME: usermode

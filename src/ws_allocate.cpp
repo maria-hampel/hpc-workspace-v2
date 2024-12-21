@@ -307,13 +307,15 @@ void allocate(
 
     // loop over valid workspaces, and see if the workspace exists
 
+    std::unique_ptr<Database> db;
+
     for (std::string cfilesystem: searchlist) {
         if (debugflag) {
             fmt::print(stderr, "Debug  : searching valid filesystems, currently {}\n", cfilesystem);
         }
 
         //auto db = config.openDB(cfilesystem);
-        std::unique_ptr<Database> db(config.openDB(cfilesystem));
+        std::unique_ptr<Database> candidate_db(config.openDB(cfilesystem));
 
         // check if entry exists
         try {
@@ -323,7 +325,8 @@ void allocate(
                 dbid = username+"-"+name;
 
             //dbentry = db->readEntry(dbid, false);
-            dbentry = std::unique_ptr<DBEntry>(db->readEntry(dbid, false));
+            dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
+            db = std::move(candidate_db);
             foundfs = cfilesystem;
             ws_exists = true;
             break;

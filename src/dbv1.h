@@ -65,10 +65,11 @@ private:
         string  dbfilepath;             // if read from DB, this is the location to write to
 
         // pointer to DB containing this entry (to get access to config)
-        FilesystemDBV1 *db;
+        FilesystemDBV1 *parent_db;
 
 
 public:
+        DBEntryV1(FilesystemDBV1* pdb) : parent_db(pdb) {};
 
         void readFromString(std::string str);
         // read yaml entry from file
@@ -119,7 +120,7 @@ public:
 	std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted);
 
         // access to config
-        const Config *getconfig() {
+        const Config* getconfig() {
                 return config;
         }
 };

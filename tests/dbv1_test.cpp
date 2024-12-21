@@ -12,7 +12,7 @@ bool traceflag = false;
 
 TEST_CASE( "Database v1 yaml parser", "[dbv1]" ) {
 
-  DBEntryV1 entry;
+  DBEntryV1 entry(nullptr);
 
   entry.readFromString(std::string{
 R"yaml(
