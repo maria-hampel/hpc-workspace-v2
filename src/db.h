@@ -41,26 +41,29 @@ using namespace std;
 
 using WsID = std::string;
 
-/*
-struct WsID {
-	string user;
-	string id;
-};
-*/
 
-
+// A databse entry, with methods to
+//  - read (called vom DB) ?? FIXME: make friend?
+//  - write
+//  - consume an extension
+//	- print an entry FIXME: move to ws_list?
+//  - getters for all data
 class DBEntry {
 public:
+
 	// read from DB file // FIXME: this implies a file
 	virtual void readFromFile(const WsID id, const string filesystem, const string filename) = 0;
+
+	// write entry to DB after update (read with readEntry)
+	virtual void writeEntry() = 0;
+	
 	// consume an extension (writes entry back)
 	virtual void useExtension(const long expiration, const string mail, const int reminder, const string comment) = 0;
-	// write entry to DB after update (read with readEntry)
-	void writeEntry();
+
 	// print for ws_list
 	virtual void print(const bool verbose, const bool terse) const = 0;
 
-		// getters
+	// getters
 	virtual long getRemaining() const = 0;
 	virtual string getId() const = 0;
 	virtual int getExtension() const =0;
@@ -71,9 +74,14 @@ public:
 	virtual long getExpiration() const = 0;
 
 	virtual ~DBEntry() = default;  // address-sanitizer needs this
+
 };
 
-
+// database class, with methods to
+//	- create an entry
+//	- read an entry
+//	- find entries matching a pattern
+// this class is constructed through Config::openDB 
 class Database {
 public:
 	// new entry
@@ -93,24 +101,22 @@ public:
 };
 
 
-// exception for signalling errors
+
+
+
+// exception for signaling errors
 class DatabaseException : public exception {
 private:
     string message;
 
 public:
-    DatabaseException(const char* msg)
-        : message(msg)
-    {
+    DatabaseException(const char* msg) : message(msg) {
     }
 	
-	DatabaseException(const std::string msg)
-        : message(msg)
-    {
+	DatabaseException(const std::string msg) : message(msg) {
     }
 
-    const char* what() const throw()
-    {
+    const char* what() const throw() {
         return message.c_str();
 	}
 };

@@ -74,11 +74,14 @@ public:
         // read yaml entry from file
         void readFromFile(const WsID id, const string filesystem, const string filename);
         // use extension and write back file
+
         void useExtension(const long expiration, const string mail, const int reminder, const string comment);
 	// write entry to DB after update (read with readEntry)
 	void writeEntry();
+
         // print for ws_list
         void print(const bool verbose, const bool terse) const;
+
         long getRemaining() const;
         int getExtension() const;
         string getMailaddress() const;
