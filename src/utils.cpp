@@ -100,8 +100,7 @@ namespace utils {
 	{
 		std::ifstream in(filename, std::ios::in | std::ios::binary);
 		if (!in) {
-			fmt::print(stderr, "Error  : could not open <{}>\n", filename);
-			throw DatabaseException("could not open file");
+			throw DatabaseException(fmt::format("Error  : could not open file {}", filename));
 		}
 		std::ostringstream contents;
 		contents << in.rdbuf();
