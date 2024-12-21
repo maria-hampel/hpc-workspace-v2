@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
         
         // iterate over filesystems and print or create list to be sorted
         for(auto const &fs: fslist) {
-            if (debugflag) fmt::print("loop over fslist {} in {}\n", fs, fslist);
+            if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
             std::unique_ptr<Database> db(config.openDB(fs));
 
 #ifdef WS_PARALLEL

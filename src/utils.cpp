@@ -56,45 +56,6 @@ namespace utils {
 	// fwd
 	static bool glob_match(char const *pat, char const *str);
 
-	/* FIXME: unused, can be removed
-	// get list of groupnames for a user
-	std::vector<std::string> getgroupnameS(std::string username) {
-		vector<string> groupnames;
-
-		struct group *grp;
-		int ngroups = 128;
-		gid_t gids[128];
-		int nrgroups;
-
-		// FIXME:: does getgid return the right value here? pw->pw_gid?
-		//  if current group is not primary group in /etc/passwd, will this return all groups?
-		nrgroups = getgrouplist(username.c_str(), getgid(), gids, &ngroups); 
-		if(nrgroups == -1) {
-			fmt::print(stderr, "Error  : user in too many groups!\n");
-			exit(-1); // FIXME: error return, unlikely see constant above
-		}
-		for(int i=0; i<nrgroups; i++) {
-			grp=getgrgid(gids[i]);
-			if(grp) {
-				groupnames.push_back(string(grp->gr_name));
-				if (debugflag) {
-					fmt::print(stderr, "debug: secondary group {}\n", string(grp->gr_name));
-				}
-			}
-		}
-		// get current group
-		grp=getgrgid(getgid());
-		if (grp==NULL) {
-			fmt::print(stderr, "Error  : user has no group anymore!");
-			exit(-1); // FIXME: error return
-		}
-		groupnames.push_back(string(grp->gr_name)); // FIXME: is this necessary or is it already in the list?
-
-		return groupnames;
-	}
-	*/
-
-
 	// read a (small) file into a string
 	std::string getFileContents(const char *filename)
 	{
@@ -109,7 +70,7 @@ namespace utils {
 
 	// get file names matching glob pattern from path, ("/etc", "p*d") -> passwd
 	std::vector<string> dirEntries(const string path, const string pattern) {
-		if (traceflag) fmt::print("dirEntries({},{})\n", path, pattern);
+		if (traceflag) fmt::print("Trace  : dirEntries({},{})\n", path, pattern);
 		vector<string> fl;
 		if (!fs::is_directory(path)) {
 			fmt::println("Error   : Directory {} does not exist.", path);
@@ -129,7 +90,7 @@ namespace utils {
 	//   https://github.com/torvalds/linux/blob/master/lib/glob.c
 	static bool glob_match(char const *pat, char const *str)
 	{
-		if (traceflag) fmt::print("glob_match({},{})\n", pat, str);
+		if (traceflag) fmt::print("Trace  : glob_match({},{})\n", pat, str);
 
 		/*
 		* Backtrack to previous * on mismatch and retry starting one

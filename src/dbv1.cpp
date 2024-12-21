@@ -79,7 +79,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 
     // list directory, this also reads YAML file in case of groupworkspaces
     auto listdir = [&groupworkspaces, &groups] (const string pathname, const string filepattern) -> vector<string> {
-        if(debugflag) fmt::print("listdir({},{})\n", pathname, filepattern);
+        if(debugflag) fmt::print("Debug  : listdir({},{})\n", pathname, filepattern);
         // in case of groupworkspace, read entry
         if (groupworkspaces) {
             auto filelist = utils::dirEntries(pathname, filepattern);

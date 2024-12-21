@@ -198,7 +198,7 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
  */
 bool validateFsAndGroup(const Config &config, const po::variables_map &opt, const std::string username)
 {
-    if (traceflag) fmt::print(stderr, "validateFsAndGroup(username={})", username);
+    if (traceflag) fmt::print(stderr, "Trace  : validateFsAndGroup(username={})", username);
 
     //auto groupnames=getgroupnames(username); // FIXME:  use getGrouplist ?
     auto groupnames = user::getGrouplist();
@@ -224,7 +224,7 @@ bool validateFsAndGroup(const Config &config, const po::variables_map &opt, cons
 }
 
 bool validateDurationAndExtensions(const Config &config, const po::variables_map &opt, const std::string filesystem, int &duration, int &maxextensions) {
-    if (traceflag) fmt::print(stderr, "validateDurationAndExtensions(filesystem={},duration={},maxextension={})", filesystem, duration, maxextensions);
+    if (traceflag) fmt::print(stderr, "Trace  : validateDurationAndExtensions(filesystem={},duration={},maxextension={})", filesystem, duration, maxextensions);
 
     // change duration if limits exceeded and warn
     // FIXME:  TODO: old code checks for user exceptions, not yet implemented
@@ -259,7 +259,7 @@ void allocate(
             const string mailaddress, string user_option, const string groupname, const string comment
             ) 
 {
-    if (traceflag) fmt::print(stderr, "allocate({}, {}, {}, {}, {}, {}, {}, {}, {})\n", duration, filesystem, name, extensionflag, 
+    if (traceflag) fmt::print(stderr, "Trace  : allocate({}, {}, {}, {}, {}, {}, {}, {}, {})\n", duration, filesystem, name, extensionflag, 
                                 reminder, mailaddress, user_option, groupname, comment);
 
     int maxextensions;
@@ -303,7 +303,7 @@ void allocate(
 
     for (std::string cfilesystem: searchlist) {
         if (debugflag) {
-            fmt::print(stderr, "debug: searching valid filesystems, currently {}\n", cfilesystem);
+            fmt::print(stderr, "Debug: searching valid filesystems, currently {}\n", cfilesystem);
         }
 
         //auto db = config.openDB(cfilesystem);
@@ -323,7 +323,7 @@ void allocate(
             break;
         } catch (DatabaseException &e) {
             // silently ignore non existiong entries
-            if (debugflag) fmt::print(stderr, "debug:  existence check failed for {}/{}\n", cfilesystem, dbid);
+            if (debugflag) fmt::print(stderr, "Debug:  existence check failed for {}/{}\n", cfilesystem, dbid);
         }   
     } // searchloop
 

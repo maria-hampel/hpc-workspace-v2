@@ -77,7 +77,7 @@ namespace user {
         return getuid() != geteuid();
     }
 
-    // get list of group names of current process  // FIXME: this is same as utils::getgroupnames
+    // get list of group names of current process
     std::vector<std::string> getGrouplist() {
         if(traceflag) fmt::print(stderr, "Trace  : getGroupList()\n");
         std::vector<std::string> grplist;
@@ -100,7 +100,7 @@ namespace user {
 
         delete[] gids;
 
-        if(debugflag) fmt::print(stderr, "groups={}\n", grplist);
+        if(debugflag) fmt::print(stderr, "Debug  : groups={}\n", grplist);
 
         return grplist;
     }

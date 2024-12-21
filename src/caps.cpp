@@ -49,7 +49,7 @@ Cap::Cap() {
         // debugflag = true;
         // traceflag = true;
     if (traceflag) fmt::println(stderr, "Trace  : Cap::Cap()");
-    if (debugflag) fmt::println(stderr, "euid={}, uid={}", geteuid(), getuid());
+    if (debugflag) fmt::println(stderr, "Debug  :euid={}, uid={}", geteuid(), getuid());
 
     issetuid = user::isSetuid();
     hascaps = false;

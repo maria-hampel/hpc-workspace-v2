@@ -162,7 +162,7 @@ void commandline(po::variables_map &opt, string &name, string &filesystem,
  */
 bool validateFsAndGroup(const Config &config, const po::variables_map &opt, const std::string username)
 {
-    if (traceflag) fmt::print(stderr, "validateFsAndGroup(username={})", username);
+    if (traceflag) fmt::print(stderr, "Trace  : validateFsAndGroup(username={})", username);
 
     //auto groupnames=getgroupnames(username); // FIXME:  use getGrouplist ?
     auto groupnames = user::getGrouplist();
@@ -201,7 +201,7 @@ void release(
             string user_option, const string groupname, const bool deletedata
             ) 
 {
-    if (traceflag) fmt::print(stderr, "releae({}, {}, {}, {}, {})\n", filesystem, name,
+    if (traceflag) fmt::print(stderr, "Trace  : releae({}, {}, {}, {}, {})\n", filesystem, name,
                                 user_option, groupname, deletedata);
 
 
@@ -243,7 +243,7 @@ void release(
 
     for (std::string cfilesystem: searchlist) {
         if (debugflag) {
-            fmt::print(stderr, "debug: searching valid filesystems, currently {}\n", cfilesystem);
+            fmt::print(stderr, "Debug: searching valid filesystems, currently {}\n", cfilesystem);
         }
 
         //auto db = config.openDB(cfilesystem);
@@ -263,7 +263,7 @@ void release(
             break;
         } catch (DatabaseException &e) {
             // silently ignore non existiong entries
-            if (debugflag) fmt::print(stderr, "debug:  existence check failed for {}/{}\n", cfilesystem, dbid);
+            if (debugflag) fmt::print(stderr, "Debug:  existence check failed for {}/{}\n", cfilesystem, dbid);
         }   
     } // searchloop
 
