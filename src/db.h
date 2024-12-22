@@ -81,10 +81,11 @@ public:
 //	- create an entry
 //	- read an entry
 //	- find entries matching a pattern
+//  - get a path of a new workspace for that DB
 // this class is constructed through Config::openDB 
 class Database {
 public:
-	// new entry
+	// new DB entry
 	virtual void createEntry(const string user, const string id, const string workspace, 
 			const long creation, const long expiration, const long reminder, const int extensions, 
 			const string group, const string mailaddress, const string comment) = 0;
@@ -96,6 +97,10 @@ public:
 	// return a list of entries
 	virtual std::vector<WsID> matchPattern(const string pattern, const string user, 
 			const vector<string> groups, const bool deleted, const bool groupworkspaces) = 0;
+
+	// create workspace directory according to the rules of this Db and return the name
+	// has to fix all permissions
+	virtual std::string createWorkspace(const string name, const string user_option, const string groupname) = 0;
 
 	virtual ~Database() = default; // address-sanitizer needs this
 };

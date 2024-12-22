@@ -55,6 +55,11 @@
 // for chown
 #include <sys/stat.h>
 #include <fcntl.h>
+// for statfs
+#include <sys/vfs.h> 
+// for getgrpnam
+#include <sys/types.h>
+#include <grp.h>
 
 #include <fstream>
 #include <iostream>
@@ -63,11 +68,140 @@
 
 using namespace std;
 
+// globals
 extern bool debugflag;
 extern bool traceflag;
 extern Cap caps;
 
 namespace cppfs = std::filesystem;
+
+
+// create the workspace directory with the structure of this DB
+string FilesystemDBV1::createWorkspace(const string name, const string user_option, const string groupname) {
+    string wsdir;
+
+    std::string username = user::getUsername(); // current user
+
+    int spaceid = 0;
+
+    auto spaces = config->getFsConfig(fs).spaces;
+
+    if (spaces.size()>1) {
+        auto spaceselection = config->getFsConfig(fs).spaceselection;
+        if (debugflag) {
+            fmt::println(stderr, "Debug  : spaceseletion for {} = {}", fs, spaceselection);
+        }       
+        // select space according to spaceselection in config
+        if (spaceselection == "random") {
+            srand(time(NULL));
+            int spaceid=rand()%spaces.size(); 
+        } else if (spaceselection == "uid") {
+            spaceid = getuid() % spaces.size();
+        } else if (spaceselection == "gid") {              
+            spaceid = getgid() % spaces.size();
+        } else if (spaceselection == "mostspace") {           
+            spaceid = 0;
+            fsblkcnt_t max_free_bytes = 0;
+            for (size_t i = 0; i < spaces.size(); ++i) {
+                struct statfs sfs;
+                statfs(spaces[i].c_str(), &sfs);
+                fsblkcnt_t free_bytes = sfs.f_bsize * sfs.f_bfree;
+                if (free_bytes > max_free_bytes) {
+                    max_free_bytes = free_bytes;
+                    spaceid = i;
+                }
+            }
+        }
+        if (debugflag) {
+            fmt::println(stderr, "Debug  : spaceid={}", spaceid);
+        }
+    } 
+
+    // determine name of workspace directory
+
+    if (user_option.length()>0 && (user_option != username) && (getuid() != 0)) {
+        wsdir = spaces[spaceid]+"/"+username+"-"+name;
+    } else {  // we are root and can change owner!
+        string randspace = spaces[spaceid];
+        if (user_option.length()>0 && (getuid()==0)) {
+            wsdir = randspace+"/"+user_option+"-"+name;
+        } else {
+            wsdir = randspace+"/"+username+"-"+name;
+        }
+    }       
+
+    auto db_uid = config->dbuid();
+    auto db_gid = config->dbgid();
+
+     // make directory and change owner + permissions
+    try {
+        caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));
+        mode_t oldmask = umask( 077 );    // as we create intermediate directories, we better take care of umask!!
+        cppfs::create_directories(wsdir);
+        umask(oldmask);
+        caps.lower_cap(CAP_DAC_OVERRIDE, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+    } catch (...) {
+        auto uid=getuid();
+        auto euid=geteuid();
+        caps.lower_cap(CAP_DAC_OVERRIDE, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+        fmt::print(stderr, "Error  : could not create workspace directory <{}>!\n", wsdir);
+        if (debugflag) {
+            fmt::print(stderr, "Debug  : uid: {} euid: {}", uid, euid);
+        }
+        exit(-1); // FIXME: throw
+    }
+
+    uid_t tuid=getuid();
+    gid_t tgid=getgid();
+
+    if (user_option.length()>0) {
+        struct passwd *pws = getpwnam(user_option.c_str());
+        tuid = pws->pw_uid;
+        tgid = pws->pw_gid;
+    }
+
+    if (groupname!="") {
+        struct group *grp;
+        grp=getgrnam(groupname.c_str());
+        if (grp) {
+            tgid=grp->gr_gid;
+        }
+    }
+
+    caps.raise_cap(CAP_CHOWN, utils::SrcPos(__FILE__, __LINE__, __func__));
+
+    if(chown(wsdir.c_str(), tuid, tgid)) {
+        caps.lower_cap(CAP_CHOWN, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+        fmt::println(stderr, "Error  : could not change owner of workspace!");
+        unlink(wsdir.c_str());
+        exit(-1); // FIXME: throw
+    }
+    caps.lower_cap(CAP_CHOWN, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+
+    caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__));
+    mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
+
+    // group workspaces can be read and listed by group  // FIXME: lesbar machen!
+    //if (opt.count("group") || groupname!="") {
+    //    mode |= S_IRGRP | S_IXGRP;
+    //}
+    if (groupname!="") {
+        mode |= S_IWGRP | S_ISGID;
+    }
+    if(chmod(wsdir.c_str(), mode)) {
+        caps.lower_cap(CAP_FOWNER, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+        fmt::println(stderr, "Error: could not change permissions of workspace!");
+        unlink(wsdir.c_str());
+        exit(-1);  // FIXME: throw
+    }
+    caps.lower_cap(CAP_FOWNER, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+
+
+    return wsdir;
+}
+
+
+
 
 // get a list of ids of matching DB entries for a user
 //  unittest: yes

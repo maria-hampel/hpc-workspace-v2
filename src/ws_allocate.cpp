@@ -284,7 +284,8 @@ void allocate(
 
     // validate filesystem and group given on command line 
     if (!validateFsAndGroup(config, opt, user_option )) {
-        fmt::print(stderr, "Error: aborting!\n");
+        //fmt::print(stderr, "Error  : aborting!\n");
+        exit(-2);
     }
   
 
@@ -433,8 +434,46 @@ void allocate(
     } else {
         // workspace does not exist and needs to be created
 
+        if (extensionflag) {
+            fmt::println(stderr, "Error  : workspace does not exist, can not be extended!");
+            exit(-1); 
+        }
 
-        fmt::print("IMPLEMENT ME\n");
+        // workspace does not exist and a new one has to be created
+
+        std::string newfilesystem;              // where to create a new workspace
+
+        if(opt.count("filesystem")) {
+            newfilesystem = opt["filesystem"].as<string>();     // commandline or
+        } else {
+            newfilesystem = searchlist[0];                      // highest prio 
+        }
+
+        // is that filesystem open for allocations?
+        if (!config.getFsConfig(newfilesystem).allocatable) {
+            fmt::print(stderr, "Error  : this workspace can not be used for allocation.\n");
+            exit(-2);            
+        }
+
+        // if it does not exist, create it
+        fmt::print(stderr, "Info   : creating workspace.\n");
+
+        // read the possible spaces for the filesystem
+        vector<string> spaces = config.getFsConfig(newfilesystem).spaces;
+        
+        // SPEC:CHANGE: no LUA callouts
+
+        // open DB where workspace will be created
+        std::unique_ptr<Database> creationDB(config.openDB(newfilesystem));
+
+        auto wsdir = creationDB->createWorkspace(name, user_option, groupname);
+
+
+
+        fmt::print("create {}\n", wsdir);
+
+
+        fmt::print("IMPLEMENT ME \n");
     }
 
     

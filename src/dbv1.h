@@ -105,12 +105,6 @@ private:
 public:
         FilesystemDBV1(const Config* config_, const string fs_) : config(config_), fs(fs_) {};
 
-        // return list of identifiers of DB entries matching pattern from filesystem or all valid filesystems
-        //  does not check if request for "deleted" is valid, has to be done on caller side
-        //  throws IO exceptions in case of access problems
-        std::vector<WsID> matchPattern(const string pattern, const string user, const vector<string> groups,
-                                                const bool deleted, const bool groupworkspaces);
-
         // create new DB entry
         void createEntry(const string user, const string id, const string workspace, 
 			const long creation, const long expiration, const long reminder, const int extensions, 
@@ -118,6 +112,16 @@ public:
 
 	// read entry
 	std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted);
+
+        // return list of identifiers of DB entries matching pattern from filesystem or all valid filesystems
+        //  does not check if request for "deleted" is valid, has to be done on caller side
+        //  throws IO exceptions in case of access problems
+        std::vector<WsID> matchPattern(const string pattern, const string user, const vector<string> groups,
+                                                const bool deleted, const bool groupworkspaces);
+
+        // create workspace directory according to rules of this DB
+        // and return the name
+	std::string createWorkspace(const string name, const string user_option, const string groupname);
 
         // access to config
         const Config* getconfig() {
