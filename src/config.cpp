@@ -236,7 +236,7 @@ void Config::readYAML(string yamlstr) {
                     auto ws=it[fs.name.c_str()];
 
                     if (node=ws["deleted"]; node.has_val()) node>>fs.deletedPath;
-                    if (node=ws["spaceselection"]; node.has_val()) node>>fs.spaceselection;
+                    if (node=ws["spaceselection"]; node.has_val()) node>>fs.spaceselection; else fs.spaceselection = "random";
                     if (node=ws["database"]; node.has_val()) node>>fs.database;
                     if (node=ws["keeptime"]; node.has_val()) node>>fs.keeptime;
                     if (node=ws["maxduration"]; node.has_val()) node>>fs.maxduration;
