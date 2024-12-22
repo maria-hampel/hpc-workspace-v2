@@ -62,6 +62,8 @@ public:
     bool isSetuid() {return issetuid;};
     bool hasCaps() {return hascaps;};
     bool isUserMode() {return isusermode;};
+
+    void dump() const;
 };
 
 

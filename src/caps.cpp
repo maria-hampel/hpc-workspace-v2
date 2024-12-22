@@ -43,6 +43,8 @@ extern bool debugflag;
 // TODO: is exit(1) ok here? better error handling?
 // TODO: add tracing
 
+
+
 // constructor, check if we are setuid or have capabilites (only if linked with libcap)
 Cap::Cap() {
     // use those to enable tracing here, is called before aruments are parsed
@@ -94,21 +96,24 @@ Cap::Cap() {
 // drop effective capabilities, except CAP_DAC_OVERRIDE | CAP_CHOWN
 void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos srcpos)
 {
-    if (traceflag) fmt::println(stderr, "Trace  : Cap::dropcap( {}, {})", uid, srcpos.getSrcPos());
+    if (traceflag) {
+        fmt::println(stderr, "Trace  : Cap::dropcap( {}, {})", uid, srcpos.getSrcPos());
+        dump();
+    }
 #ifdef WS_CAPA
     if(hascaps) {
         cap_t caps;
         cap_value_t cap_list[cap_arg.size()];
 
-        int arg=0;
+        int cnt=0;
         for(const auto &ca: cap_arg) {
-            cap_list[arg++] = ca;
+            cap_list[cnt++] = ca;
         }
 
         caps = cap_init();
 
-        if (cap_set_flag(caps, CAP_PERMITTED, 1, cap_list, CAP_SET) == -1) {
-            fmt::print(stderr, "Error  : problem with capabilities.\n");
+        if (cap_set_flag(caps, CAP_PERMITTED, cnt, cap_list, CAP_SET) == -1) {
+            fmt::print(stderr, "Error  : problem with capabilities. {}\n", srcpos.getSrcPos());
             exit(1);
         }
 
@@ -116,7 +121,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
             fmt::print(stderr, "Error  : problem dropping capabilities.\n");
             cap_t cap = cap_get_proc();
             char * cap_text = cap_to_text(cap, NULL);
-            if(debugflag) fmt::print(stderr, "Debug  : running with capabilities: {}\n", cap_text);  // FIXME: unconditional debug output
+            if(debugflag) fmt::print(stderr, "Debug  : running with capabilities: {}\n", cap_text);
             cap_free(cap_text);
             cap_free(cap);
             cap_free(caps);
@@ -177,6 +182,10 @@ void Cap::lower_cap(cap_value_t cap, int dbuid, utils::SrcPos srcpos)
 // add a capability to the effective set
 void Cap::raise_cap(int cap, utils::SrcPos srcpos)
 {
+    if (traceflag) {
+        fmt::println(stderr, "Trace  : Cap::raise_cap( {}, {})", cap, srcpos.getSrcPos());
+        dump();
+    }
 #ifdef WS_CAPA
     if(hascaps) {
         cap_t caps;
@@ -191,9 +200,9 @@ void Cap::raise_cap(int cap, utils::SrcPos srcpos)
         }
 
         if (cap_set_proc(caps) == -1) {
-            fmt::print(stderr, "Error  : problem raising capabilities.\n");
+            fmt::print(stderr, "Error  : problem raising capabilities. {}\n", srcpos.getSrcPos());
             cap_t cap = cap_get_proc();
-            fmt::print(stderr, "Running with capabilities: {}\n", cap_to_text(cap, NULL));
+            fmt::print(stderr, "Debug  : Running with capabilities: {}\n", cap_to_text(cap, NULL));
             cap_free(cap);
             exit(1);
         }
@@ -209,4 +218,15 @@ void Cap::raise_cap(int cap, utils::SrcPos srcpos)
         }
     }
 
+}
+
+// helper to dump current capabilities
+void Cap::dump() const {
+#ifdef WS_CAPA
+    cap_t cap = cap_get_proc();
+    char * cap_text = cap_to_text(cap, NULL);
+    if(debugflag) fmt::print(stderr, "Debug  : running with capabilities: {}\n", cap_text);
+    cap_free(cap_text);
+    cap_free(cap);
+#endif
 }
