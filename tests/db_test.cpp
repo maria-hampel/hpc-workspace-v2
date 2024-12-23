@@ -257,7 +257,7 @@ workspaces:
     ws1:
         database: {}
         deleted: .removed
-        spaces: [/tmp]
+        spaces: [/tmp,/var/tmp]
     ws2:
         database: {}
         deleted: .removed
@@ -276,7 +276,12 @@ workspaces:
     REQUIRE(wsdir.size()>0);
     REQUIRE(fs::exists(wsdir));
     REQUIRE(fs::is_directory(wsdir));
-    // TODO: file permissions
+    // file permissions
+    auto permissions = std::filesystem::status(wsdir).permissions();
+    {
+        using std::filesystem::perms;
+        REQUIRE((permissions & perms::mask)== (perms::owner_read | perms::owner_write | perms::owner_exec));
+    }
 
     // create DBentry for it
     db1->createEntry("user1-test1", wsdir, time(NULL), time(NULL)+3601, 1, 7, "", "", "no comment");
@@ -312,5 +317,10 @@ workspaces:
     REQUIRE(entry2->getComment() == "no comment");
     REQUIRE(entry2->getExtension() == 7);
 
-    // TODO: file permissions
+    // file permissions
+    permissions = std::filesystem::status(wsdir).permissions();
+    {
+        using std::filesystem::perms;
+        REQUIRE((permissions & perms::mask)== (perms::owner_all | perms::group_all | perms::set_gid ));
+    }
 }
