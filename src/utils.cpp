@@ -45,11 +45,14 @@ namespace fs = std::filesystem;
 
 #include "utils.h"
 #include "db.h"
+#include "caps.h"
 
 using namespace std;
 
+// globals
 extern bool debugflag;
 extern bool traceflag;
+extern Cap caps;
 
 namespace utils {
 
@@ -186,7 +189,8 @@ namespace utils {
 #ifdef WS_CAPA
 		capa = true;
 #endif
-		fmt::println("Flags: WS_PARALLEL={}, WS_CAPA={}, WS_ALLOW_USER_DEBUG={}",parallel,capa,userdebug);
+		fmt::println("Build flags: WS_PARALLEL={}, WS_CAPA={}, WS_ALLOW_USER_DEBUG={}",parallel,capa,userdebug);
+		fmt::println("Runtime flags: isusermode={}, issetuid={}, hascaps={}", caps.isUserMode(), caps.isSetuid(), caps.hasCaps());
 	}
 
 	// we only support C locale, if the used local is not installed on the system
