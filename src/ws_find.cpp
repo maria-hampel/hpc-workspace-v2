@@ -65,14 +65,7 @@ int main(int argc, char **argv) {
     string name;
     bool listgroups=false;
     bool listfilesystems=false;
-    bool shortlisting=false;
     bool listexpired=false;
-    bool sortbyname=false;
-    bool sortbycreation=false;
-    bool sortbyremaining=false;
-    bool sortreverted=false;
-    bool terselisting=false;
-    bool verbose=false;
 
     po::variables_map opts;
 
@@ -117,8 +110,6 @@ int main(int argc, char **argv) {
 
     listgroups = opts.count("group");
     listfilesystems = opts.count("listfilesystems");
-    shortlisting = opts.count("short");
-    verbose = opts.count("verbose");
 
 #ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
@@ -190,8 +181,6 @@ int main(int argc, char **argv) {
             fmt::print("{}\n", fs);
         }
     } else {
-        bool sort = sortbyname || sortbycreation || sortbyremaining;
-
         // where to list from?
         vector<string> fslist;
         vector<string> validfs = config.validFilesystems(username,grouplist);
