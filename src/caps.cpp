@@ -59,28 +59,28 @@ Cap::Cap() {
 
     if (!issetuid) {
 #ifdef WS_CAPA    
-    cap_t caps, oldcaps;
-    cap_value_t cap_list[1];
+        cap_t caps, oldcaps;
+        cap_value_t cap_list[1];
 
-    caps = cap_get_proc();
-    oldcaps = cap_dup(caps);
+        caps = cap_get_proc();
+        oldcaps = cap_dup(caps);
 
-    cap_list[0] = CAP_DAC_OVERRIDE;  // this has to be set for all executables using this!
+        cap_list[0] = CAP_DAC_OVERRIDE;  // this has to be set for all executables using this!
 
-    if (cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, CAP_SET) == -1) {
-        fmt::print(stderr, "Error  : problem with capabilities, should not happen\n");
+        if (cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, CAP_SET) == -1) {
+            fmt::print(stderr, "Error  : problem with capabilities, should not happen\n");
+            cap_free(caps);
+            cap_free(oldcaps);
+            exit(1);
+        }
+
+        if (cap_set_proc(caps) == 0) {
+            hascaps = true;
+            cap_set_proc(oldcaps);
+        }
+
         cap_free(caps);
         cap_free(oldcaps);
-        exit(1);
-    }
-
-    if (cap_set_proc(caps) == 0) {
-        hascaps = true;
-        cap_set_proc(oldcaps);
-    }
-
-    cap_free(caps);
-    cap_free(oldcaps);
 #endif
     }
 
