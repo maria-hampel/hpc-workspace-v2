@@ -42,6 +42,7 @@ namespace user {
     bool isRoot();
     bool isnotSetuid();
     bool isSetuid();
+    std::string getGroupname();
     std::vector<std::string> getGrouplist();
 }
 

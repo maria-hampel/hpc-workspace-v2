@@ -77,6 +77,14 @@ namespace user {
         return getuid() != geteuid();
     }
 
+    // get name of effective group 
+    std::string getGroupname() {
+        std::string primarygroup;
+        gsl::not_null<struct group *> grp = getgrgid(getegid());
+        primarygroup = std::string(grp->gr_name);
+        return primarygroup;
+    }
+
     // get list of group names of current process
     std::vector<std::string> getGrouplist() {
         if(traceflag) fmt::print(stderr, "Trace  : getGroupList()\n");
