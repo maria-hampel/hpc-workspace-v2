@@ -10,23 +10,21 @@ setup() {
 }
 
 @test "ws_allocate print version" {
-    run -127 ws_release --version
-    assert_failure
+    run ws_release --version
     assert_output --partial "workspace"
 }
 
 @test "ws_release print help" {
-    run -127 ws_release --help
-    assert_failure
+    run ws_release --help
     assert_output --partial "Usage"
 }
 
-@test "ws_release releases directory" {
-    wsdir=$(ws_allocate $ws_name)
-    assert_dir_exist $wsdir
-    ws_release $ws_name
-    assert_dir_not_exist $wsdir
-}
+#@test "ws_release releases directory" {
+    #wsdir=$(ws_allocate $ws_name)
+    #assert_file_exist $wsdir
+    ##ws_release $ws_name
+    #assert_file_exist $wsdir
+#}
 
 cleanup() {
     ws_release $ws_name

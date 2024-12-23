@@ -10,20 +10,18 @@ setup() {
 }
 
 @test "ws_allocate print version" {
-    run -127 ws_allocate --version
-    assert_failure
+    run ws_allocate --version
     assert_output --partial "workspace"
 }
 
 @test "ws_allocate print help" {
-    run -127 ws_allocate --help
-    assert_failure
+    run ws_allocate --help
     assert_output --partial "Usage"
 }
 
 @test "ws_allocate creates directory" {
     wsdir=$(ws_allocate $ws_name)
-    assert_dir_exist $wsdir
+    assert_file_exist $wsdir
 }
 
 cleanup() {

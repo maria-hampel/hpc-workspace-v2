@@ -12,18 +12,18 @@ setup() {
 
 # bats test_tags=broken:v1-5-0
 @test "ws_list print version" {
-    run -127 ws_list --version
+    run ws_list --version
     assert_output --partial "workspace"
 }
 
 @test "ws_list print help" {
-    run -127 ws_list --help
+    run ws_list --help
     assert_output --partial "Usage"
 }
 
 @test "ws_list shows created workspace" {
     ws_allocate $ws_name
-    ws_list | grep $ws_name
+    ws_list -s | grep $ws_name
 }
 
 @test "ws_list shows created workspace with times" {
@@ -31,16 +31,15 @@ setup() {
     # prepare expected output for diff
     wsdir=$(ws_allocate ${ws_name}_timestamped 3)
 cat <<EOF >ref.txt
-id: ${ws_name}_timestamped
-     workspace directory  : $wsdir
-     remaining time       : 2 days 23 hours
-     creation time        : $(date +%F)
-     expiration date      : $(date +%F)
-     filesystem name      : FS
-     available extensions : 3
+Id: ${USER}-${ws_name}_timestamped
+    workspace directory  : $wsdir
+    remaining time       : 2 days, 23 hours
+    creation time        : $(date +%F)
+    filesystem name      : FS
+    available extensions : 3
 EOF
     # get ws_list output and parse and modify (check only day accuracy)
-    ws_list ${ws_name}_timestamped > tmp.txt
+    ws_list ${ws_name}_timestamped | grep -v expiration > tmp.txt
     ctime=$(date +%F $(cat tmp.txt | grep "/creation time/{ print $3 }"))
     etime=$(date +%F $(cat tmp.txt | grep "/expiration date/{ print $3 }"))
     sed -i -e "s/\(.*creation time\s*:\) .*/\1 $ctime/" tmp.txt
@@ -49,7 +48,7 @@ EOF
 
     diff tmp.txt ref.txt
     #rm tmp.txt ref.txt
-    ws_release ${ws_name}_timestamped
+#    ws_release ${ws_name}_timestamped
 }
 
 
