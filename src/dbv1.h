@@ -47,12 +47,15 @@ class FilesystemDBV1;
 //  and would carry unknown fields simply over. mix may be?
 class DBEntryV1 : public DBEntry {
 private:
+        // pointer to DB containing this entry (to get access to config)
+        FilesystemDBV1 *parent_db;
+
         // information of external format
         int     dbversion;              // version
         string  id;                     // ID of this workspace
 
         // main components of external format
-        string  filesystem;             // location
+        string  filesystem;             // location   // FIXME: is this used anywhere?
         string  workspace;              // directory path
         long    creation;               // epoch time of creation
         long    expiration;             // epoch time of expiration
@@ -64,20 +67,22 @@ private:
         string  comment;                // some user defined comment
         string  dbfilepath;             // if read from DB, this is the location to write to
 
-        // pointer to DB containing this entry (to get access to config)
-        FilesystemDBV1 *parent_db;
-
-
 public:
+        // simple constructor to read from file
         DBEntryV1(FilesystemDBV1* pdb) : parent_db(pdb) {};
+        // constructor to make new entry to write out
+        DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation, 
+                        const long _expiration, const long _reminder, const int _extensions, 
+			const string _group, const string _mailaddress, const string _comment);
 
+        // read yaml entry from string
         void readFromString(std::string str);
         // read yaml entry from file
         void readFromFile(const WsID id, const string filesystem, const string filename);
-        // use extension and write back file
 
+        // use extension and write back file
         void useExtension(const long expiration, const string mail, const int reminder, const string comment);
-	// write entry to DB after update (read with readEntry)
+	// write entry to DB after update (read with readEntry) or creation
 	void writeEntry();
 
         // print for ws_list
@@ -106,9 +111,9 @@ public:
         FilesystemDBV1(const Config* config_, const string fs_) : config(config_), fs(fs_) {};
 
         // create new DB entry
-        void createEntry(const string user, const string id, const string workspace, 
-			const long creation, const long expiration, const long reminder, const int extensions, 
-			const string group, const string mailaddress, const string comment) {} // TODO: };
+        void createEntry(const WsID id, const string workspace, const long creation, const long expiration, 
+                        const long reminder, const int extensions, 
+			const string group, const string mailaddress, const string comment);
 
 	// read entry
 	std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted);
@@ -126,6 +131,11 @@ public:
         // access to config
         const Config* getconfig() {
                 return config;
+        }
+
+        // access to fs
+        std::string getfs() {
+                return fs;
         }
 };
 

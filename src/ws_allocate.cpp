@@ -193,8 +193,6 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
  *  validate parameters vs config file
  *
  *  return true if ok and false if not
- * 
- *  changes duration and maxextensions, does return true if they are out of bounds
  */
 bool validateFsAndGroup(const Config &config, const po::variables_map &opt, const std::string username)
 {
@@ -224,12 +222,12 @@ bool validateFsAndGroup(const Config &config, const po::variables_map &opt, cons
 }
 
 /*
- * validate duration and extions vs config
+ * validate duration vs config
  *
- * return true if ok and false if not
+ * return true if ok and false if not, changes values if out of bounds
  */
-bool validateDurationAndExtensions(const Config &config, const po::variables_map &opt, const std::string filesystem, int &duration, int &maxextensions) {
-    if (traceflag) fmt::print(stderr, "Trace  : validateDurationAndExtensions(filesystem={},duration={},maxextension={})", filesystem, duration, maxextensions);
+bool validateDuration(const Config &config, const std::string filesystem, int &duration) {
+    if (traceflag) fmt::print(stderr, "Trace  : validateDurationAndExtensions(filesystem={},duration={})", filesystem, duration);
 
     // change duration if limits exceeded and warn
     // FIXME:  TODO: old code checks for user exceptions, not yet implemented
@@ -268,8 +266,6 @@ void allocate(
     if (traceflag) fmt::print(stderr, "Trace  : allocate({}, {}, {}, {}, {}, {}, {}, {}, {})\n", duration, filesystem, name, extensionflag, 
                                 reminder, mailaddress, user_option, groupname, comment);
 
-    int maxextensions;
-    int fixed_duration = duration;
     long exp;
 
     std::string username = user::getUsername(); // current user
@@ -468,12 +464,29 @@ void allocate(
 
         auto wsdir = creationDB->createWorkspace(name, user_option, opt.count("group")>0, groupname);
 
+        // now create DB entry
 
+        validateDuration(config, newfilesystem, duration);
 
-        fmt::print("create {}\n", wsdir);
+        auto extensions = config.getFsConfig(newfilesystem).maxextensions;
+        auto expiration = time(NULL)+duration*24*3600;
+        string primarygroup = "";
+        if (opt.count("group")) {
+            primarygroup = user::getGroupname();
+        }
+		if (groupname!="") {
+			primarygroup = groupname;
+		}
 
+        auto id = fmt::format("{}-{}", username, name);
+        creationDB->createEntry(id, wsdir, time(NULL), expiration, reminder, extensions,
+                                 primarygroup, mailaddress, comment);
 
-        fmt::print("IMPLEMENT ME \n");
+        fmt::print("{}\n", wsdir);
+        fmt::print(stderr, "remaining extensions  : {}\n", extensions);
+        fmt::print(stderr, "remaining time in days: {}\n", (expiration-time(NULL))/(24*3600));
+
+        syslog(LOG_INFO, "created for user <%s> DB <%s> with space <%s>.", username.c_str(), id.c_str(), wsdir.c_str());
     }
 
     
@@ -518,7 +531,6 @@ int main(int argc, char **argv) {
 
     reminder = config.reminderdefault();
     durationdefault = config.durationdefault();
-    int db_uid = config.dbuid();
 
     // read user config before dropping privileges 
     //std::stringstream user_conf;

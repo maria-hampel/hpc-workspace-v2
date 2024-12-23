@@ -94,7 +94,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
         // select space according to spaceselection in config
         if (spaceselection == "random") {
             srand(time(NULL));
-            int spaceid=rand()%spaces.size(); 
+            spaceid=rand()%spaces.size(); 
         } else if (spaceselection == "uid") {
             spaceid = getuid() % spaces.size();
         } else if (spaceselection == "gid") {              
@@ -131,7 +131,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
     }       
 
     auto db_uid = config->dbuid();
-    auto db_gid = config->dbgid();
+    //auto db_gid = config->dbgid();
 
      // make directory and change owner + permissions
     try {
@@ -202,6 +202,15 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
 }
 
 
+// create new DB entry
+void FilesystemDBV1::createEntry(const WsID id, const string workspace, const long creation, 
+                                const long expiration, const long reminder, const int extensions, 
+                                const string group, const string mailaddress, const string comment) {
+
+    DBEntryV1 entry(this, id, workspace, creation, expiration, reminder, extensions, 
+                    group, mailaddress, comment);
+    entry.writeEntry();
+}
 
 
 // get a list of ids of matching DB entries for a user
@@ -278,6 +287,15 @@ std::unique_ptr<DBEntry> FilesystemDBV1::readEntry(const WsID id, const bool del
     return entry;
 }
 
+// constructor to make new entry to write out
+DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation, 
+                        const long _expiration, const long _reminder, const int _extensions, 
+			const string _group, const string _mailaddress, const string _comment)
+                : parent_db(pdb), id(_id), workspace(_workspace), creation(_creation), expiration(_expiration), reminder(_reminder),
+                extensions(_extensions), group(_group), mailaddress(_mailaddress), comment(_comment)
+        {           
+                dbfilepath = pdb->getconfig()->getFsConfig(pdb->getfs()).database + "/" + id;
+        }
 
 // read db entry from yaml file
 //  unittest: yes
@@ -466,6 +484,7 @@ void DBEntryV1::writeEntry()
 #ifndef WS_RAPIDYAML_DB
     YAML::Node entry;
     entry["workspace"] = workspace;
+    entry["creation"] = creation;
     entry["expiration"] = expiration;
     entry["extensions"] = extensions;
     // entry["acctcode"] = acctcode;  // FIXME: ???
@@ -483,6 +502,7 @@ void DBEntryV1::writeEntry()
     ryml::NodeRef root = tree.rootref();
     root |= ryml::MAP; // mark root as a MAP
     root["workspace"] << workspace;
+    root["creation"] << creation;
     root["expiration"] << expiration;
     root["extensions"] << extensions;
     // root["acctcode"] << acctcode;  FIXME: ???
@@ -508,11 +528,10 @@ void DBEntryV1::writeEntry()
 
     if (user::isSetuid()) {
         // for filesystem with root_squash, we need to be DB user here
-        dbgid = parent_db->getconfig()->dbgid();
         dbuid = parent_db->getconfig()->dbuid();
-
-        if (setegid(dbgid)|| seteuid(dbuid)) {
-                // FIXME: usermode
+        dbgid = parent_db->getconfig()->dbgid();
+    
+        if (setegid(dbgid) || seteuid(dbuid)) {
                 fmt::print(stderr, "Error  : can not seteuid or setgid. Bad installation?\n");
                 exit(-1);
         }

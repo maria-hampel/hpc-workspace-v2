@@ -86,10 +86,9 @@ public:
 class Database {
 public:
 	// new DB entry
-	virtual void createEntry(const string user, const string id, const string workspace, 
+	virtual void createEntry(const string id, const string workspace, 
 			const long creation, const long expiration, const long reminder, const int extensions, 
 			const string group, const string mailaddress, const string comment) = 0;
-		// FIXME: acctcode? where is it?
 	
 	// read specific entry
 	virtual std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted) = 0;
