@@ -66,6 +66,9 @@
 
 #include "caps.h"
 
+#include <gsl/pointers>
+
+
 using namespace std;
 
 // globals
@@ -155,14 +158,13 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
     gid_t tgid=getgid();
 
     if (user_option.length()>0) {
-        struct passwd *pws = getpwnam(user_option.c_str());
+        gsl::not_null<struct passwd *> pws = getpwnam(user_option.c_str());
         tuid = pws->pw_uid;
         tgid = pws->pw_gid;
     }
 
     if (groupname!="") {
-        struct group *grp;
-        grp=getgrnam(groupname.c_str());
+        gsl::not_null<struct group *> grp = getgrnam(groupname.c_str());
         if (grp) {
             tgid=grp->gr_gid;
         }
