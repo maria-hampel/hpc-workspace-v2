@@ -67,7 +67,7 @@ find_package(Boost COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 
 
 # find terminfo for "are you human" checker
-find_library(LIBTINFO NAMES libtinfo.so libtinfo.a)
+find_library(LIBTINFO NAMES libtinfo.a libtinfo.so)
 if(LIBTINFO)
     message(STATUS "Found libtinfo")
 else()

@@ -58,6 +58,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release (static)",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "Boost_USE_STATIC_LIBS": "ON",
         "CMAKE_FIND_LIBRARY_SUFFIXES": ".a",
         "BUILD_SHARED_LIBS": false,
         "CMAKE_EXE_LINKER_FLAGS": "-static"
