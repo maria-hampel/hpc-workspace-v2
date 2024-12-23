@@ -57,6 +57,7 @@ Cap::Cap() {
     hascaps = false;
     isusermode = false;
 
+    if (!issetuid) {
 #ifdef WS_CAPA    
     cap_t caps, oldcaps;
     cap_value_t cap_list[1];
@@ -81,6 +82,7 @@ Cap::Cap() {
     cap_free(caps);
     cap_free(oldcaps);
 #endif
+    }
 
     if (!issetuid && !hascaps) isusermode = true;
 
@@ -144,6 +146,10 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 // remove a capability from the effective set
 void Cap::lower_cap(cap_value_t cap, int dbuid, utils::SrcPos srcpos)
 {
+    if (traceflag) {
+        fmt::println(stderr, "Trace  : Cap::lower_cap( {}, {})", dbuid, srcpos.getSrcPos());
+        dump();
+    }
 #ifdef WS_CAPA
     if(hascaps) {   
         cap_t caps; 
