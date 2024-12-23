@@ -11,6 +11,7 @@ namespace fs = std::filesystem;
 
 #include "../src/caps.h"
 #include "../src/dbv1.h"
+#include "../src/user.h"
 
 Cap caps{}; 
 
@@ -214,4 +215,102 @@ comment: ""
 
     }
  
+}
+
+
+
+TEST_CASE( "workspace creation test", "[db]" ) {
+
+
+
+  // create a stub/mockup  of everything
+  //   - config
+  //   - DB
+
+    auto tmpbase = fs::temp_directory_path();
+    auto id = getpid();
+    auto basedirname = tmpbase / fs::path(fmt::format("wstest{}",id));
+
+    fs::create_directories(basedirname / "ws.d");
+
+    auto ws1dbname = basedirname / fs::path("ws1-db");
+    auto ws2dbname = basedirname / fs::path("ws2-db");
+
+    fs::create_directories(ws1dbname);
+    fs::create_directories(ws2dbname);
+    fs::create_directories(ws2dbname / fs::path(".removed"));
+
+    // create a normal config file, V1 way
+    std::ofstream wsconf(basedirname / "ws.conf"); 
+    fmt::println(wsconf, 
+R"yaml(
+admins: [root]
+clustername: ws_conf
+adminmail: [root]
+dbgid: 2
+dbuid: 2
+duration: 10
+maxextensions: 1
+smtphost: mailhost
+default: ws2
+workspaces:
+    ws1:
+        database: {}
+        deleted: .removed
+        spaces: [/tmp]
+    ws2:
+        database: {}
+        deleted: .removed
+        spaces: [/tmp/ws2-old]
+)yaml",  ws1dbname.string() , ws2dbname.string()  );
+    wsconf.close();
+
+    auto config = Config(std::vector<fs::path>{basedirname / "ws.conf"});
+
+    std::unique_ptr<Database> db1(config.openDB("ws1"));
+    std::unique_ptr<Database> db2(config.openDB("ws2"));
+
+    // create workspace dir
+    auto wsdir = db1->createWorkspace("test1","",false,"");
+
+    REQUIRE(wsdir.size()>0);
+    REQUIRE(fs::exists(wsdir));
+    REQUIRE(fs::is_directory(wsdir));
+    // TODO: file permissions
+
+    // create DBentry for it
+    db1->createEntry("user1-test1", wsdir, time(NULL), time(NULL)+3601, 1, 7, "", "", "no comment");
+
+    // see if we can match it
+    REQUIRE(db1->matchPattern("test1", "user1", vector<string>{}, false, false) == vector<string>{"user1-test1"});
+
+    // see if we can read it
+    std::unique_ptr<DBEntry> entry(db1->readEntry("user1-test1", false));
+
+    REQUIRE(entry->getComment() == "no comment");
+    REQUIRE(entry->getExtension() == 7);
+
+    // group workspace
+
+    auto uname = user::getUsername();
+    auto gname = user::getGroupname();
+    wsdir = db1->createWorkspace("gtest2",uname,true,gname);
+
+    REQUIRE(wsdir.size()>0);
+    REQUIRE(fs::exists(wsdir));
+    REQUIRE(fs::is_directory(wsdir));
+
+    // create DBentry for it
+    db1->createEntry(uname+"-gtest2", wsdir, time(NULL), time(NULL)+3601, 1, 7, gname, "", "no comment");
+
+    // see if we can match it, with a non-existing user
+    REQUIRE(db1->matchPattern("gtest2", "does-not-exist", vector<string>{gname}, false, true) == vector<string>{uname + "-gtest2"});
+
+    // see if we can read it
+    std::unique_ptr<DBEntry> entry2(db1->readEntry(uname+"-gtest2", false));
+
+    REQUIRE(entry2->getComment() == "no comment");
+    REQUIRE(entry2->getExtension() == 7);
+
+    // TODO: file permissions
 }
