@@ -60,23 +60,27 @@ language level might evolve from c++17 to c++20 if there is reasons.
 
 ## Dependencies
 
-yaml-cpp (to be removed)
-{fmt} 
-rapidyaml
-boost program_options + boost system
-Guidelines Support Library (GSL)
-tbb
+source is fetched and build as part of this tool:
+- {fmt} 
+- yaml-cpp 
+- rapidyaml
+- Guidelines Support Library (GSL)
+
+libraryu taken from distribution
+- tbb
+- boost program_options + boost system
+- libcap (optional if capability support is wanted instead of setuid)
 
 for testing:
-
-Catch2 
-bats
+- Catch2 
+- bats
 
 ## Status
 
+- basically working implementation of config and DB reading for old format
 - basically working implementation of ws_list in C++ (that was proof of concept for the separation of tool and config and DB implementation)
 - basically working implementation of ws_find in C++
-- basically working implementation of config and DB reading for old format
+- bascially working implementation of ws_allocate
  
 ## Todo
 
@@ -86,9 +90,9 @@ bats
 - [ ] add more unit tests to existing code
 - [ ] build/select a better test framework for the tools
 - [ ] debug what is there
-- [ ] migrate more tools: finish ws_allocate, migrate ws_release, ws_restore, ws_expirer, ws_validate
-- [x] ws_list (testing ongoing)
-- [ ] ws_allocate (1/2)
+- [ ] migrate more tools: migrate ws_release, ws_restore, ws_expirer, ws_validate
+- [x] ws_list 
+- [x] ws_allocate (testing ongoing)
 - [ ] ws_release (stubb)
 - [ ] ws_restore
 - [x] ws_find (testing ongoing)
