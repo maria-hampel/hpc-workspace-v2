@@ -4,11 +4,12 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "../src/UserConfig.h"
-
+#include "../src/caps.h"
 
 bool debugflag = false;
 bool traceflag = false;
 
+Cap caps{};
 
 TEST_CASE("User config yaml format", "[userconfig]") {
 
