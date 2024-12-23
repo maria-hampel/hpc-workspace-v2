@@ -77,7 +77,7 @@ namespace cppfs = std::filesystem;
 
 
 // create the workspace directory with the structure of this DB
-string FilesystemDBV1::createWorkspace(const string name, const string user_option, const string groupname) {
+string FilesystemDBV1::createWorkspace(const string name, const string user_option, const bool groupflag, const string groupname) {
     string wsdir;
 
     std::string username = user::getUsername(); // current user
@@ -181,10 +181,11 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
     caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__));
     mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
 
-    // group workspaces can be read and listed by group  // FIXME: lesbar machen!
-    //if (opt.count("group") || groupname!="") {
-    //    mode |= S_IRGRP | S_IXGRP;
-    //}
+    // group workspaces can be read and listed by group  
+    if (groupflag || groupname!="") {
+        mode |= S_IRGRP | S_IXGRP;
+    }
+    // if a groupname is given make it writable as well
     if (groupname!="") {
         mode |= S_IWGRP | S_ISGID;
     }

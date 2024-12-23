@@ -79,8 +79,8 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
             ("mailaddress,m", po::value<string>(&mailaddress), "mailaddress to send reminder to")
             ("extension,x", "extend workspace")
             ("username,u", po::value<string>(&user), "username")
-            ("group,g", "group workspace")
-            ("groupname,G", po::value<string>(&groupname)->default_value(""), "groupname")
+            ("group,g", "group readable workspace")
+            ("groupname,G", po::value<string>(&groupname)->default_value(""), "for group <arg> writable workspace")
             ("comment,c", po::value<string>(&comment), "comment")
             ("config,C", po::value<string>(&configfile), "config file")
     ;
@@ -466,7 +466,7 @@ void allocate(
         // open DB where workspace will be created
         std::unique_ptr<Database> creationDB(config.openDB(newfilesystem));
 
-        auto wsdir = creationDB->createWorkspace(name, user_option, groupname);
+        auto wsdir = creationDB->createWorkspace(name, user_option, opt.count("group")>0, groupname);
 
 
 

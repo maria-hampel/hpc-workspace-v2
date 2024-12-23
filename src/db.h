@@ -100,7 +100,7 @@ public:
 
 	// create workspace directory according to the rules of this Db and return the name
 	// has to fix all permissions
-	virtual std::string createWorkspace(const string name, const string user_option, const string groupname) = 0;
+	virtual std::string createWorkspace(const string name, const string user_option, const bool groupflag, const string groupname) = 0;
 
 	virtual ~Database() = default; // address-sanitizer needs this
 };

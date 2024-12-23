@@ -121,7 +121,7 @@ public:
 
         // create workspace directory according to rules of this DB
         // and return the name
-	std::string createWorkspace(const string name, const string user_option, const string groupname);
+	std::string createWorkspace(const string name, const string user_option, const bool groupflag, const string groupname);
 
         // access to config
         const Config* getconfig() {
