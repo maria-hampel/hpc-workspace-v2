@@ -1,4 +1,5 @@
 add_library(ws_common
+    build_info.h
     caps.cpp
     caps.h
     config.cpp

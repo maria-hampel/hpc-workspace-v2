@@ -39,6 +39,7 @@
 #include <boost/program_options.hpp>
 #include "config.h"
 
+#include "build_info.h"
 #include "db.h"
 #include "user.h"
 #include "fmt/base.h"
