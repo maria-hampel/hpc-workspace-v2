@@ -36,6 +36,7 @@
 
 #include <syslog.h>
 
+#include "build_info.h"
 #include "config.h"
 #include "user.h"
 #include "utils.h"

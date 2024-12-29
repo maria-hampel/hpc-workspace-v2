@@ -63,9 +63,6 @@ namespace utils {
     // retrurn list of filesnames mit unix name globbing
     std::vector<std::string> dirEntries(const std::string path, const std::string pattern);
 
-    // print CMake flags
-    void printBuildFlags();
-
     // set C local in every thinkable way
     void setCLocal();
 
