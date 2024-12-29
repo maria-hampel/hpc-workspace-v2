@@ -94,7 +94,7 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
 
     // define options without names
     po::positional_options_description p;
-    p.add("name", 1).add("duration",2);
+    p.add("name", 1).add("duration", 1);
 
     po::options_description all_options;
     all_options.add(cmd_options).add(secret_options);
