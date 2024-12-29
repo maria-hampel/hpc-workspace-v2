@@ -17,9 +17,9 @@ TEST_CASE( "Caps", "[capabilities]" ) {
   Cap caps{}; // default constructor without arguments
 
   SECTION("check interfaces are present and callable") {
-    bool issetuid = caps.isSetuid(); // isSetuid()
-    bool hascaps = caps.hasCaps(); // hasCaps()
-    bool isusermode = caps.isUserMode(); // isUserMode()
+    [[maybe_unused]] bool issetuid = caps.isSetuid(); // isSetuid()
+    [[maybe_unused]] bool hascaps = caps.hasCaps(); // hasCaps()
+    [[maybe_unused]] bool isusermode = caps.isUserMode(); // isUserMode()
   }
 
   SECTION("check cap drop is present and callable") {

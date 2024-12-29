@@ -222,8 +222,6 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 {
     if(traceflag) fmt::print(stderr, "Trace  : matchPattern(pattern={},user={},groups={},deleted={},groupworkspace={})\n",pattern, user, groups, deleted,groupworkspaces);
 
-    string filepattern;
-
     // list directory, this also reads YAML file in case of groupworkspaces
     auto listdir = [&groupworkspaces, &groups] (const string pathname, const string filepattern) -> vector<string> {
         if(debugflag) fmt::print("Debug  : listdir({},{})\n", pathname, filepattern);
@@ -261,6 +259,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
     };
 
     // this has to happen here, as other DB might have different patterns
+    string filepattern;
     if (groupworkspaces)
             filepattern = fmt::format("*-{}",pattern);
     else
