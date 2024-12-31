@@ -271,7 +271,30 @@ int main(int argc, char **argv) {
                         }                        
                     });
             }
-#else                   
+#elif WS_OPENMP
+            // FIXME: error handling
+#pragma omp parallel for schedule(dynamic)
+            for(auto const &id: db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups)) {
+                if (!shortlisting) {
+                    //auto entry = db->readEntry(id, listexpired);
+                    std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
+                    // if entry is valid
+                    if (entry) {
+#pragma omp critical
+                        {
+                            // if no sorting, print, otherwise append to list
+                            if (!sort) {
+                                entry->print(verbose, terselisting);
+                            } else {
+                                entrylist.push_back(std::move(entry));
+                            }
+                        }
+                    }
+                } else {
+                    fmt::print("{}\n", id);
+                }
+            }
+#else
             // catch DB access errors, if DB directory or DB is accessible
             //try {
                 for(auto const &id: db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups)) {
