@@ -22,14 +22,14 @@ setup() {
 }
 
 @test "ws_list shows created workspace" {
-    ws_allocate $ws_name
-    ws_list -s | grep $ws_name
+    ws_allocate --config bats/ws.conf $ws_name
+    ws_list --config bats/ws.conf -s | grep $ws_name
 }
 
 @test "ws_list shows created workspace with times" {
     # create a temporary workspace for 3 days
     # prepare expected output for diff
-    wsdir=$(ws_allocate ${ws_name}_timestamped 3)
+    wsdir=$(ws_allocate --config bats/ws.conf ${ws_name}_timestamped 3)
 cat <<EOF >ref.txt
 Id: ${USER}-${ws_name}_timestamped
     workspace directory  : $wsdir
@@ -39,7 +39,7 @@ Id: ${USER}-${ws_name}_timestamped
     available extensions : 3
 EOF
     # get ws_list output and parse and modify (check only day accuracy)
-    ws_list ${ws_name}_timestamped | grep -v expiration > tmp.txt
+    ws_list --config bats/ws.conf ${ws_name}_timestamped | grep -v expiration > tmp.txt
     ctime=$(date +%F $(cat tmp.txt | grep "/creation time/{ print $3 }"))
     etime=$(date +%F $(cat tmp.txt | grep "/expiration date/{ print $3 }"))
     sed -i -e "s/\(.*creation time\s*:\) .*/\1 $ctime/" tmp.txt
@@ -53,6 +53,6 @@ EOF
 
 
 cleanup() {
-    ws_release $ws_name
+    ws_release --config bats/ws.conf $ws_name
     assert_failure
 }

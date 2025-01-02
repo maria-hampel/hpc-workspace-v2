@@ -21,12 +21,12 @@ setup() {
 }
 
 @test "ws_find finds directory" {
-    wsdir=$(ws_allocate $ws_name)
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
     assert_file_exist $wsdir
-    wsdir=$(ws_find $ws_name)
+    wsdir=$(ws_find --config bats/ws.conf $ws_name)
     assert_file_exist $wsdir
 }
 
 cleanup() {
-    ws_release $ws_name
+    ws_release --config bats/ws.conf $ws_name
 }

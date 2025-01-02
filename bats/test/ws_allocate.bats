@@ -20,10 +20,10 @@ setup() {
 }
 
 @test "ws_allocate creates directory" {
-    wsdir=$(ws_allocate $ws_name)
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
     assert_file_exist $wsdir
 }
 
 cleanup() {
-    ws_release $ws_name
+    ws_release --config bats/ws.conf $ws_name
 }
