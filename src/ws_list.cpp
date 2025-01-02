@@ -79,6 +79,7 @@ int main(int argc, char **argv) {
     string pattern;
     bool listgroups=false;
     bool listfilesystems=false;
+    bool listfilesystemdetails=false;
     bool shortlisting=false;
     bool listexpired=false;
     bool sortbyname=false;
@@ -101,6 +102,7 @@ int main(int argc, char **argv) {
 	("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
 	("group,g", "enable listing of grou workspaces")
 	("listfilesystems,l", "list available filesystems")
+    ("listfilesystemdetails,L", "list available filesystems with details")
 	("short,s", "short listing, only workspace names")
 	("user,u", po::value<string>(&user), "only show workspaces for selected user")
 	("expired,e", "show expired workspaces")
@@ -139,6 +141,7 @@ int main(int argc, char **argv) {
 
     listgroups = opts.count("group");
     listfilesystems = opts.count("listfilesystems");
+    listfilesystemdetails = opts.count("listfilesystemdetails");
     shortlisting = opts.count("short");
     listexpired = opts.count("expired");
     sortbyname = opts.count("name");
@@ -217,6 +220,13 @@ int main(int argc, char **argv) {
         for(auto fs: config.validFilesystems(username,grouplist)) {
             fmt::print("{}\n", fs);
         }
+    } else if (listfilesystemdetails) {
+        fmt::print("available filesystems (sorted according to priority):\n");
+        fmt::println("{:>10}{:>10}{:>12}{:>10}","name","duration","extensions","keeptime");
+        for(auto fs: config.validFilesystems(username,grouplist)) {
+            auto fsc = config.getFsConfig(fs);
+            fmt::print("{:>10}{:>10}{:>12}{:>10}\n", fs, fsc.maxduration, fsc.maxextensions, fsc.keeptime);
+        }        
     } else {
         bool sort = sortbyname || sortbycreation || sortbyremaining;
         
