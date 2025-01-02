@@ -240,7 +240,7 @@ void Config::readYAML(string yamlstr) {
                     if (node=ws["database"]; node.has_val()) node>>fs.database;
                     if (node=ws["keeptime"]; node.has_val()) node>>fs.keeptime;
                     if (node=ws["maxduration"]; node.has_val()) node>>fs.maxduration;
-                    if (node=ws["maxextensions"]; node.has_val()) node>>fs.maxextensions;
+                    if (node=ws["maxextensions"]; node.has_val()) node>>fs.maxextensions; else fs.maxextensions = global.maxextensions;
                     if (node=ws["allocatable"]; node.has_val()) node>>fs.allocatable;
                     if (node=ws["extendable"]; node.has_val()) node>>fs.extendable;
                     if (node=ws["restorable"]; node.has_val()) node>>fs.restorable;
@@ -274,7 +274,7 @@ void Config::readYAML(const string yaml) {
     if (config["duration"]) global.maxduration = config["duration"].as<int>(); 
     if (config["durationdefault"]) global.durationdefault = config["durationdefault"].as<int>(); 
     if (config["reminderdefault"]) global.reminderdefault = config["reminderdefault"].as<int>(); 
-    if (config["maxextensions"]) global.maxextensions = config["maxextensions"].as<int>(); 
+    if (config["maxextensions"]) global.maxextensions = config["maxextensions"].as<int>();
     if (config["dbuid"]) global.dbuid = config["dbuid"].as<int>(); 
     if (config["dbgid"]) global.dbgid = config["dbgid"].as<int>(); 
     if (config["admins"]) global.admins = config["admins"].as<vector<string>>();
@@ -304,7 +304,7 @@ void Config::readYAML(const string yaml) {
                     if (ws["maxduration"]) fs.maxduration = ws["maxduration"].as<int>(); else fs.maxduration = 0;
                     // SPEC:CHANGE alias
                     if (ws["duration"]) fs.maxduration = ws["duration"].as<int>(); else fs.maxduration = 0;
-                    if (ws["maxextensions"]) fs.maxextensions = ws["maxextensions"].as<int>(); else fs.maxextensions = 0;
+                    if (ws["maxextensions"]) fs.maxextensions = ws["maxextensions"].as<int>(); else fs.maxextensions = global.maxextensions;
                     if (ws["allocatable"]) fs.allocatable = ws["allocatable"].as<bool>(); else fs.allocatable = true;
                     if (ws["extendable"]) fs.extendable = ws["extendable"].as<bool>(); else fs.extendable = true;
                     if (ws["restorable"]) fs.restorable = ws["restorable"].as<bool>(); else fs.restorable = true;
