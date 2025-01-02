@@ -66,7 +66,7 @@ Cap caps{};
  */
 void commandline(po::variables_map &opt, string &name, string &filesystem,
                     string &user, string &groupname, bool &deletedata,
-                    int argc, char**argv, std::string &userconf, std::string &configfile) {
+                    int argc, char**argv, std::string &configfile) {
     // define all options
 
     po::options_description cmd_options( "\nOptions" );
@@ -294,10 +294,17 @@ int main(int argc, char **argv) {
     string configfile;
     bool deletedata;
     po::variables_map opt;
+    std::string user_conf;
 
+    // lower capabilities to user, before interpreting any data from user
+    caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+    // TODO:: moved up, check and may be fix in ws_allocate as well
 
     // locals settiongs to prevent strange effects
     utils::setCLocal();
+
+    // check commandline, get flags which are used to create ws object or for workspace release
+    commandline(opt, name, filesystem, user_option, groupname, deletedata, argc, argv, configfile);
 
     // find which config files to read
     //   user can change this if no setuid installation OR if root
@@ -317,17 +324,7 @@ int main(int argc, char **argv) {
         exit(-2);
     }
 
-    int db_uid = config.dbuid();
-
-    // FIXME: make sure we are user here, not root!
-
-    // lower capabilities to user, before interpreting any data from user
-    caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-    // TODO:: moved up, check and may be fix in ws_allocate as well
-
-    // read user config before dropping privileges 
-    //std::stringstream user_conf;
-    std::string user_conf;
+    // read user config 
     string user_conf_filename = user::getUserhome()+"/.ws_user.conf";
     if (!cppfs::is_symlink(user_conf_filename)) {
         if (cppfs::is_regular_file(user_conf_filename)) {
@@ -338,11 +335,6 @@ int main(int argc, char **argv) {
         fmt::print(stderr,"Error  : ~/.ws_user.conf can not be symlink!");
         exit(-1);
     }
-
-
-
-    // check commandline, get flags which are used to create ws object or for workspace release
-    commandline(opt, name, filesystem, user_option, groupname, deletedata, argc, argv, user_conf, configfile);
 
     openlog("ws_allocate", 0, LOG_USER); // SYSLOG
 

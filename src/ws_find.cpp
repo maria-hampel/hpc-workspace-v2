@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 	("listfilesystems,l", "list available filesystems")
 	("user,u", po::value<string>(&user), "only show workspaces for selected user")
     ("name,n", po::value<string>(&name), "workspace name to search for")
-	("config,c", po::value<string>(&configfile), "config file");
+	("config", po::value<string>(&configfile), "config file");
 
     po::options_description secret_options("Secret");
     secret_options.add_options()

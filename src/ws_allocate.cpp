@@ -64,16 +64,17 @@ Cap caps{};
  *  parse the commandline and see if all required arguments are passed, and check the workspace name for 
  *  bad characters
  */
-void commandline(po::variables_map &opt, string &name, int &duration, const int durationdefault, string &filesystem,
-                    bool &extension, int &reminder, string &mailaddress, string &user, string &groupname, string &comment,
-                    int argc, char**argv, std::string &userconf, std::string &configfile) {
+void commandline(po::variables_map &opt, string &name, int &duration, string &filesystem, bool &extension, 
+                    int &reminder, string &mailaddress, string &user, string &groupname, string &comment,
+                    int argc, char**argv, std::string &userconf, std::string &configfile) 
+{
     // define all options
 
     po::options_description cmd_options( "\nOptions" );
     cmd_options.add_options()
             ("help,h", "produce help message")
             ("version,V", "show version")
-            ("duration,d", po::value<int>(&duration)->default_value(durationdefault), "duration in days")
+            ("duration,d", po::value<int>(&duration), "duration in days")
             ("name,n", po::value<string>(&name), "workspace name")
             ("filesystem,F", po::value<string>(&filesystem), "filesystem name (see ws_list -l for possible values)")
             ("reminder,r", po::value<int>(&reminder), "reminder to be sent <arg> days before expiration")
@@ -83,7 +84,7 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
             ("group,g", "group readable workspace")
             ("groupname,G", po::value<string>(&groupname)->default_value(""), "for group <arg> writable workspace")
             ("comment,c", po::value<string>(&comment), "comment")
-            ("config,C", po::value<string>(&configfile), "config file")
+            ("config", po::value<string>(&configfile), "config file")
     ;
 
     po::options_description secret_options("Secret");
@@ -154,6 +155,8 @@ void commandline(po::variables_map &opt, string &name, int &duration, const int 
     
     // reminder check, if we have a reminder number, we need either a mailaddress argument or config file
     // with mailaddress in user home
+
+    // FIXME: reminder from user config file?
 
     if(reminder!=0) {
         if (!opt.count("mailaddress")) {
@@ -497,7 +500,7 @@ void allocate(
 
 
 int main(int argc, char **argv) {
-    int duration, durationdefault;
+    int duration = -1;
     bool extensionflag;
     string name;
     string filesystem;
@@ -507,10 +510,29 @@ int main(int argc, char **argv) {
     string configfile;
     int reminder = 0;
     po::variables_map opt;
+    std::string user_conf;
 
+    // lower capabilities to user, before interpreting any data from user
+    caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     // locals settiongs to prevent strange effects
     utils::setCLocal();
+
+    // read user config 
+    string user_conf_filename = user::getUserhome()+"/.ws_user.conf";
+    if (!cppfs::is_symlink(user_conf_filename)) {
+        if (cppfs::is_regular_file(user_conf_filename)) {
+            user_conf = utils::getFileContents(user_conf_filename.c_str());
+        }
+        // FIXME: could be parsed here and passed as object not string
+    } else {
+        fmt::print(stderr,"Error  : ~/.ws_user.conf can not be symlink!");
+        exit(-1);
+    }
+
+    // check commandline, get flags which are used to create ws object or for workspace allocation
+    commandline(opt, name, duration, filesystem, extensionflag, reminder, mailaddress, 
+                   user_option, groupname, comment, argc, argv, user_conf, configfile);
 
     // find which config files to read
     //   user can change this if no setuid installation OR if root
@@ -530,32 +552,14 @@ int main(int argc, char **argv) {
         exit(-2);
     }
 
-    reminder = config.reminderdefault();
-    durationdefault = config.durationdefault();
-
-    // read user config before dropping privileges 
-    //std::stringstream user_conf;
-    std::string user_conf;
-    string user_conf_filename = user::getUserhome()+"/.ws_user.conf";
-    if (!cppfs::is_symlink(user_conf_filename)) {
-        if (cppfs::is_regular_file(user_conf_filename)) {
-            user_conf = utils::getFileContents(user_conf_filename.c_str());
-        }
-        // FIXME: could be parsed here and passed as object not string
-    } else {
-        fmt::print(stderr,"Error  : ~/.ws_user.conf can not be symlink!");
-        exit(-1);
+    // now we have config, fix values
+    if (duration == -1) {
+        duration = config.durationdefault();
     }
 
-    // lower capabilities to user, before interpreting any data from user
-    caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-
-    // check commandline, get flags which are used to create ws object or for workspace allocation
-    commandline(opt, name, duration, durationdefault , filesystem, extensionflag,
-                reminder, mailaddress, user_option, groupname, comment, argc, argv, user_conf, configfile);
+    // FIXME: user config and reminder?
 
     openlog("ws_allocate", 0, LOG_USER); // SYSLOG
-
 
     // allocate workspace
     allocate(config, opt, duration, filesystem, name, extensionflag, reminder, mailaddress, user_option, groupname, comment);

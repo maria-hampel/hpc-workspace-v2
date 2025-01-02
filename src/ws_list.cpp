@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 	("remaining,R", "sort by remaining time")
 	("reverted,r", "revert sort")
 	("terse,t", "terse listing")
-	("config,c", po::value<string>(&configfile), "config file")
+	("config", po::value<string>(&configfile), "config file")
 	("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
 	("verbose,v", "verbose listing") ;
 
