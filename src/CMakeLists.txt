@@ -22,7 +22,6 @@ target_link_libraries(ws_common
         yaml-cpp::yaml-cpp
         ${LIBCAP}
         ${LIBTINFO}
-        ${PARLIB}
     PRIVATE
         Microsoft.GSL::GSL
 )

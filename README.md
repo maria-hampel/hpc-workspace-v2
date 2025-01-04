@@ -58,6 +58,9 @@ no intention to support old platforms like centos7, but it might work.
 
 language level might evolve from c++17 to c++20 if there is reasons.
 
+ws_list has a dependency to -fopenmp, can be removed from CMakeList.txt
+if not available.
+
 ## Dependencies
 
 source is fetched and build as part of this tool:
@@ -66,8 +69,7 @@ source is fetched and build as part of this tool:
 - rapidyaml
 - Guidelines Support Library (GSL)
 
-libraryu taken from distribution
-- tbb
+library taken from distribution
 - boost program_options + boost system
 - libcap (optional if capability support is wanted instead of setuid)
 
@@ -99,7 +101,7 @@ for testing:
 - [ ] add tests for new tools
 - [ ] debug what is there
 - [x] get CMake setup in better shape
-- [ ] remove tbb dependency
+- [x] remove tbb dependency
 - [ ] migrate and check/correct/add documentation, guides and man pages
 - [ ] test with more compilers and distributions
 - [ ] do real live tests

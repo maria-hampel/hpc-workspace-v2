@@ -80,17 +80,9 @@ else()
 endif()
 
 
-option(WS_PARALLEL "std::par usage, needs TBB" FALSE)
-if(WS_PARALLEL)
-    find_package(TBB REQUIRED tbb)
-    add_definitions("-DWS_PARALLEL")
-    set(PARLIB "TBB::tbb")
-else()
-    add_compile_options(-fopenmp)
-    add_link_options(-fopenmp)
-    add_definitions("-DWS_OPENMP")
-    set(PARLIB "")
-endif()
+# for parallel ws_list
+add_compile_options(-fopenmp)
+add_link_options(-fopenmp)
 
 set(YAML_CPP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(${workspace_SOURCE_DIR}/external/yaml-cpp)
