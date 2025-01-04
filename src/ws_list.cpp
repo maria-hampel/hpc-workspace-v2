@@ -43,11 +43,7 @@
 
 #include <iostream>   // for program_options  FIXME:
 #include <memory>
-
-#ifdef WS_PARALLEL
 #include <mutex>
-#include <execution>
-#endif
 
 #include <boost/program_options.hpp>
 #include "config.h"
@@ -246,10 +242,6 @@ int main(int argc, char **argv) {
             fslist = validfs;
         }
 
-
-        // no sorting for short format
-        if(shortlisting) sort=false;
-
         vector<std::unique_ptr<DBEntry>> entrylist; 
         
         // iterate over filesystems and print or create list to be sorted
@@ -257,36 +249,9 @@ int main(int argc, char **argv) {
             if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
             std::unique_ptr<Database> db(config.openDB(fs));
 
-#ifdef WS_PARALLEL
-            // FIXME: error handling
-            if (shortlisting) {
-                for(auto const &id: db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups)) {
-                    fmt::print("{}\n", id);
-                }
-            } else {
-                std::mutex m;
-                auto el = db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups);
-                std::for_each(std::execution::par, std::begin(el), std::end(el), [&](const auto &id)
-                    {
-                        std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
-                        // if entry is valid
-                        if (entry) {
-                            std::lock_guard<std::mutex> guard(m); // this lock should make usage of ctime in DBEntryv1::print ok
-                            // if no sorting, print, otherwise append to list
-                            if (!sort) {
-                                entry->print(verbose, terselisting);
-                            } else {
-                                entrylist.push_back(std::move(entry));
-                            }
-                        }                        
-                    });
-            }
-#elif WS_OPENMP
-            // FIXME: error handling
 #pragma omp parallel for schedule(dynamic)
             for(auto const &id: db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups)) {
-                if (!shortlisting) {
-                    //auto entry = db->readEntry(id, listexpired);
+                try {
                     std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
                     // if entry is valid
                     if (entry) {
@@ -294,56 +259,40 @@ int main(int argc, char **argv) {
                         {
                             // if no sorting, print, otherwise append to list
                             if (!sort) {
-                                entry->print(verbose, terselisting);
+                                if (shortlisting) {
+                                    fmt::println(entry->getId());
+                                } else {
+                                    entry->print(verbose, terselisting);
+                                }
                             } else {
                                 entrylist.push_back(std::move(entry));
                             }
                         }
                     }
-                } else {
-                    fmt::print("{}\n", id);
+                } catch (DatabaseException &e) {
+                    fmt::println(e.what());
                 }
             }
-#else
-            // catch DB access errors, if DB directory or DB is accessible
-            //try {
-                for(auto const &id: db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups)) {
-                    if (!shortlisting) {
-                        //auto entry = db->readEntry(id, listexpired);
-                        std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
-                        // if entry is valid
-                        if (entry) {
-                            // if no sorting, print, otherwise append to list
-                            if (!sort) {
-                                entry->print(verbose, terselisting);
-                            } else {
-                                entrylist.push_back(std::move(entry));
-                            }
-                        }
-                    } else {
-                        fmt::print("{}\n", id);
-                    }
-                }
-            //}
-            // FIXME: in case of non file based DB, DB could throw something else
-            //catch (std.file.FileException e) {
-                //if(debugflag) fmt::print("DB access error for fs <{}>: {}\n", fs, e.msg);
-            //}
-#endif
-        }
+
+        } // loop over fs
 
         // in case of sorted output, sort and print here
         if(sort) {
-            if(sortbyremaining) std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getRemaining() < y->getRemaining());} ); 
-            if(sortbycreation)  std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getCreation() < y->getCreation());} );
-            if(sortbyname)      std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getId() < y->getId());} );
+            if (debugflag) fmt::println(stderr, "Debug  : sorting remaining={},creation={},name={},reverse={}", sortbyremaining,sortbycreation,sortbyname,sortreverted);
+            if (sortbyremaining) std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getRemaining() < y->getRemaining());} ); 
+            if (sortbycreation)  std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getCreation() < y->getCreation());} );
+            if (sortbyname)      std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getId() < y->getId());} );
 
-            if(sortreverted) {                
+            if (sortreverted) {                
                 std::reverse(entrylist.begin(), entrylist.end());
             }
 
             for(const auto &entry: entrylist) {
-                entry->print(verbose, terselisting);
+                if (shortlisting) {
+                    fmt::println(entry->getId());
+                } else {
+                    entry->print(verbose, terselisting);
+                }
             }
         }
 
