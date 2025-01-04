@@ -65,8 +65,6 @@ int main(int argc, char **argv) {
     string configfile;
     string name;
     bool listgroups=false;
-    bool listfilesystems=false;
-    bool listexpired=false;
 
     po::variables_map opts;
 
@@ -78,9 +76,8 @@ int main(int argc, char **argv) {
     cmd_options.add_options()
 	("help,h", "produce help message")
 	("version,V", "show version")
-	("filesystem,F", po::value<string>(&filesystem), "filesystem to search workspaces in")
+    ("filesystem,F", po::value<string>(&filesystem), "filesystem to search workspaces in")
 	("group,g", "enable search for group workspaces")
-	("listfilesystems,l", "list available filesystems")
 	("user,u", po::value<string>(&user), "only show workspaces for selected user")
     ("name,n", po::value<string>(&name), "workspace name to search for")
 	("config", po::value<string>(&configfile), "config file");
@@ -110,7 +107,6 @@ int main(int argc, char **argv) {
     // get flags
 
     listgroups = opts.count("group");
-    listfilesystems = opts.count("listfilesystems");
 
 #ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
@@ -175,52 +171,47 @@ int main(int argc, char **argv) {
     // list of groups of this process
     auto grouplist = user::getGrouplist();
 
-    // list of fileystems or list of workspaces
-    if (listfilesystems) {
-        fmt::print("available filesystems (sorted according to priority):\n");
-        for(auto fs: config.validFilesystems(username,grouplist)) {
-            fmt::print("{}\n", fs);
+    // where to list from?
+    vector<string> fslist;
+    vector<string> validfs = config.validFilesystems(username,grouplist);
+    if (filesystem != "") {
+        if (canFind(validfs, filesystem)) {
+            fslist.push_back(filesystem);
+        } else {
+            fmt::println(stderr, "Error  : invalid filesystem given.");
+            exit(-3);
         }
     } else {
-        // where to list from?
-        vector<string> fslist;
-        vector<string> validfs = config.validFilesystems(username,grouplist);
-        if (filesystem != "") {
-            if (canFind(validfs, filesystem)) {
-                fslist.push_back(filesystem);
-            } else {
-                fmt::println(stderr, "Error  : invalid filesystem given.");
+        fslist = validfs;
+    }
+
+    vector<std::unique_ptr<DBEntry>> entrylist; 
+    
+    // iterate over filesystems and print or create list to be sorted
+    for(auto const &fs: fslist) {
+        if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+        std::unique_ptr<Database> db(config.openDB(fs));
+                
+        // catch DB access errors, if DB directory or DB is accessible
+        try {
+            for(auto const &id: db->matchPattern(name, userpattern, grouplist, false, listgroups)) {
+                std::unique_ptr<DBEntry> entry(db->readEntry(id, false));
+                // if entry is valid
+                if (entry) {
+                    fmt::print("{}\n",entry->getWSPath());
+                    exit(0);
+                }
             }
-        } else {
-            fslist = validfs;
+        }
+        catch (DatabaseException &e) {
+            fmt::println(stderr, "{}", e.what());
+            exit(-2);
         }
 
-        vector<std::unique_ptr<DBEntry>> entrylist; 
-        
-        // iterate over filesystems and print or create list to be sorted
-        for(auto const &fs: fslist) {
-            if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
-            std::unique_ptr<Database> db(config.openDB(fs));
-                 
-            // catch DB access errors, if DB directory or DB is accessible
-            //try {
-                for(auto const &id: db->matchPattern(name, userpattern, grouplist, listexpired, listgroups)) {
-                    std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
-                    // if entry is valid
-                    if (entry) {
-                        fmt::print("{}\n",entry->getWSPath());
-                        goto found;
-                    }
-                }
-            //}
-            // FIXME: in case of non file based DB, DB could throw something else
-            //catch (std.file.FileException e) {
-                //if(debugflag) fmt::print("DB access error for fs <{}>: {}\n", fs, e.msg);
-            //}
+    } // loop fslist
 
-        } // loop fslist
-        found:;
+    // if we get here, we did not find the workspace
+    fmt::println(stderr, "Error  : workspace not found!");
+    exit(-1);
 
-    }
-  
 }
