@@ -36,6 +36,12 @@ setup() {
     assert_failure
 }
 
+@test "ws_allocate invalid name" {
+    run ws_allocate --config bats/ws.conf INVALID/NAME
+    assert_output  --partial "Illegal workspace name"
+    assert_failure
+}
+
 @test "ws_allocate too long duration" {
     run ws_allocate --config bats/ws.conf TOLONG 1000 
     assert_output  --partial "Duration longer than allowed" 
@@ -43,19 +49,29 @@ setup() {
     rm -f /tmp/ws/ws2-db/${USER}-TOLONG
 }
 
-@test "ws_allocate invalid name" {
-    run ws_allocate --config bats/ws.conf INVALID/NAME
-    assert_output  --partial "Illegal workspace name"
-    assert_failure
+
+@test "ws_allocate without duration" {
+    run ws_allocate --config bats/ws.conf NODURATION
+    assert_success
+    assert_output --partial "remaining time in days: 30"
+    rm -f /tmp/ws/ws2-db/${USER}-NODURATION
+}
+
+@test "ws_allocate with duration" {
+    run ws_allocate --config bats/ws.conf DURATION 7
+    assert_success
+    assert_output --partial "remaining time in days: 7"
+    rm -f /tmp/ws/ws2-db/${USER}-DURATION
 }
 
 @test "ws_allocate with reminder, no email" {
-    mv -f ~/.ws_user.conf ~/.ws_user.conf_testbackup
+    [ -f ~/.ws_user.conf ] && mv -f ~/.ws_user.conf ~/.ws_user.conf_testbackup
     run ws_allocate --config bats/ws.conf -r 7 REMINDER 10
     assert_output --partial "reminder email will be sent to local user account"
     assert_success
+    rm -f ~/.ws_user.conf
+    [ -f ~/.ws_user.conf_testbackup ] && mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
     rm -f /tmp/ws/ws2-db/${USER}-REMINDER
-    mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
 }
 
 @test "ws_allocate with reminder, invalid email" {
@@ -74,13 +90,16 @@ setup() {
     rm -f /tmp/ws/ws2-db/${USER}-REMINDER
 }
 
-@test "ws_allocate with user config for email" {
-    mv -f ~/.ws_user.conf ~/.ws_user.conf_testbackup
+@test "ws_allocate with user config for email and duration" {
+    [ -f ~/.ws_user.conf ] && mv -f ~/.ws_user.conf ~/.ws_user.conf_testbackup
     echo "mail: mail@valid.domain" > ~/.ws_user.conf
+    echo "duration: 14" >> ~/.ws_user.conf
     run ws_allocate --config bats/ws.conf -r 1 REMINDER
     assert_output --partial "Took email address"
+    assert_output --partial "remaining time in days: 14"
     assert_success
-    mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
+    rm -f ~/.ws_user.conf
+    [ -f ~/.ws_user.conf_testbackup ] && mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
     rm -f /tmp/ws/ws2-db/${USER}-REMINDER
 }
 
@@ -130,10 +149,11 @@ setup() {
     assert_output --partial "remaining extensions  : 2"
     assert_output --partial "remaining time in days: 20"
 
-    run ws_allocate --config bats/ws.conf -c "add a comment" -x extensiontest
+    run ws_allocate --config bats/ws.conf -c "add a comment" -x extensiontest 1
     assert_success
     assert_output --partial "changed comment"
-    assert_output --partial "remaining extensions  : 1"
+    assert_output --partial "remaining extensions  : 2"
+    # FIXME: is 2 correct here??
 
     run ws_allocate --config bats/ws.conf -x extensiontest 5
     assert_success
