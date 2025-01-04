@@ -108,11 +108,36 @@ ${USER}-WS1TEST
 EOF5
 }
 
+@test "ws_list list fs" {
+    run ws_list --config bats/ws.conf -l
+    assert_output <<EOF6
+available filesystems (sorted according to priority):
+ws2
+ws1
+EOF6
+}
+
+@test "ws_list list fs detailed" {
+    run ws_list --config bats/ws.conf -L
+    assert_output <<EOF7
+available filesystems (sorted according to priority):
+      name  duration  extensions  keeptime
+       ws2         0           3         7
+       ws1         0           3         7
+EOF7
+}
+
 @test "ws_list error handling" {
     chmod 0000 /tmp/ws/ws1-db/${USER}-WS1TEST
     run ws_list --config bats/ws.conf -F ws1 
     assert_output  --partial "Error"
 }
+
+@test "ws_list invalid fs" {
+    run ws_list --config bats/ws.conf -F ws3
+    assert_output  --partial "Error"
+}
+
 
 cleanup() {
     ws_release --config bats/ws.conf $ws_name
