@@ -164,22 +164,27 @@ void commandline(po::variables_map &opt, string &name, int &duration, string &fi
             mailaddress=userconfig.getMailaddress();
 
             if(mailaddress.length()>0) {
-                fmt::print(stderr, "Info   : Took email address <{}> from users config.",  mailaddress);
+                fmt::println(stderr, "Info   : Took email address <{}> from users config.",  mailaddress);
             } else {
                 mailaddress = user::getUsername();
-                fmt::print(stderr, "Info   : could not read email from users config ~/.ws_user.conf.");
-                fmt::print(stderr, "         reminder email will be sent to local user account");
+                fmt::println(stderr, "Info   : could not read email from users config ~/.ws_user.conf.");
+                fmt::println(stderr, "         reminder email will be sent to local user account");
             }
         }
         if (reminder>=duration) {
-                fmt::print(stderr,"Warning: reminder is only sent after workspace expiry!");
+                fmt::println(stderr,"Warning: reminder is only sent after workspace expiry!");
         }
     } else {
         // check if mail address was set with -m but not -r
         if(opt.count("mailaddress") && !opt.count("extension")) {
-            fmt::print(stderr,"Error  : You can't use the mailaddress (-m) without the reminder (-r) option.");
+            fmt::println(stderr,"Error  : You can't use the mailaddress (-m) without the reminder (-r) option.");
             exit(1);
         }
+    }
+
+    if (mailaddress!="" && !utils::isValidEmail(mailaddress)) {
+            fmt::println(stderr,"Error  : Invalid email address, ignoring and using local user account");
+            mailaddress = user::getUsername();      
     }
 
     // validate workspace name against nasty characters    
@@ -187,7 +192,7 @@ void commandline(po::variables_map &opt, string &name, int &duration, string &fi
     // TODO: remove regexp dependency
     static const regex e("^[[:alnum:]][[:alnum:]_.-]*$");
     if (!regex_match(name, e)) {
-            fmt::print(stderr, "Error  : Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!");
+            fmt::println(stderr, "Error  : Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!");
             exit(1);
     }
 }
@@ -244,8 +249,8 @@ bool validateDuration(const Config &config, const std::string filesystem, int &d
         }
         if ( getuid()!=0 && ( (duration > configduration) || (duration < 0)) ) {
             duration = configduration;
-            fmt::print(stderr, "Error: Duration longer than allowed for this workspace\n");
-            fmt::print(stderr, "       setting to allowed maximum of {}\n", duration);
+            fmt::println(stderr, "Error  : Duration longer than allowed for this workspace");
+            fmt::println(stderr, "         setting to allowed maximum of {}", duration);
         }
     }
 
