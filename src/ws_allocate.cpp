@@ -153,14 +153,18 @@ void commandline(po::variables_map &opt, string &name, int &duration, string &fi
     debugflag = opt.count("debug");
     traceflag = opt.count("trace");
     
+    // parse user config
+    UserConfig userconfig(userconf);
+
     // reminder check, if we have a reminder number, we need either a mailaddress argument or config file
     // with mailaddress in user home
 
-    // FIXME: reminder from user config file?
+    if (reminder==0) {
+        reminder = userconfig.getReminder();
+    }
 
-    if(reminder!=0) {
+    if(reminder>0) {
         if (!opt.count("mailaddress")) {
-            UserConfig userconfig(userconf);
             mailaddress=userconfig.getMailaddress();
 
             if(mailaddress.length()>0) {
@@ -182,6 +186,12 @@ void commandline(po::variables_map &opt, string &name, int &duration, string &fi
         }
     }
 
+    // fix duration if none given and there is one in user config
+    if (duration==-1) {
+        duration=userconfig.getDuration();
+    }
+
+    // validate email 
     if (mailaddress!="" && !utils::isValidEmail(mailaddress)) {
             fmt::println(stderr,"Error  : Invalid email address, ignoring and using local user account");
             mailaddress = user::getUsername();      
