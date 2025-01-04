@@ -30,6 +30,125 @@ setup() {
     assert_failure
 }
 
+@test "ws_allocate bad option" {
+    run ws_allocate --config bats/bad_ws.conf --doesnotexist WS
+    assert_output  --partial "Usage"
+    assert_failure
+}
+
+@test "ws_allocate too long duration" {
+    run ws_allocate --config bats/ws.conf TOLONG 1000 
+    assert_output  --partial "Duration longer than allowed" 
+    assert_success
+    rm -f /tmp/ws/ws2-db/${USER}-TOLONG
+}
+
+@test "ws_allocate invalid name" {
+    run ws_allocate --config bats/ws.conf INVALID/NAME
+    assert_output  --partial "Illegal workspace name"
+    assert_failure
+}
+
+@test "ws_allocate with reminder, no email" {
+    mv -f ~/.ws_user.conf ~/.ws_user.conf_testbackup
+    run ws_allocate --config bats/ws.conf -r 7 REMINDER 10
+    assert_output --partial "reminder email will be sent to local user account"
+    assert_success
+    rm -f /tmp/ws/ws2-db/${USER}-REMINDER
+    mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
+}
+
+@test "ws_allocate with reminder, invalid email" {
+    run ws_allocate --config bats/ws.conf -r 1 -m a@b REMINDER
+    assert_output --partial "Invalid email address"
+    assert_success
+    rm -f /tmp/ws/ws2-db/${USER}-REMINDER
+}
+
+@test "ws_allocate with reminder, valid email" {
+    run ws_allocate --config bats/ws.conf -r 1 -m a@b.c REMINDER 10 
+    assert_output --partial "remaining time in days: 10"
+    assert_success
+    run ws_list --config bats/ws.conf -v REMINDER
+    assert_output --partial "a@b.c"
+    rm -f /tmp/ws/ws2-db/${USER}-REMINDER
+}
+
+@test "ws_allocate with user config for email" {
+    mv -f ~/.ws_user.conf ~/.ws_user.conf_testbackup
+    echo "mail: mail@valid.domain" > ~/.ws_user.conf
+    run ws_allocate --config bats/ws.conf -r 1 REMINDER
+    assert_output --partial "Took email address"
+    assert_success
+    mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
+    rm -f /tmp/ws/ws2-db/${USER}-REMINDER
+}
+
+@test "ws_allocate with filesystem" {
+    run ws_allocate --config bats/ws.conf -F ws1 WS1 10
+    assert_success
+    run ws_list --config bats/ws.conf -F ws1 WS1
+    assert_output --partial "filesystem name      : ws1"
+    rm -f /tmp/ws/ws1-db/${USER}-WS1
+}
+
+@test "ws_allocate with comment" {
+    run ws_allocate --config bats/ws.conf -c "this is a comment" WS2 10
+    assert_success
+    run ws_list --config bats/ws.conf  WS2
+    assert_output --partial "this is a comment"
+    rm -f /tmp/ws/ws2-db/${USER}-WS2
+}
+
+@test "ws_allocate with group" {
+    run ws_allocate --config bats/ws.conf -g WS2 10
+    assert_success
+    wsdir=$(ws_find --config bats/ws.conf WS2)
+    run stat $wsdir
+    assert_output --partial "drwxr-x---" 
+    rm -f /tmp/ws/ws2-db/${USER}-WS2
+}
+
+@test "ws_allocate with invalid group" {
+    run ws_allocate --config bats/ws.conf -G INVALID_GROUP WS2 10
+    assert_output --partial "invalid group specified!"
+    assert_failure
+}
+
+@test "ws_allocate with -x, invalid extension, too many extensions, changing comment" {
+    run ws_allocate --config bats/ws.conf -x DOES_NOT_EXIST 10
+    assert_failure
+    assert_output --partial "Error  : workspace does not exist, can not be extended!"
+
+    run ws_allocate --config bats/ws.conf extensiontest 10
+    assert_success
+    assert_output --partial "remaining time in days: 10"
+
+    run ws_allocate --config bats/ws.conf -x extensiontest 20
+    assert_success
+    assert_output --partial "Info   : extending workspace"
+    assert_output --partial "remaining extensions  : 2"
+    assert_output --partial "remaining time in days: 20"
+
+    run ws_allocate --config bats/ws.conf -c "add a comment" -x extensiontest
+    assert_success
+    assert_output --partial "changed comment"
+    assert_output --partial "remaining extensions  : 1"
+
+    run ws_allocate --config bats/ws.conf -x extensiontest 5
+    assert_success
+    assert_output --partial "remaining extensions  : 1"
+
+    run ws_allocate --config bats/ws.conf -x extensiontest 10
+    assert_success
+    assert_output --partial "remaining extensions  : 0"
+
+    run ws_allocate --config bats/ws.conf -x extensiontest 15
+    assert_failure
+    assert_output --partial "no more extensions!"
+
+    rm -f /tmp/ws/ws2-db/${USER}-extensiontest
+}
 
 cleanup() {
     ws_release --config bats/ws.conf $ws_name
