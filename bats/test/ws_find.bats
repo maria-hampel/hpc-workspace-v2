@@ -21,15 +21,31 @@ setup() {
 }
 
 @test "ws_find finds directory" {
-    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
-    assert_file_exist $wsdir
-    wsdir=$(ws_find --config bats/ws.conf $ws_name)
-    assert_file_exist $wsdir
+    wsdir1=$(ws_allocate --config bats/ws.conf $ws_name)
+    assert_file_exist $wsdir1
+    wsdir2=$(ws_find --config bats/ws.conf $ws_name)
+    assert_equal "$wsdir1" "$wsdir2"
 }
 
-@test "ws_find with filesystem" {
-    run ws_find --config bats/ws.conf -F ws2 WS1TEST
+@test "ws_find with filesystem, bad file" {
+    ws_allocate --config bats/ws.conf -F ws1 WS1TEST_BAD
+    chmod 0000 /tmp/ws/ws1-db/${USER}-WS1TEST_BAD
+    run ws_find --config bats/ws.conf -F ws1 WS1TEST_BAD
     assert_output --partial Error
+    assert_failure
+    rm -f /tmp/ws/ws1-db/${USER}-WS1TEST_BAD
+}
+
+@test "ws_find in non default workspace" {
+    ws_allocate --config bats/ws.conf -F ws1 WS1TEST
+    run ws_find --config bats/ws.conf WS1TEST
+    assert_output --partial WS1TEST
+    assert_success
+    rm -f /tmp/ws/ws1-db/${USER}-WS1TEST
+}
+
+@test "ws_find with bad workspace" {
+    run ws_find --config bats/ws.conf DOESNOTEXIST
     assert_failure
 }
 
@@ -37,7 +53,7 @@ setup() {
     ws_allocate --config bats/ws.conf -F ws1 WS1TEST_GOOD
     run ws_find --config bats/ws.conf -F ws1 WS1TEST_GOOD
     assert_success
-    rm /tmp/ws/ws1-db/${USER}-WS1TEST_GOOD
+    rm -f /tmp/ws/ws1-db/${USER}-WS1TEST_GOOD
 }
 
 @test "ws_find with bad filesystem" {
@@ -46,6 +62,16 @@ setup() {
     assert_failure
 }
 
+@test "ws_find no workspace" {
+    run ws_find --config bats/ws.conf
+    assert_failure
+}
+
+@test "ws_find bad config" {
+    run ws_find --config bats/bad_ws.conf WS
+    assert_output  --partial "Error"
+    assert_failure
+}
 
 cleanup() {
     ws_release --config bats/ws.conf $ws_name

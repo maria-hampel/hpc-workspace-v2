@@ -24,6 +24,13 @@ setup() {
     assert_file_exist $wsdir
 }
 
+@test "ws_allocate bad config" {
+    run ws_allocate --config bats/bad_ws.conf TEST
+    assert_output  --partial "Error"
+    assert_failure
+}
+
+
 cleanup() {
     ws_release --config bats/ws.conf $ws_name
 }

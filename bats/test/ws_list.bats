@@ -100,6 +100,11 @@ ${USER}-sortTestB
 EOF4
 }
 
+@test "ws_list pattern" {
+    run ws_list --config bats/ws.conf -s "sort*B"
+    echo "${USER}-sortTestB" | assert_output 
+}
+
 @test "ws_list other fs" {
     ws_allocate --config bats/ws.conf -F ws1 WS1TEST
     run ws_list --config bats/ws.conf -s -F ws1 
@@ -136,6 +141,39 @@ EOF7
 @test "ws_list invalid fs" {
     run ws_list --config bats/ws.conf -F ws3
     assert_output  --partial "Error"
+}
+
+@test "ws_list invalid option" {
+    run ws_list --config bats/ws.conf -T
+    assert_output <<EOF8
+Usage: ws_list [options] [pattern]
+
+Options:
+  -h [ --help ]                   produce help message
+  -V [ --version ]                show version
+  -F [ --filesystem ] arg         filesystem to list workspaces from
+  -g [ --group ]                  enable listing of grou workspaces
+  -l [ --listfilesystems ]        list available filesystems
+  -L [ --listfilesystemdetails ]  list available filesystems with details
+  -s [ --short ]                  short listing, only workspace names
+  -u [ --user ] arg               only show workspaces for selected user
+  -e [ --expired ]                show expired workspaces
+  -N [ --name ]                   sort by name
+  -C [ --creation ]               sort by creation date
+  -R [ --remaining ]              sort by remaining time
+  -r [ --reverted ]               revert sort
+  -t [ --terse ]                  terse listing
+  --config arg                    config file
+  -p [ --pattern ] arg            pattern matching name (glob syntax)
+  -v [ --verbose ]                verbose listing
+
+EOF8
+}
+
+@test "ws_list bad config" {
+    run ws_list --config bats/bad_ws.conf 
+    assert_output  --partial "Error"
+    assert_failure
 }
 
 
