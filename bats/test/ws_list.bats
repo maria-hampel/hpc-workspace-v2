@@ -133,7 +133,7 @@ EOF7
 }
 
 @test "ws_list error handling" {
-    chmod 0000 /tmp/ws/ws1-db/${USER}-WS1TEST
+    cp /dev/null /tmp/ws/ws1-db/${USER}-WS1TEST
     run ws_list --config bats/ws.conf -F ws1 
     assert_output  --partial "Error"
 }

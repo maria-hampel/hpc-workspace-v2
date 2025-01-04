@@ -21,6 +21,7 @@ setup() {
 }
 
 @test "ws_find finds directory" {
+    rm -f /tmp/ws/ws2-db/${USER}-$ws_name
     wsdir1=$(ws_allocate --config bats/ws.conf $ws_name)
     assert_file_exist $wsdir1
     wsdir2=$(ws_find --config bats/ws.conf $ws_name)
@@ -29,7 +30,7 @@ setup() {
 
 @test "ws_find with filesystem, bad file" {
     ws_allocate --config bats/ws.conf -F ws1 WS1TEST_BAD
-    chmod 0000 /tmp/ws/ws1-db/${USER}-WS1TEST_BAD
+    cp /dev/null /tmp/ws/ws1-db/${USER}-WS1TEST_BAD
     run ws_find --config bats/ws.conf -F ws1 WS1TEST_BAD
     assert_output --partial Error
     assert_failure
@@ -69,6 +70,12 @@ setup() {
 
 @test "ws_find bad config" {
     run ws_find --config bats/bad_ws.conf WS
+    assert_output  --partial "Error"
+    assert_failure
+}
+
+@test "ws_find bad option" {
+    run ws_find --config bats/bad_ws.conf -T WS
     assert_output  --partial "Error"
     assert_failure
 }
