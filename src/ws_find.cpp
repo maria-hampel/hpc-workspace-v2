@@ -135,6 +135,10 @@ int main(int argc, char **argv) {
         exit(0);
     }
 
+    if (name=="") {
+        fmt::println(stderr, "Error  : no workspace name given!");
+        exit(-4);
+    }
 
     // read config 
     //   user can change this if no setuid installation OR if root
