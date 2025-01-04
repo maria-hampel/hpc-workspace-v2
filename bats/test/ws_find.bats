@@ -76,7 +76,7 @@ setup() {
 
 @test "ws_find bad option" {
     run ws_find --config bats/bad_ws.conf -T WS
-    assert_output  --partial "Error"
+    assert_output  --partial "Usage"
     assert_failure
 }
 
