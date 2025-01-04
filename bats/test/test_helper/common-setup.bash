@@ -21,4 +21,8 @@ _common_setup() {
     mkdir -p /tmp/ws/ws2/1/.removed
     mkdir -p /tmp/ws/ws2/2
     mkdir -p /tmp/ws/ws2/2/.removed
+    if [ -f /.dockerenv ]
+    then
+        USER=root
+    fi
 }
