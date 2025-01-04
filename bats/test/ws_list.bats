@@ -38,6 +38,7 @@ Id: ${USER}-${ws_name}_timestamped
     filesystem name      : FS
     available extensions : 3
 EOF
+    sleep 1
     # get ws_list output and parse and modify (check only day accuracy)
     ws_list --config bats/ws.conf ${ws_name}_timestamped | grep -v expiration > tmp.txt
     ctime=$(date +%F $(cat tmp.txt | grep "/creation time/{ print $3 }"))
@@ -51,6 +52,67 @@ EOF
 #    ws_release ${ws_name}_timestamped
 }
 
+@test "ws_list sorting by name" {
+    ws_allocate --config bats/ws.conf sortTestB 3
+    sleep 1
+    ws_allocate --config bats/ws.conf sortTestA 1
+    sleep 1
+    ws_allocate --config bats/ws.conf sortTestC 2
+
+    run ws_list --config bats/ws.conf -s -N "sortTest*"
+    assert_output <<EOF1
+${USER}-sortTestA
+${USER}-sortTestB
+${USER}-sortTestC
+EOF1
+
+    run ws_list --config bats/ws.conf -s -r -N "sortTest*"
+    assert_output <<EOF2
+${USER}-sortTestC
+${USER}-sortTestB
+${USER}-sortTestA
+EOF2
+}
+
+@test "ws_list sorting by creation" {
+    #ws_allocate --config bats/ws.conf sortTestB 3
+    #ws_allocate --config bats/ws.conf sortTestA 1
+    #ws_allocate --config bats/ws.conf sortTestC 2
+
+    run ws_list --config bats/ws.conf -s -C "sortTest*"
+    assert_output <<EOF3
+${USER}-sortTestB
+${USER}-sortTestA
+${USER}-sortTestC
+EOF3
+}
+
+@test "ws_list sorting by remaining time" {
+    #ws_allocate --config bats/ws.conf sortTestB 3
+    #ws_allocate --config bats/ws.conf sortTestA 1
+    #ws_allocate --config bats/ws.conf sortTestC 2
+
+    run ws_list --config bats/ws.conf -s -R "sortTest*"
+    assert_output <<EOF4
+${USER}-sortTestA
+${USER}-sortTestC
+${USER}-sortTestB
+EOF4
+}
+
+@test "ws_list other fs" {
+    ws_allocate --config bats/ws.conf -F ws1 WS1TEST
+    run ws_list --config bats/ws.conf -s -F ws1 
+    assert_output <<EOF5
+${USER}-WS1TEST
+EOF5
+}
+
+@test "ws_list error handling" {
+    chmod 0000 /tmp/ws/ws1-db/${USER}-WS1TEST
+    run ws_list --config bats/ws.conf -F ws1 
+    assert_output  --partial "Error"
+}
 
 cleanup() {
     ws_release --config bats/ws.conf $ws_name
