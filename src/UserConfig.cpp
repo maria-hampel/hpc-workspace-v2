@@ -41,6 +41,7 @@
 #endif
 
 #include "utils.h"
+#include "user.h"
 
 
 #ifdef WS_RAPIDYAML_CONFIG
@@ -103,9 +104,9 @@ UserConfig::UserConfig(std::string userconf) {
         mailaddress = utils::getFirstLine(userconf);
     }
 
-    if (!utils::isValidEmail(mailaddress)) {
+    if (mailaddress !="" && !utils::isValidEmail(mailaddress)) {
         fmt::println(stderr, "Error  : invalid email address in ~/.ws_user.conf, ignored.");
-        mailaddress="";
+        mailaddress=user::getUsername();
     }
 
 }
