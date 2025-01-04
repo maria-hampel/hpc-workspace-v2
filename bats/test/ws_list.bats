@@ -50,6 +50,7 @@ EOF
     diff tmp.txt ref.txt
     #rm tmp.txt ref.txt
 #    ws_release ${ws_name}_timestamped
+    rm /tmp/ws/ws2-db/${USER}-${ws_name}_timestamped
 }
 
 @test "ws_list sorting by name" {
