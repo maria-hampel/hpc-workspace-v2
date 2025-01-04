@@ -231,7 +231,7 @@ void Config::readYAML(string yamlstr) {
                     auto name = it.key();
                     fs.name = {name.str, name.len}; // c4::string -> std::string
                     
-                    if (debugflag) fmt::print(stderr, "Debug: config, reading workspace {}\n", fs.name);
+                    if (debugflag) fmt::print(stderr, "Debug  : config, reading workspace {}\n", fs.name);
 
                     auto ws=it[fs.name.c_str()];
 
@@ -290,7 +290,7 @@ void Config::readYAML(const string yaml) {
                 for(auto it: list) {
                     Filesystem_config fs;
                     fs.name = it.first.as<string>();
-                    if (debugflag) fmt::print(stderr, "Debug: config, reading workspace {}\n", fs.name);
+                    if (debugflag) fmt::print(stderr, "Debug  : config, reading workspace {}\n", fs.name);
                     auto ws=it.second;
                     if (ws["spaces"]) fs.spaces = ws["spaces"].as<vector<string>>(); 
                     if (ws["spaceselection"]) fs.spaceselection = ws["spaceselection"].as<string>(); else fs.spaceselection = "random";
