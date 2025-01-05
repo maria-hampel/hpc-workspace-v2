@@ -148,8 +148,8 @@ setup() {
         export MYUID=$(id -u)
         export MYGID=$(id -g)
         sudo tee -a /etc/ws.conf >/dev/null <<SUDO
-dbuid=$MYUID
-dbgid=$MYGID
+dbuid: $MYUID
+dbgid: $MYGID
 admins: [root]
 adminmail: [root@a.com]
 clustername: bats
