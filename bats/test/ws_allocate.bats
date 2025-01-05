@@ -169,10 +169,12 @@ workspaces:
     keeptime: 7
     spaces: [/tmp/ws/ws2/1, /tmp/ws/ws2/2]
 SUDO
+        export ASAN_OPTIONS=detect_leaks=0
         sudo -u userb /tmp/ws_allocate -G userb WS3 10
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
         assert_failure
         assert_output --partial "you are not owner"
+        unset ASAN_OPTIONS
     else
         true
     fi
@@ -182,9 +184,11 @@ SUDO
     if [ -e /.dockerenv ]
     then
         export LOC=$PWD
+        export ASAN_OPTIONS=detect_leaks=0
         sudo -u userb /tmp/ws_allocate -G usera WS3 10
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
         assert_success
+        unset ASAN_OPTIONS
     else
         true
     fi
