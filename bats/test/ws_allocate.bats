@@ -141,8 +141,12 @@ setup() {
     if [ -e /.dockerenv ]
     then
         export WS_ALLOCATE=$(which ws_allocate)
+        cp $WS_ALLOCATE /tmp
+        sudo chown root /tmp/ws_allocate
+        sudo chmod u+s /tmp/ws_allocate
         export LOC=$PWD
-        sudo -u userb $WS_ALLOCATE --config $LOC/bats/ws.conf -G userb WS3 10
+        sudo cp $LOC/bats/ws.conf /etc
+        sudo -u userb /tmp/ws_allocate -G userb WS3 10
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
         assert_failure
         assert_output --partial "you are not owner"
@@ -154,9 +158,8 @@ setup() {
 @test "ws_allocate -x with correct group" {
     if [ -e /.dockerenv ]
     then
-        export WS_ALLOCATE=$(which ws_allocate)
         export LOC=$PWD
-        sudo -u userb $WS_ALLOCATE --config $LOC/bats/ws.conf -G usera WS3 10
+        sudo -u userb /tmp/ws_allocate -G usera WS3 10
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
         assert_success
     else
