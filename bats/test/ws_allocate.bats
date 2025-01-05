@@ -140,8 +140,8 @@ setup() {
 @test "ws_allocate -x with wrong group" {
     if [ -e /.dockerenv ]
     then
-        WS_ALLOCATE=$(ws_allocate)
-        LOC=$PWD
+        export WS_ALLOCATE=$(which ws_allocate)
+        export LOC=$PWD
         sudo -u userb $WS_ALLOCATE --config $LOC/bats/ws.conf -G userb WS3 10
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
         assert_failure
@@ -154,8 +154,8 @@ setup() {
 @test "ws_allocate -x with correct group" {
     if [ -e /.dockerenv ]
     then
-        WS_ALLOCATE=$(ws_allocate)
-        LOC=$PWD
+        export WS_ALLOCATE=$(which ws_allocate)
+        export LOC=$PWD
         sudo -u userb $WS_ALLOCATE --config $LOC/bats/ws.conf -G usera WS3 10
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
         assert_success
