@@ -67,7 +67,7 @@ ${USER}-sortTestB
 ${USER}-sortTestC
 EOF1
 
-    run ws_list --config bats/ws.conf -s -r -N "sortTest*"
+    run ws_list --config bats/ws.conf -s -r -N "sortTest?"
     assert_output <<EOF2
 ${USER}-sortTestC
 ${USER}-sortTestB
@@ -93,7 +93,7 @@ EOF3
     #ws_allocate --config bats/ws.conf sortTestA 1
     #ws_allocate --config bats/ws.conf sortTestC 2
 
-    run ws_list --config bats/ws.conf -s -R "sortTest*"
+    run ws_list --config bats/ws.conf -s -R "sortTest[A-C]"
     assert_output <<EOF4
 ${USER}-sortTestA
 ${USER}-sortTestC

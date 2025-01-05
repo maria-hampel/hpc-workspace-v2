@@ -42,10 +42,13 @@ setup() {
     assert_failure
 }
 
-@test "ws_allocate too long duration" {
+@test "ws_allocate too long duration (allocation and extension)" {
     run ws_allocate --config bats/ws.conf TOLONG 1000 
     assert_output  --partial "Duration longer than allowed" 
     assert_success
+    run ws_allocate --config bats/ws.conf -x TOLONG 1000 
+    assert_success
+    assert_output  --partial "Duration longer than allowed"
     rm -f /tmp/ws/ws2-db/${USER}-TOLONG
 }
 
