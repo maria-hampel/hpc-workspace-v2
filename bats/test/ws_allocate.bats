@@ -145,12 +145,29 @@ setup() {
         sudo chown root /tmp/ws_allocate
         sudo chmod u+s /tmp/ws_allocate
         export LOC=$PWD
-        sudo cp $LOC/bats/ws.conf /etc
-        export UID=$(id -u)
-        export GID=$(id -g)
+        export MYUID=$(id -u)
+        export MYGID=$(id -g)
         sudo tee -a /etc/ws.conf >/dev/null <<SUDO
-dbuid=$UID
-dbgid=$GID
+dbuid=$MYUID
+dbgid=$MYGID
+admins: [root]
+adminmail: [root@a.com]
+clustername: bats
+duration: 10
+maxextensions: 3
+smtphost: mailhost
+default: ws2
+workspaces:
+  ws1:
+    database: /tmp/ws/ws1-db
+    deleted: .removed
+    keeptime: 7
+    spaces: [/tmp/ws/ws1]
+  ws2:
+    database: /tmp/ws/ws2-db
+    deleted: .removed
+    keeptime: 7
+    spaces: [/tmp/ws/ws2/1, /tmp/ws/ws2/2]
 SUDO
         sudo -u userb /tmp/ws_allocate -G userb WS3 10
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
