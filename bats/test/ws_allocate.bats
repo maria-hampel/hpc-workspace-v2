@@ -137,6 +137,29 @@ setup() {
     assert_failure
 }
 
+@test "ws_allocate -x with wrong group" {
+    if [ -e /.dockerenv ]
+    then
+        sudo -u userb ws_allocate --config bats/ws.conf -G userb WS3 10
+        run ws_allocate --config bats/ws.conf -u userb -x WS3 20
+        assert_failure
+        assert_output --partial "you are not owner"
+    else
+        true
+    fi
+}
+
+@test "ws_allocate -x with correct group" {
+    if [ -e /.dockerenv ]
+    then
+        sudo -u userb ws_allocate --config bats/ws.conf -G usera WS3 10
+        run ws_allocate --config bats/ws.conf -u userb -x WS3 20
+        assert_success
+    else
+        true
+    fi
+}
+
 @test "ws_allocate with -x, invalid extension, too many extensions, changing comment" {
     run ws_allocate --config bats/ws.conf -x DOES_NOT_EXIST 10
     assert_failure
