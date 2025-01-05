@@ -106,7 +106,7 @@ UserConfig::UserConfig(std::string userconf) {
 
     if (mailaddress !="" && !utils::isValidEmail(mailaddress)) {
         fmt::println(stderr, "Error  : invalid email address in ~/.ws_user.conf, ignored.");
-        mailaddress=user::getUsername();
+        mailaddress="";
     }
 
 }
