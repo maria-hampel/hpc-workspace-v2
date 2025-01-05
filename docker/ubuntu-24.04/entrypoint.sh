@@ -33,6 +33,8 @@ esac
 
 if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
 
+  cd /tmp
+
   git clone https://github.com/holgerBerger/hpc-workspace-v2.git
   cd hpc-workspace-v2/external
   ./get_externals.sh
@@ -47,7 +49,7 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
   cmake --build --preset debug -j
 
   if [ "$run_coverage" = true ]; then
-    lcov --capture --initial --config-file ../.lcovrc --directory . -o ws_base.info
+    lcov --capture --initial --config-file /tmp/ws/.lcovrc --directory . -o ws_base.info
   fi
 
   if [ "$run_ctest_test" = true ]; then
@@ -58,8 +60,8 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
   fi
 
   if [ "$run_coverage" = true ]; then
-    lcov --capture --config-file ../.lcovrc --directory . -o ws_test.info
+    lcov --capture --config-file /tmp/ws/.lcovrc --directory . -o ws_test.info
     lcov -a ws_base.info -a ws_test.info -o ws_total.info
-    genhtml  --ignore-errors source --output-directory ../coverage_report ws_total.info
+    genhtml  --ignore-errors source --output-directory /tmp/ws/coverage_report ws_total.info
   fi
 fi
