@@ -21,7 +21,7 @@ setup() {
 
 @test "ws_allocate creates directory" {
     wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
-    assert_file_exist $wsdir
+    assert_dir_exist $wsdir
 }
 
 @test "ws_allocate bad config" {
