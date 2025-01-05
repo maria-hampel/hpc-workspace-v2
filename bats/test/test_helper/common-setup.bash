@@ -23,6 +23,6 @@ _common_setup() {
     mkdir -p /tmp/ws/ws2/2/.removed
     if [ -f /.dockerenv ]
     then
-        USER=root
+        USER=usera
     fi
 }
