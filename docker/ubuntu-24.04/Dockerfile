@@ -12,7 +12,9 @@ RUN apt-get update && apt-get install -y \
     libcap-dev \
     elvis-tiny \
     wget \
+    sudo \
     lcov
+
 
 # Installing bats and libraries based on documentation and their Dockerfile
 RUN git clone https://github.com/bats-core/bats-core.git
@@ -34,7 +36,9 @@ COPY .lcovrc /tmp/ws
 ARG DOCKER_USER=usera
 ARG OTHER_USER=userb
 RUN addgroup  $DOCKER_USER && adduser --home /home/$DOCKER_USER --system --group  $DOCKER_USER  
-RUN addgroup  $OTHER_USER && adduser --home /home/$OTHER_USER   --system --group  $OTHER_USER  
+RUN addgroup  $OTHER_USER && adduser --home /home/$OTHER_USER   --system --group  $OTHER_USER   && adduser $OTHER_USER $DOCKER_USER
+RUN adduser $DOCKER_USER sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 RUN chown -R usera /tmp/ws
 
