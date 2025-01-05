@@ -146,6 +146,12 @@ setup() {
         sudo chmod u+s /tmp/ws_allocate
         export LOC=$PWD
         sudo cp $LOC/bats/ws.conf /etc
+        export UID=$(id -u)
+        export GID=$(id -g)
+        sudo tee -a /etc/ws.conf >/dev/null <<SUDO
+dbuid=$UID
+dbgid=$GID
+SUDO
         sudo -u userb /tmp/ws_allocate -G userb WS3 10
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
         assert_failure
