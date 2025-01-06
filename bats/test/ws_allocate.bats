@@ -140,6 +140,7 @@ setup() {
 @test "ws_allocate -x with wrong group" {
     if [ -e /.dockerenv ]
     then
+        # preparations of setuid executable and /etc/ws.conf
         export WS_ALLOCATE=$(which ws_allocate)
         cp $WS_ALLOCATE /tmp
         sudo chown root /tmp/ws_allocate
@@ -169,8 +170,12 @@ workspaces:
     keeptime: 7
     spaces: [/tmp/ws/ws2/1, /tmp/ws/ws2/2]
 SUDO
+        
+        # create as userb a workspace
         export ASAN_OPTIONS=detect_leaks=0
-        sudo -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G userb WS3 10
+        run sudo -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G userb WS3 10
+        assert_success 
+
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
         assert_failure
         assert_output --partial "you are not owner"
