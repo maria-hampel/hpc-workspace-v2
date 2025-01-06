@@ -190,8 +190,8 @@ SUDO
     then
         export LOC=$PWD
         export ASAN_OPTIONS=detect_leaks=0
-        sudo -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G usera WS3 10
-        run ws_allocate --config bats/ws.conf -u userb -x WS3 20
+        sudo -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G usera WS4 10
+        run ws_allocate --config bats/ws.conf -u userb -x WS4 20
         assert_success
         unset ASAN_OPTIONS
     else
