@@ -144,7 +144,7 @@ void commandline(po::variables_map &opt, string &name, int &duration, string &fi
     {
         //cout << " name: " << name << "\n";
     } else {
-        fmt::print("{}: [options] workspace_name duration\n", argv[0]);
+        fmt::print("Usage: {}: [options] workspace_name duration\n", argv[0]);
         cout << cmd_options << "\n"; // FIXME: iostream usage
         exit(1);
     }
