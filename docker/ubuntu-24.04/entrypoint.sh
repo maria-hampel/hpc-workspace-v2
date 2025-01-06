@@ -59,6 +59,9 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
   cp build/debug/bin/ws_allocate /tmp/cap
   sudo setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" /tmp/cap/ws_allocate
 
+  # copy a config for setuid 
+  sudo cp bats/ws.conf /etc
+
   if [ "$run_coverage" = true ]; then
     lcov --capture --initial --config-file /tmp/ws/.lcovrc --directory . -o ws_base.info
   fi
@@ -67,12 +70,15 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
     ctest --preset debug
   fi
   if [ "$run_bats_test" = true ]; then
-    OLDPATH=$PWD
+    OLDPATH=$PATH
 
     echo "running user tests"
     export PATH=build/debug/bin:$PATH
     bats bats/test
     export PATH=$OLDPATH
+
+    # silence leak errors for setuid as it does not work
+    export ASAN_OPTIONS=detect_leaks=0
 
     echo "running setuid tests"
     export PATH=/tmp/setuid:build/debug/bin:$PATH
@@ -80,7 +86,6 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
     export PATH=$OLDPATH
 
     echo "running capability tests"
-    OLDPATH=$PWD
     export PATH=/tmp/cap:build/debug/bin:$PATH
     bats bats/test_cap
     export PATH=$OLDPATH
