@@ -98,14 +98,12 @@ workspaces:
 SUDO
         
         # create as userb a workspace
-        export ASAN_OPTIONS=detect_leaks=0
-        run sudo -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G userb WS3 10
+        run sudo ws_allocate -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G userb WS3 10
         assert_success 
 
         run ws_allocate --config bats/ws.conf -u userb -x WS3 20
         assert_failure
         assert_output --partial "you are not owner"
-        unset ASAN_OPTIONS
     else
         true
     fi
@@ -114,11 +112,9 @@ SUDO
 @test "ws_allocate -x with correct group" {
     if [ -e /.dockerenv ]
     then
-        export ASAN_OPTIONS=detect_leaks=0
-        sudo -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G usera WS4 10
-        run /tmp/ws_ws_allocate --config bats/ws.conf -u userb -x WS4 20
+        sudo ws_allocate -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G usera WS4 10
+        run ws_allocate --config bats/ws.conf -u userb -x WS4 20
         assert_success
-        unset ASAN_OPTIONS
     else
         true
     fi
