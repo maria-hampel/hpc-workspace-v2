@@ -334,23 +334,37 @@ void allocate(
         //auto db = config.openDB(cfilesystem);
         std::unique_ptr<Database> candidate_db(config.openDB(cfilesystem));
 
-        // check if entry exists
-        try {
-            if(user_option.length()>0 && (getuid()==0)) 
-                dbid = user_option+"-"+name;
-            else 
-                dbid = username+"-"+name;
+        // handle extension request with username first, as it has different error handling
+        if (extensionflag && user_option.length()>0) {
+            dbid = user_option+"-"+name;
+            try {
+                dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
+                db = std::move(candidate_db);
+                foundfs = cfilesystem;
+                ws_exists = true;
+                break;
+            } catch (DatabaseException &e) {
+                fmt::println(stderr, "Error  : workspace does not exist, can not be extended!");
+                exit(-1); // FIXME: is exit good here?
+            }
+        } else {
+            // check if entry exists 
+            try {
+                if(user_option.length()>0 && (getuid()==0)) 
+                    dbid = user_option+"-"+name;
+                else 
+                    dbid = username+"-"+name;
 
-            //dbentry = db->readEntry(dbid, false);
-            dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
-            db = std::move(candidate_db);
-            foundfs = cfilesystem;
-            ws_exists = true;
-            break;
-        } catch (DatabaseException &e) {
-            // silently ignore non existiong entries
-            if (debugflag) fmt::print(stderr, "Debug  :  existence check failed for {}/{}\n", cfilesystem, dbid);
-        }   
+                dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
+                db = std::move(candidate_db);
+                foundfs = cfilesystem;
+                ws_exists = true;
+                break;
+            } catch (DatabaseException &e) {
+                // silently ignore non existiong entries
+                if (debugflag) fmt::print(stderr, "Debug  : existence check failed for {}/{}\n", cfilesystem, dbid);
+            }   
+        }
     } // searchloop
 
     // workspace exists, change mailaddress, reminder settings or comment, and extend if requested
