@@ -48,6 +48,17 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
 
   cmake --build --preset debug -j
 
+  # prepare setuid executable
+  mkdir /tmp/setuid
+  cp build/debug/bin/ws_allocate /tmp/setuid
+  sudo chown root /tmp/setuid/ws_allocate
+  sudo chmod u+s /tmp/setuid/ws_allocate
+
+  # prepare capability executable
+  mkdir /tmp/cap
+  cp build/debug/bin/ws_allocate /tmp/cap
+  sudo setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" /tmp/cap/ws_allocate
+
   if [ "$run_coverage" = true ]; then
     lcov --capture --initial --config-file /tmp/ws/.lcovrc --directory . -o ws_base.info
   fi
@@ -56,7 +67,24 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
     ctest --preset debug
   fi
   if [ "$run_bats_test" = true ]; then
+    OLDPATH=$PWD
+
+    echo "running user tests"
+    export PATH=build/debug/bin:$PATH
     bats bats/test
+    export PATH=$OLDPATH
+
+    echo "running setuid tests"
+    export PATH=/tmp/setuid:build/debug/bin:$PATH
+    bats bats/test_setuid
+    export PATH=$OLDPATH
+
+    echo "running capability tests"
+    OLDPATH=$PWD
+    export PATH=/tmp/cap:build/debug/bin:$PATH
+    bats bats/test_cap
+    export PATH=$OLDPATH
+
   fi
 
   if [ "$run_coverage" = true ]; then
