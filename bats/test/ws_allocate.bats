@@ -30,8 +30,35 @@ setup() {
     assert_failure
 }
 
+@test "ws_allocate bad config, no workspaces" {
+    run ws_allocate --config bats/no_ws_ws.conf TEST
+    assert_output  --partial "no valid filesystems"
+    assert_failure
+}
+
+@test "ws_allocate not alloctable" {
+    run ws_allocate --config bats/permissions_ws.conf -F ws1 TEST
+    assert_output  --partial "not be used for allocation"
+    assert_failure
+}
+
+@test "ws_allocate not extendable" {
+    run ws_allocate --config bats/ws.conf -F ws1 TEST_EXTEND 4
+    assert_success
+    run ws_allocate --config bats/permissions_ws.conf -F ws1 -x TEST_EXTEND 8
+    assert_output  --partial "can not be extended"
+    assert_failure
+}
+
+
 @test "ws_allocate bad option" {
     run ws_allocate --config bats/bad_ws.conf --doesnotexist WS
+    assert_output  --partial "Usage"
+    assert_failure
+}
+
+@test "ws_allocate no option" {
+    run ws_allocate --config bats/bad_ws.conf 
     assert_output  --partial "Usage"
     assert_failure
 }
@@ -52,6 +79,11 @@ setup() {
     rm -f /tmp/ws/ws2-db/${USER}-TOLONG
 }
 
+@test "ws_allocate only mail" {
+    run ws_allocate --config bats/ws.conf -m a@b.com NODURATION 1
+    assert_failure
+    assert_output --partial "without the reminder"
+}
 
 @test "ws_allocate without duration" {
     run ws_allocate --config bats/ws.conf NODURATION
@@ -112,6 +144,12 @@ setup() {
     run ws_list --config bats/ws.conf -F ws1 WS1
     assert_output --partial "filesystem name      : ws1"
     rm -f /tmp/ws/ws1-db/${USER}-WS1
+}
+
+@test "ws_allocate with bad filesystem" {
+    run ws_allocate --config bats/ws.conf -F wsX WS1 10
+    assert_failure
+    assert_output --partial "not allowed"
 }
 
 @test "ws_allocate with comment" {
@@ -191,12 +229,18 @@ SUDO
         export LOC=$PWD
         export ASAN_OPTIONS=detect_leaks=0
         sudo -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G usera WS4 10
-        run ws_allocate --config bats/ws.conf -u userb -x WS4 20
+        run /tmp/ws_ws_allocate --config bats/ws.conf -u userb -x WS4 20
         assert_success
         unset ASAN_OPTIONS
     else
         true
     fi
+}
+
+@test "ws_allocate -x with correct group but bad workspace" {
+    run ws_allocate --config bats/ws.conf -u userb -x DOES_NOT_EXIST 20
+    assert_failure
+    assert_output --partial "can not be extended"
 }
 
 @test "ws_allocate with -x, invalid extension, too many extensions, changing comment" {
