@@ -11,6 +11,7 @@ _common_setup() {
     PROJECT_ROOT="$( cd "$( dirname "$BATS_TEST_FILENAME" )/.." >/dev/null 2>&1 && pwd )"
     # make executables in src/ visible to PATH
     PATH="$PROJECT_ROOT/../build/debug/bin/:$PATH"
+
     mkdir -p /tmp/ws/ws1-db
     mkdir -p /tmp/ws/ws1-db/.removed
     mkdir -p /tmp/ws/ws2-db
@@ -21,6 +22,7 @@ _common_setup() {
     mkdir -p /tmp/ws/ws2/1/.removed
     mkdir -p /tmp/ws/ws2/2
     mkdir -p /tmp/ws/ws2/2/.removed
+
     if [ -f /.dockerenv ]
     then
         USER=usera

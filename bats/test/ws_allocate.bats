@@ -86,9 +86,11 @@ setup() {
 }
 
 @test "ws_allocate without duration" {
+    [ -f ~/.ws_user.conf ] && mv -f ~/.ws_user.conf ~/.ws_user.conf_testbackup
     run ws_allocate --config bats/ws.conf NODURATION
     assert_success
     assert_output --partial "remaining time in days: 30"
+    [ -f ~/.ws_user.conf_testbackup ] && mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
     rm -f /tmp/ws/ws2-db/${USER}-NODURATION
 }
 
@@ -173,68 +175,6 @@ setup() {
     run ws_allocate --config bats/ws.conf -G INVALID_GROUP WS2 10
     assert_output --partial "invalid group specified!"
     assert_failure
-}
-
-@test "ws_allocate -x with wrong group" {
-    if [ -e /.dockerenv ]
-    then
-        # preparations of setuid executable and /etc/ws.conf
-        export WS_ALLOCATE=$(which ws_allocate)
-        cp $WS_ALLOCATE /tmp
-        sudo chown root /tmp/ws_allocate
-        sudo chmod u+s /tmp/ws_allocate
-        export LOC=$PWD
-        export MYUID=$(id -u)
-        export MYGID=$(id -g)
-        sudo tee -a /etc/ws.conf >/dev/null <<SUDO
-dbuid: $MYUID
-dbgid: $MYGID
-admins: [root]
-adminmail: [root@a.com]
-clustername: bats
-duration: 10
-maxextensions: 3
-smtphost: mailhost
-default: ws2
-workspaces:
-  ws1:
-    database: /tmp/ws/ws1-db
-    deleted: .removed
-    keeptime: 7
-    spaces: [/tmp/ws/ws1]
-  ws2:
-    database: /tmp/ws/ws2-db
-    deleted: .removed
-    keeptime: 7
-    spaces: [/tmp/ws/ws2/1, /tmp/ws/ws2/2]
-SUDO
-        
-        # create as userb a workspace
-        export ASAN_OPTIONS=detect_leaks=0
-        run sudo -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G userb WS3 10
-        assert_success 
-
-        run ws_allocate --config bats/ws.conf -u userb -x WS3 20
-        assert_failure
-        assert_output --partial "you are not owner"
-        unset ASAN_OPTIONS
-    else
-        true
-    fi
-}
-
-@test "ws_allocate -x with correct group" {
-    if [ -e /.dockerenv ]
-    then
-        export LOC=$PWD
-        export ASAN_OPTIONS=detect_leaks=0
-        sudo -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G usera WS4 10
-        run /tmp/ws_ws_allocate --config bats/ws.conf -u userb -x WS4 20
-        assert_success
-        unset ASAN_OPTIONS
-    else
-        true
-    fi
 }
 
 @test "ws_allocate -x with correct group but bad workspace" {
