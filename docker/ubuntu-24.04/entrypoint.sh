@@ -112,6 +112,15 @@ SUDO
     bats bats/test_setuid
     export PATH=$OLDPATH
 
+    if [ "$(cat /proc/sys/fs/suid_dumpable)" == "2" ]
+    then
+        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        echo capability tests will show error with ASAN
+        echo as /proc/sys/fs/suid_dumpable is 2
+        echo see https://github.com/llvm/llvm-project/issues/55944
+        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    fi
+
     export ASAN_OPTIONS=detect_leaks=0
     echo "########################"
     echo "running capability tests"
