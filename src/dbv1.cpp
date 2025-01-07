@@ -531,17 +531,22 @@ void DBEntryV1::writeEntry()
         // for filesystem with root_squash, we need to be DB user here
         dbuid = parent_db->getconfig()->dbuid();
         dbgid = parent_db->getconfig()->dbgid();
-    
+        
+        if (debugflag) fmt::println("Debug  : isSetuid -> dbuid={}, dbgid={}", dbuid, dbgid);
+        
         if (setegid(dbgid) || seteuid(dbuid)) {
                 fmt::print(stderr, "Error  : can not seteuid or setgid. Bad installation?\n");
                 exit(-1);
         }
+
+        if (debugflag) fmt::println("Debug  : isSetuid -> euid={}, egid={}", geteuid(), getegid());
     }
 
     ofstream fout(dbfilepath.c_str());
     if(!(fout << entry)) {
         fmt::print(stderr, "Error  : could not write DB file! Please check if the outcome is as expected, "
                             "you might have to make a backup of the workspace to prevent loss of data!\n");
+        if (debugflag) fmt::println("Error  : {}", std::strerror(errno));
     }
     fout.close();
 
@@ -555,6 +560,7 @@ void DBEntryV1::writeEntry()
     caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__));
     if (chmod(dbfilepath.c_str(), perm) != 0) {
         fmt::print(stderr, "Error  : could not change permissions of database entry\n");
+        if (debugflag) fmt::println("Error  : {}", std::strerror(errno));
     }
 
     caps.lower_cap(CAP_FOWNER, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
