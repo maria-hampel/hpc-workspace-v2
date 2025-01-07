@@ -89,9 +89,9 @@ for testing:
 - [x] move from single file ws.conf to multifile ws.d
 - [x] migrate config from yaml-cpp to ryaml and remove yaml-cpp dependency (on hold for the moment, uses both)
 - [x] move to compiletime+runtime detected capability/setuid/usermode switch (usermode is for testing mainly, does not elevate privileges)
-- [ ] add more unit tests to existing code
-- [ ] build/select a better test framework for the tools
-- [ ] debug what is there
+- [x] add more unit tests to existing code
+- [x] build/select a better test framework for the tools
+- [x] debug what is there
 - [ ] migrate more tools: migrate ws_release, ws_restore, ws_expirer, ws_validate
 - [x] ws_list 
 - [x] ws_allocate (testing ongoing)
@@ -114,14 +114,37 @@ for testing:
 
 ## Howto Build
 
-stay tuned.
+```
+cmake --build --preset debug  -j 12
+```
 
-## Howto Unit Testing with catch2
+for mold users:
+```
+cmake --build --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" -j 12
+```
 
-mkdir build-debug
-cd build-debug
-cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=1 ..
-make 
+## Testing
 
-ctest
+unit tests:
 
+```
+ctest --preset debug .
+```
+
+higher level tests (user mode only)
+
+```
+bats bats/test
+```
+
+## testing with docker
+
+Tests in docker will use setuid and setcap mode as well and cover more corner cases.
+
+```
+cd docker
+sudo docker build ubuntu-24.04 -t hpcwsv2
+sudo docker run hpcwsv2 testall
+```
+
+note: setcap tests will fail with ASAN error messages if sysctl `fs.suid_dumpable = 2`
