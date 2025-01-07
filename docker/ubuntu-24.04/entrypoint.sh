@@ -95,7 +95,9 @@ SUDO
   if [ "$run_bats_test" = true ]; then
     OLDPATH=$PATH
 
+    echo "##################"
     echo "running user tests"
+    echo "##################"
     export PATH=build/debug/bin:$PATH
     bats bats/test
     export PATH=$OLDPATH
@@ -103,12 +105,17 @@ SUDO
     # silence leak errors for setuid as it does not work
     export ASAN_OPTIONS=detect_leaks=0
 
+    echo "####################"
     echo "running setuid tests"
+    echo "####################"
     export PATH=/tmp/setuid:build/debug/bin:$PATH
     bats bats/test_setuid
     export PATH=$OLDPATH
 
+    export ASAN_OPTIONS=detect_leaks=0
+    echo "########################"
     echo "running capability tests"
+    echo "########################"
     export PATH=/tmp/cap:build/debug/bin:$PATH
     bats bats/test_cap
     export PATH=$OLDPATH
