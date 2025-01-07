@@ -73,7 +73,7 @@ setup() {
 @test "ws_allocate -x with wrong group" {
     # create as userb a workspace
     export WS_ALLOCATE=$(which ws_allocate)
-    run sudo $WS_ALLOCATE -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G userb WS3 10
+    run sudo -u userb --preserve-env=ASAN_OPTIONS $WS_ALLOCATE -G userb WS3 10
     assert_success 
 
     run ws_allocate -u userb -x WS3 20
@@ -83,7 +83,7 @@ setup() {
 
 @test "ws_allocate -x with correct group" {
     export WS_ALLOCATE=$(which ws_allocate)
-    sudo $WS_ALLOCATE -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G usera WS4 10
+    sudo -u userb --preserve-env=ASAN_OPTIONS $WS_ALLOCATE -G usera WS4 10
     run ws_allocate -u userb -x WS4 20
     assert_success
 }
