@@ -81,6 +81,7 @@ workspaces:
   ws2:
     database: /tmp/ws/ws2-db
     deleted: .removed
+    spaceseletion: mostspace
     keeptime: 7
     spaces: [/tmp/ws/ws2/1, /tmp/ws/ws2/2]
 SUDO
