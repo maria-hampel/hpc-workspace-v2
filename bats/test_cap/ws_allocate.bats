@@ -71,56 +71,21 @@ setup() {
 }
 
 @test "ws_allocate -x with wrong group" {
-    if [ -e /.dockerenv ]
-    then
-        export MYUID=$(id -u)
-        export MYGID=$(id -g)
-        sudo tee -a /etc/ws.conf >/dev/null <<SUDO
-dbuid: $MYUID
-dbgid: $MYGID
-admins: [root]
-adminmail: [root@a.com]
-clustername: bats
-duration: 10
-maxextensions: 3
-smtphost: mailhost
-default: ws2
-workspaces:
-  ws1:
-    database: /tmp/ws/ws1-db
-    deleted: .removed
-    keeptime: 7
-    spaces: [/tmp/ws/ws1]
-  ws2:
-    database: /tmp/ws/ws2-db
-    deleted: .removed
-    keeptime: 7
-    spaces: [/tmp/ws/ws2/1, /tmp/ws/ws2/2]
-SUDO
-        
-        # create as userb a workspace
-        export WS_ALLOCATE=$(which ws_allocate)
-        run sudo $WS_ALLOCATE -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G userb WS3 10
-        assert_success 
+    # create as userb a workspace
+    export WS_ALLOCATE=$(which ws_allocate)
+    run sudo $WS_ALLOCATE -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G userb WS3 10
+    assert_success 
 
-        run ws_allocate  -u userb -x WS3 20
-        assert_failure
-        assert_output --partial "you are not owner"
-    else
-        true
-    fi
+    run ws_allocate  -u userb -x WS3 20
+    assert_failure
+    assert_output --partial "you are not owner"
 }
 
 @test "ws_allocate -x with correct group" {
-    if [ -e /.dockerenv ]
-    then
-        export WS_ALLOCATE=$(which ws_allocate)
-        sudo $WS_ALLOCATE -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G usera WS4 10
-        run ws_allocate  -u userb -x WS4 20
-        assert_success
-    else
-        true
-    fi
+    export WS_ALLOCATE=$(which ws_allocate)
+    sudo $WS_ALLOCATE -u userb --preserve-env=ASAN_OPTIONS /tmp/ws_allocate -G usera WS4 10
+    run ws_allocate  -u userb -x WS4 20
+    assert_success
 }
 
 @test "ws_allocate -x with correct group but bad workspace" {

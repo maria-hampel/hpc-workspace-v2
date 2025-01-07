@@ -59,8 +59,31 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
   cp build/debug/bin/ws_allocate /tmp/cap
   sudo setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" /tmp/cap/ws_allocate
 
-  # copy a config for setuid 
-  sudo cp bats/ws.conf /etc
+  # create a config for setuid 
+  export MYUID=$(id -u)
+  export MYGID=$(id -g)
+  sudo tee /etc/ws.conf >/dev/null <<SUDO
+dbuid: $MYUID
+dbgid: $MYGID
+admins: [root]
+adminmail: [root@a.com]
+clustername: bats
+duration: 10
+maxextensions: 3
+smtphost: mailhost
+default: ws2
+workspaces:
+  ws1:
+    database: /tmp/ws/ws1-db
+    deleted: .removed
+    keeptime: 7
+    spaces: [/tmp/ws/ws1]
+  ws2:
+    database: /tmp/ws/ws2-db
+    deleted: .removed
+    keeptime: 7
+    spaces: [/tmp/ws/ws2/1, /tmp/ws/ws2/2]
+SUDO
 
   if [ "$run_coverage" = true ]; then
     lcov --capture --initial --config-file /tmp/ws/.lcovrc --directory . -o ws_base.info
