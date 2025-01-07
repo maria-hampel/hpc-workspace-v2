@@ -10,16 +10,16 @@ setup() {
 }
 
 @test "ws_allocate print version" {
-    run ws_allocate --config bats/ws.conf  --version
+    run ws_allocate  --version
     assert_output --partial "workspace"
     assert_output --partial "hascaps=true"
-    assert_output --partial "ignored config file option!"
 }
 
 @test "ws_allocate with reminder, no email" {
     [ -f ~/.ws_user.conf ] && mv -f ~/.ws_user.conf ~/.ws_user.conf_testbackup
-    run ws_allocate  -r 7 REMINDER 10
+    run ws_allocate --config bats/ws.conf  -r 7 REMINDER 10
     assert_output --partial "reminder email will be sent to local user account"
+    assert_output --partial "ignored config file option!"
     assert_success
     rm -f ~/.ws_user.conf
     [ -f ~/.ws_user.conf_testbackup ] && mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
