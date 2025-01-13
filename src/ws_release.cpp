@@ -35,6 +35,7 @@
 #include <regex> // buggy in redhat 7
 
 #include <syslog.h>
+#include <time.h>
 
 #include "build_info.h"
 #include "config.h"
@@ -242,13 +243,14 @@ void release(
 
     // loop over valid workspaces, and see if the workspace exists
 
+    std::unique_ptr<Database> db;
+
     for (std::string cfilesystem: searchlist) {
         if (debugflag) {
             fmt::print(stderr, "Debug  : searching valid filesystems, currently {}\n", cfilesystem);
         }
 
-        //auto db = config.openDB(cfilesystem);
-        std::unique_ptr<Database> db(config.openDB(cfilesystem));
+        std::unique_ptr<Database> candidate_db(config.openDB(cfilesystem));
 
         // check if entry exists
         try {
@@ -257,8 +259,8 @@ void release(
             else 
                 dbid = username+"-"+name;
 
-            //dbentry = db->readEntry(dbid, false);
-            dbentry = std::unique_ptr<DBEntry>(db->readEntry(dbid, false));
+            dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
+            db = std::move(candidate_db);
             foundfs = cfilesystem;
             ws_exists = true;
             break;
@@ -271,9 +273,58 @@ void release(
     // workspace exists, release it
 
     if(ws_exists) {
-        auto wsdir = dbentry->getWSPath();
- 
-        fmt::print(stderr, "IMPLEMENT ME");
+        
+        // timestamp for versioning, has to be identical for DB and workspace DIR
+        string timestamp = fmt::format("{}", time(NULL));
+
+        //
+        // first handle DB entry
+        //
+
+        // set expiration to now so it gets deleted earlier after beeing released
+        //   FIXME: this could be obsoleted later, releasad date assures this already?
+        dbentry->setExpiration(time(NULL));
+
+        // set released flag so released workspaces can be distinguished from expired ones,
+        // update DB entry and move it
+        try {
+            dbentry->release(timestamp);  // timestamp is version information, same as for directory later
+        } catch (const DatabaseException &e) {
+            fmt::println(stderr, e.what());
+            exit(-1);   // on error we bail out, workspace will still exist and db most probably as well
+        }
+        // we exit this as DB user on success
+
+        //
+        // second handle workspace directory
+        //
+
+        auto wsconfig = dbentry->getConfig()->getFsConfig(dbentry->getFilesystem());
+        cppfs::path target = cppfs::path(dbentry->getWSPath()).parent_path() / cppfs::path(wsconfig.deletedPath) / cppfs::path(fmt::format("{}-{}", dbentry->getId(), timestamp));
+
+        caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+
+        try {
+            if (debugflag) fmt::println("Debug  : rename({}, {})", dbentry->getWSPath() , target.string());
+            cppfs::rename(dbentry->getWSPath() , target);
+        } catch (const std::filesystem::filesystem_error &e) {
+            caps.lower_cap(CAP_DAC_OVERRIDE, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+            if (debugflag) fmt::println(stderr, "Error  : {}", e.what());
+            fmt::println(stderr, "Error  : database entry could not be deleted!");
+            exit(-1);
+        }
+
+        caps.lower_cap(CAP_DAC_OVERRIDE, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+         
+        syslog(LOG_INFO, "release for user <%s> from <%s> to <%s> done.", user::getUsername().c_str(), dbentry->getWSPath().c_str(), target.c_str());
+
+        //
+        // third remove data is requested
+        //
+
+        if (opt.count("delete-data")) {
+            fmt::println("IMPLEMENT ME");
+        }
 
     // if ws_exist
     } else {

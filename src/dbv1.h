@@ -82,6 +82,10 @@ public:
 
         // use extension and write back file
         void useExtension(const long expiration, const string mail, const int reminder, const string comment);
+        // change expiration time
+        void setExpiration(const time_t timestamp);
+        // change release date (mark as released and not expired) and write updated entry and move entry
+        void release(const std::string timestamp);
 	// write entry to DB after update (read with readEntry) or creation
 	void writeEntry();
 
@@ -96,8 +100,10 @@ public:
         long getCreation() const;
         string getWSPath() const;
         long getExpiration() const;
+        string getFilesystem() const;
 
-
+        // return config of parent DB
+        const Config* getConfig() const;
 };
 
 
@@ -129,7 +135,7 @@ public:
 	std::string createWorkspace(const string name, const string user_option, const bool groupflag, const string groupname);
 
         // access to config
-        const Config* getconfig() {
+        const Config* getconfig() const {
                 return config;
         }
 

@@ -41,6 +41,7 @@ using namespace std;
 
 using WsID = std::string;
 
+class Config;
 
 // A databse entry, with methods to
 //  - read (called vom DB) ?? FIXME: make friend?
@@ -56,7 +57,12 @@ public:
 
 	// write entry to DB after update (read with readEntry)
 	virtual void writeEntry() = 0;
-	
+
+	// change expiration time
+	virtual void setExpiration(const time_t timestamp) = 0;
+	// change release date (mark as released and not expired) and write updated entry and move entry
+	virtual void release(const std::string timestamp) = 0;
+
 	// consume an extension (writes entry back)
 	virtual void useExtension(const long expiration, const string mail, const int reminder, const string comment) = 0;
 
@@ -72,6 +78,10 @@ public:
 	virtual string getMailaddress() const = 0;
 	virtual string getComment() const = 0;
 	virtual long getExpiration() const = 0;
+	virtual string getFilesystem() const = 0;
+
+	// get config of parent DB
+	virtual const Config* getConfig() const = 0;
 
 	virtual ~DBEntry() = default;  // address-sanitizer needs this
 

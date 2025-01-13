@@ -398,7 +398,7 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
     } else {
         fmt::println("Id: {}", utils::getID(id));
     }
-    
+
     fmt::println("    workspace directory  : {}", workspace);
     if (remaining<0) {
         fmt::print("    remaining time       : {}\n", "expired");
@@ -478,6 +478,57 @@ long DBEntryV1::getExpiration() const {
     return expiration;
 }
 
+string DBEntryV1::getFilesystem() const {
+    return filesystem;
+}
+
+// change expiration time
+void DBEntryV1::setExpiration(const time_t timestamp) {
+    expiration = timestamp;
+}
+
+// change release date (mark as released and not expired)
+// write DB entry 
+// move DB entry to releases entries
+void DBEntryV1::release(const std::string timestamp) {
+
+    // TODO: is this ctrl-c save? should it be ignored for all of this?
+    // probably ok, even if there is some partial state, ws_expirer would deal with it
+
+    released = time(NULL); // now
+    writeEntry();
+
+    auto wsconfig = parent_db->getconfig()->getFsConfig(filesystem);
+    cppfs::path dbtarget = cppfs::path(wsconfig.database) / cppfs::path(wsconfig.deletedPath) / cppfs::path(fmt::format("{}-{}", id, timestamp));
+
+    if (debugflag) fmt::println(stderr, "Debug  : dbtarget={}", dbtarget.string());
+
+    // FIXME: implement list for caps?
+    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+    caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+
+    if (caps.isSetuid()) {
+        // for filesystem with root_squash, we need to be DB user here
+        if(setegid(parent_db->getconfig()->dbgid()) || seteuid(parent_db->getconfig()->dbuid())) {
+            caps.lower_cap(CAP_DAC_OVERRIDE, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+            caps.lower_cap(CAP_FOWNER, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+            throw DatabaseException("Error  : can not seteuid or setgid. Bad installation?");
+        }
+    }
+
+    try {
+        if (debugflag) fmt::println("Debug  : rename({}, {})", dbfilepath, dbtarget.string());
+        cppfs::rename(dbfilepath, dbtarget);
+    } catch (const std::filesystem::filesystem_error &e) {
+        caps.lower_cap(CAP_DAC_OVERRIDE, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap(CAP_FOWNER, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+        if (debugflag) fmt::println(stderr, "Error  : {}", e.what());
+        throw DatabaseException("Error  : database entry could not be deleted!");
+    }
+
+    caps.lower_cap(CAP_DAC_OVERRIDE, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.lower_cap(CAP_FOWNER, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+}
 
 // write data to file
 //  unittest: yes
@@ -581,4 +632,10 @@ void DBEntryV1::writeEntry()
 
     // normal signal handling
     signal(SIGINT,SIG_DFL);
+}
+
+
+// return config of parent DB
+const Config* DBEntryV1::getConfig() const {
+    return parent_db->getconfig();
 }
