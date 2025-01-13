@@ -19,12 +19,12 @@ setup() {
     assert_output --partial "Usage"
 }
 
-#@test "ws_release releases directory" {
-    #wsdir=$(ws_allocate $ws_name)
-    #assert_file_exist $wsdir
-    ##ws_release $ws_name
-    #assert_file_exist $wsdir
-#}
+@test "ws_release releases directory" {
+    wsdir=$(ws_allocate $ws_name)
+    assert_dir_exist $wsdir
+    ws_release $ws_name
+    assert_dir_not_exist $wsdir
+}
 
 cleanup() {
     ws_release $ws_name
