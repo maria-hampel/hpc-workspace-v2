@@ -393,10 +393,13 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
     string repr;
     long remaining = expiration - time(0L);
 
-    fmt::print(
-        "Id: {}\n"
-        "    workspace directory  : {}\n",
-        id, workspace);
+    if (parent_db->getconfig()->isAdmin(user::getUsername())) {
+        fmt::println("Id: {}", id);
+    } else {
+        fmt::println("Id: {}", utils::getID(id));
+    }
+    
+    fmt::println("    workspace directory  : {}", workspace);
     if (remaining<0) {
         fmt::print("    remaining time       : {}\n", "expired");
     } else {
