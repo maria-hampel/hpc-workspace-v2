@@ -244,6 +244,7 @@ void Config::readYAML(string yamlstr) {
                     if (node=ws["allocatable"]; node.has_val()) node>>fs.allocatable;
                     if (node=ws["extendable"]; node.has_val()) node>>fs.extendable;
                     if (node=ws["restorable"]; node.has_val()) node>>fs.restorable;
+                    if (node=ws["comment"]; node.has_val()) node>>fs.comment;
 
                     readRyamlSequence(ws, "spaces", fs.spaces);
                     readRyamlSequence(ws, "groupdefault", fs.groupdefault);
@@ -308,6 +309,7 @@ void Config::readYAML(const string yaml) {
                     if (ws["allocatable"]) fs.allocatable = ws["allocatable"].as<bool>(); else fs.allocatable = true;
                     if (ws["extendable"]) fs.extendable = ws["extendable"].as<bool>(); else fs.extendable = true;
                     if (ws["restorable"]) fs.restorable = ws["restorable"].as<bool>(); else fs.restorable = true;
+                    if (ws["comment"]) fs.comment = ws["comment"].as<string>();
                     filesystems[fs.name] = fs;
                 }
             }

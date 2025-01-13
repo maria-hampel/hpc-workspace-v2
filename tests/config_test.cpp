@@ -359,6 +359,7 @@ workspaces:                     # now the list of the workspaces
     extendable: no              # do not allow extensions in this workspace if no
     restorable: no              # do not allow restores from this workspace if no
   nfs:                          # second workspace, minimum example
+    comment: "what?"
     keeptime: 2                 # mandatory, time in days to keep workspaces after they expired
     database: /nfs-db
     spaces: [/nfs1/ws]
@@ -399,7 +400,9 @@ workspaces:                     # now the list of the workspaces
         REQUIRE(filesystem1.extendable == false);
         REQUIRE(filesystem1.restorable == false);
 
-	config.validate();
+        REQUIRE(filesystem2.comment == "what?");
+
+	    config.validate();
 
         REQUIRE(config.isValid());
     }

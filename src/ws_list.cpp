@@ -218,10 +218,10 @@ int main(int argc, char **argv) {
         }
     } else if (listfilesystemdetails) {
         fmt::print("available filesystems (sorted according to priority):\n");
-        fmt::println("{:>10}{:>10}{:>12}{:>10}","name","duration","extensions","keeptime");
+        fmt::println("{:>10}{:>10}{:>12}{:>10}{:>10}","name","duration","extensions","keeptime","comment");
         for(auto fs: config.validFilesystems(username,grouplist)) {
             auto fsc = config.getFsConfig(fs);
-            fmt::print("{:>10}{:>10}{:>12}{:>10}\n", fs, fsc.maxduration, fsc.maxextensions, fsc.keeptime);
+            fmt::print("{:>10}{:>10}{:>12}{:>10}   {}\n", fs, fsc.maxduration, fsc.maxextensions, fsc.keeptime, fsc.comment);
         }        
     } else {
         bool sort = sortbyname || sortbycreation || sortbyremaining;

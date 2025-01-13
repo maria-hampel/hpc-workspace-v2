@@ -64,6 +64,7 @@ struct Global_config {
 // config of filesystem
 struct Filesystem_config {
     string name;                    // name of filesystem
+    string comment;                 // some notice for the user about this filesystem
     strings spaces;                 // prefix path in filesystem for workspaces
     string spaceselection;          // method to select from spaces list: random (default), uid, gid
     string deletedPath;             // subdirectory to move deleted workspaces to, relative path
