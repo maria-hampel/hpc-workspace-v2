@@ -72,6 +72,9 @@ namespace utils {
     // get first line of a multiline string
     std::string getFirstLine(const std::string& multilineString);
     
+    // getID returns id part of workspace id <username-id>
+    std::string getID(const std::string wsid);
+    
 }
 
 #endif

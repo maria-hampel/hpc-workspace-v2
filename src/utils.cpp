@@ -34,6 +34,7 @@
 #include <iomanip>
 #include <sstream>
 #include <filesystem>
+#include <cassert>
 namespace fs = std::filesystem;
 
 #include "fmt/base.h"
@@ -223,5 +224,12 @@ namespace utils {
 			return multilineString.substr(0, pos); 
 		}
 	}
+
+    // getID returns id part of workspace id <username-id>
+    std::string getID(const std::string wsid) {
+        auto spos = wsid.find("-", 0);
+        assert(spos!=std::string::npos);
+        return wsid.substr(spos+1, wsid.length());
+    }
 
 }

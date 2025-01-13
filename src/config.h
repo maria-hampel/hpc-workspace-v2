@@ -112,7 +112,7 @@ public:
     bool isValid() {return isvalid;};
 
     // check if user is an admin
-    bool isAdmin(const string user);
+    bool isAdmin(const string user) const;
     // get list of valid filesystems for user
     vector<string> validFilesystems(const string user, const vector<string> groups) const;
     // check if given user can assess given filesystem with current config
