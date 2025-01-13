@@ -31,7 +31,7 @@ setup() {
     # prepare expected output for diff
     wsdir=$(ws_allocate --config bats/ws.conf ${ws_name}_timestamped 3)
 cat <<EOF >ref.txt
-Id: ${USER}-${ws_name}_timestamped
+Id: ${ws_name}_timestamped
     workspace directory  : $wsdir
     remaining time       : 2 days, 23 hours
     creation time        : $(date +%F)
