@@ -2,6 +2,7 @@ setup() {
     load 'test_helper/common-setup'
     _common_setup
     ws_name="bats_workspace_test"
+    ws_name2="bats_workspace_test2"
     export ws_name
 }
 
@@ -20,9 +21,18 @@ setup() {
 }
 
 @test "ws_release releases directory" {
-    wsdir=$(ws_allocate $ws_name)
+    wsdir=$(ws_allocate --config bats/ws.conf -F ws1 $ws_name)
     assert_dir_exist $wsdir
-    ws_release $ws_name
+    ws_release --config bats/ws.conf  -F ws1 $ws_name
+    assert_dir_not_exist $wsdir
+}
+
+@test "ws_release delete directory with data" {
+    wsdir=$(ws_allocate --config bats/ws.conf -F ws1  $ws_name2)
+    assert_dir_exist $wsdir
+    mkdir $wsdir/DATA
+    touch $wsdir/DATA/file
+    ws_release --config bats/ws.conf --delete-data -F ws1 $ws_name2
     assert_dir_not_exist $wsdir
 }
 

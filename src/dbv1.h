@@ -88,6 +88,8 @@ public:
         void release(const std::string timestamp);
 	// write entry to DB after update (read with readEntry) or creation
 	void writeEntry();
+        // remove entry from DB
+        void remove();
 
         // print for ws_list
         void print(const bool verbose, const bool terse) const;

@@ -35,6 +35,7 @@
 #include <regex> // buggy in redhat 7
 
 #include <syslog.h>
+#include <unistd.h>
 #include <time.h>
 
 #include "build_info.h"
@@ -323,8 +324,50 @@ void release(
         //
 
         if (opt.count("delete-data")) {
-            fmt::println("IMPLEMENT ME");
-        }
+            fmt::println(stderr, "Info   : deleting files workspace as --delete-data was given");
+            fmt::println(stderr, "Info   : you have 5 seconds to interrupt with CTRL-C to prevent deletion");
+            sleep(5);
+
+            caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+            if (caps.isSetuid()) {
+                // get process owner to be allowed to delete files
+                if(seteuid(getuid())) {
+                    fmt::println(stderr, "Error  : can not setuid, bad installation?");
+                }
+            }
+
+            // remove the directory
+            std::error_code ec;
+            if (debugflag) {
+                fmt::println("Debug  : remove_all({})", cppfs::path(target).string());
+            }
+            cppfs::remove_all(cppfs::path(target), ec);  // we ignore return wert as we expect an error return anyhow
+
+            // we expect an error 13 for the topmost directory
+            if (ec.value() != 13) {
+                fmt::println(stderr, "Error  : unexpected error {}", ec.message());
+            }
+
+            if (caps.isSetuid()) {
+                // get root so we can drop again
+                if(seteuid(0)) {
+                    fmt::println(stderr, "Error  : can not setuid, bad installation?");
+                }
+            }
+            caps.lower_cap(CAP_FOWNER, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+
+            // remove what is left as DB user (could be done by ws_expirer)
+            if (debugflag) {
+                fmt::println("Debug  : remove_all({})", cppfs::path(target).string());
+            }
+            cppfs::remove_all(cppfs::path(target), ec);
+
+            syslog(LOG_INFO, "delete-data for user <%s> from <%s>." , user::getUsername().c_str(), target.c_str());
+
+            // remove DB entry
+            dbentry->remove();
+
+        }  // if delete-data
 
     // if ws_exist
     } else {

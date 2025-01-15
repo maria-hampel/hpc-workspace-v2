@@ -58,6 +58,9 @@ public:
 	// write entry to DB after update (read with readEntry)
 	virtual void writeEntry() = 0;
 
+	// remove db entry
+	virtual void remove() = 0;
+
 	// change expiration time
 	virtual void setExpiration(const time_t timestamp) = 0;
 	// change release date (mark as released and not expired) and write updated entry and move entry

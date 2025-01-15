@@ -61,6 +61,8 @@
 #include <sys/types.h>
 #include <grp.h>
 
+#include <syslog.h>
+
 #include <fstream>
 #include <iostream>
 
@@ -529,6 +531,25 @@ void DBEntryV1::release(const std::string timestamp) {
     caps.lower_cap(CAP_DAC_OVERRIDE, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
     caps.lower_cap(CAP_FOWNER, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 }
+
+
+// remove DB entry
+void DBEntryV1::remove() {
+    // delete DB entry as last step
+    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+
+    if (caps.isSetuid()) {
+        // for filesystem with root_squash, we need to be DB user here
+        if (setegid(getConfig()->dbgid()) || seteuid(getConfig()->dbuid())) {
+            fmt::println(stderr, "Error  : can not setuid, bad installation?");
+        }
+    }
+    cppfs::remove(workspace);
+    caps.lower_cap(CAP_DAC_OVERRIDE, getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+
+    syslog(LOG_INFO, "removed db entry <%s> for user <%s>.", id.c_str(), user::getUsername().c_str());
+}
+
 
 // write data to file
 //  unittest: yes
