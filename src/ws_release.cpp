@@ -392,7 +392,6 @@ int main(int argc, char **argv) {
 
     // lower capabilities to user, before interpreting any data from user
     caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-    // TODO:: moved up, check and may be fix in ws_allocate as well
 
     // locals settiongs to prevent strange effects
     utils::setCLocal();
@@ -430,10 +429,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    openlog("ws_allocate", 0, LOG_USER); // SYSLOG
-
-
-    // FIXME:: which privileges here? user or dbuid?
+    openlog("ws_release", 0, LOG_USER); // SYSLOG
 
     // release workspace
     release(config, opt, filesystem, name, user_option, groupname, deletedata);

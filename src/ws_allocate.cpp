@@ -586,8 +586,6 @@ int main(int argc, char **argv) {
         duration = config.durationdefault();
     }
 
-    // FIXME: user config and reminder?
-
     openlog("ws_allocate", 0, LOG_USER); // SYSLOG
 
     // allocate workspace
