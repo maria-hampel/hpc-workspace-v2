@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
 
     po::variables_map opts;
 
-    // locals settiongs to prevent strange effects
+    // locals settings to prevent strange effects
     utils::setCLocal();
 
     // define options

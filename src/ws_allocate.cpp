@@ -544,7 +544,7 @@ int main(int argc, char **argv) {
     // lower capabilities to user, before interpreting any data from user
     caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
-    // locals settiongs to prevent strange effects
+    // locals settings to prevent strange effects
     utils::setCLocal();
 
     // read user config 
