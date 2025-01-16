@@ -9,7 +9,7 @@
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
- *  (c) Christoph Niethammer 2024
+ *  (c) Christoph Niethammer 2024,2025
  * 
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -63,20 +63,34 @@ Cap::Cap() {
         cap_value_t cap_list[1];
 
         caps = cap_get_proc();
+        if (NULL == caps) {
+            fmt::println(stderr, "Error: Failed to obtain capabilities.");
+            exit(1);
+        }
         oldcaps = cap_dup(caps);
+        if (NULL == oldcaps) {
+            fmt::println(stderr, "Error: Failed copying capabilities.");
+            cap_free(caps);
+            exit(1);
+        }
 
         cap_list[0] = CAP_DAC_OVERRIDE;  // this has to be set for all executables using this!
 
         if (cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, CAP_SET) == -1) {
-            fmt::print(stderr, "Error  : problem with capabilities, should not happen\n");
+            fmt::println(stderr, "Error: Failed updating effective capability set.");
             cap_free(caps);
             cap_free(oldcaps);
             exit(1);
         }
 
         if (cap_set_proc(caps) == 0) {
+            if (cap_set_proc(oldcaps) != 0) {
+                fmt::println("Error: Failed resetting capabilities.");
+                cap_free(caps);
+                cap_free(oldcaps);
+                exit(1);
+            }
             hascaps = true;
-            cap_set_proc(oldcaps);
         }
 
         cap_free(caps);
@@ -84,13 +98,15 @@ Cap::Cap() {
 #endif
     }
 
-    if (!issetuid && !hascaps) isusermode = true;
+    if (!issetuid && !hascaps) {
+        isusermode = true;
+    }
 
     if (debugflag) {
 #ifdef WS_CAPA
         fmt::println(stderr, "Debug  : libcap is linked");
 #endif
-        fmt::println(stderr, "Debug  : issetuid={} hascaps={} isusermode={}",issetuid, hascaps, isusermode);
+        fmt::println(stderr, "Debug  : issetuid={} hascaps={} isusermode={}", issetuid, hascaps, isusermode);
     }
 }
 
