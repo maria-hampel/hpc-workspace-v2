@@ -35,6 +35,14 @@
 #include <sstream>
 #include <filesystem>
 #include <cassert>
+#include <iostream>
+
+#ifdef TERMCAP
+#include <termcap.h>
+#else
+#include <term.h>
+#endif
+
 namespace fs = std::filesystem;
 
 #include "fmt/base.h"
@@ -231,5 +239,100 @@ namespace utils {
         assert(spos!=std::string::npos);
         return wsid.substr(spos+1, wsid.length());
     }
+
+	// print a character r times
+	static void repstr(char *c, int r) {
+			for(int i=0; i<r; i++) {
+					cout << c;
+			}
+	}
+
+	// check if person behind tty is human
+	bool ruh() {
+        srand (time(NULL));
+        int syllables = 3 + rand() % 5;
+
+		// vector of japanese syllables
+		// vector<string> syllable = {
+		const char * syllable[] = {
+				"a","i","u","e","o",
+				"ka","ki","ku","ke","ko",
+				"sa","shi","su","se","so",
+				"ta","chi","tsu","te","to",
+				"na","ni","nu","ne","no",
+				"ha","hi","fu","he","ho",
+				"ma","mi","mu","me","mo",
+				"ya","yu","yo",
+				"ra","ri","ru","re","ro",
+				"wa","wi","we","wo","n",
+				NULL
+		};
+
+		const int syllablesize = 48;
+
+
+        vector<string> word;
+        string word_as_string;
+
+        for(int i=0; i<syllables; i++) {
+                int r = rand() % syllablesize;
+                word.push_back(syllable[r]);
+                word_as_string.append(syllable[r]);
+        }
+
+#ifdef TERMCAP
+        int r = tgetent(NULL,getenv("TERM"));
+        if (r != 1 ) {
+                cerr << "unsupported terminal!" << endl;
+                return false;
+        }
+        char *left  = tgetstr((char*)"le",NULL);
+        char *right = tgetstr((char*)"nd",NULL);
+#else
+		setupterm(NULL,1,NULL);
+		char *left  = tigetstr("cub1");
+		char *right = tigetstr("cuf1");
+#endif
+
+        cout << "to verify that you are human, please type '";
+
+        if (rand() & 1) {
+                // scheme 1
+                cout << word[0];
+                repstr(right, word[1].size());
+                cout << word[2];
+                repstr(left, word[1].size()+word[2].size());
+                cout << word[1];
+                repstr(right, word[2].size());
+                for(unsigned int i=3; i<word.size(); i++) {
+                        cout << word[i];
+                }
+        } else {
+                // scheme 2
+                repstr(right, word[0].size());
+                cout << word[1];
+                repstr(left, word[0].size()+word[1].size());
+                cout << word[0];
+                repstr(right, word[1].size());
+                for(unsigned int i=2; i<word.size(); i++) {
+                        cout << word[i];
+                }
+        }
+        cout << "': " << flush;
+
+        string line;
+        getline(cin, line);
+
+        if(line==word_as_string) {
+                cout << "you are human\n";
+                return true;
+        } else {
+                cout << "not sure if you are human\n";
+                return false;
+        }
+
+	}
+
+
 
 }

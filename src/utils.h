@@ -75,6 +75,8 @@ namespace utils {
     // getID returns id part of workspace id <username-id>
     std::string getID(const std::string wsid);
     
+    // check if person behind tty is human
+    bool ruh();
 }
 
 #endif
