@@ -17,7 +17,7 @@ if [ ! -d fmt ]
 then
 	git clone --filter=tree:0 https://github.com/fmtlib/fmt.git
 else 
-	cd Catch2
+	cd fmt
 	git pull
 	cd $OPWD
 fi
