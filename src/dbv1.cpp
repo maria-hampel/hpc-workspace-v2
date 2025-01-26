@@ -290,6 +290,25 @@ std::unique_ptr<DBEntry> FilesystemDBV1::readEntry(const WsID id, const bool del
     return entry;
 }
 
+// delete entry, ID can include timestamp of deleted workspace
+void FilesystemDBV1::deleteEntry(const string wsid, const bool deleted) {
+    cppfs::path dbentrypath;
+
+    if (deleted) {
+        dbentrypath = cppfs::path(config->getFsConfig(fs).database) / config->getFsConfig(fs).deletedPath / wsid;
+    } else {
+        dbentrypath = cppfs::path(config->getFsConfig(fs).database) / wsid;
+    }
+    if (debugflag) fmt::println(stderr, "Debug  : deleting DB entry {}", dbentrypath.string());
+
+    try {
+        cppfs::remove(dbentrypath);
+    } catch (cppfs::filesystem_error const& ex) {
+        throw(DatabaseException(ex.code().message()));
+    }
+}
+
+
 // constructor to make new entry to write out
 DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation, 
                         const long _expiration, const long _reminder, const int _extensions, 
@@ -521,6 +540,7 @@ void DBEntryV1::release(const std::string timestamp) {
     try {
         if (debugflag) fmt::println("Debug  : rename({}, {})", dbfilepath, dbtarget.string());
         cppfs::rename(dbfilepath, dbtarget);
+        dbfilepath = dbtarget.string(); // entry knows now the new name, for remove, but is not persistent
     } catch (const std::filesystem::filesystem_error &e) {
         caps.lower_cap(CAP_DAC_OVERRIDE, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
         caps.lower_cap(CAP_FOWNER, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
@@ -535,7 +555,6 @@ void DBEntryV1::release(const std::string timestamp) {
 
 // remove DB entry
 void DBEntryV1::remove() {
-    // delete DB entry as last step
     caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__)); 
 
     if (caps.isSetuid()) {
@@ -544,7 +563,11 @@ void DBEntryV1::remove() {
             fmt::println(stderr, "Error  : can not setuid, bad installation?");
         }
     }
-    cppfs::remove(workspace);
+
+    if (debugflag) fmt::println(stderr, "Debug  : deleting db entry file {}", dbfilepath);
+
+    cppfs::remove(dbfilepath);
+    
     caps.lower_cap(CAP_DAC_OVERRIDE, getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     syslog(LOG_INFO, "removed db entry <%s> for user <%s>.", id.c_str(), user::getUsername().c_str());
