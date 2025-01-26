@@ -95,9 +95,9 @@ for testing:
 - [ ] migrate more tools: migrate ws_release, ws_restore, ws_expirer, ws_validate
 - [x] ws_list 
 - [x] ws_allocate (testing ongoing)
-- [ ] ws_release (stubb)
-- [ ] ws_restore
-- [x] ws_find (testing ongoing)
+- [x] ws_release (testing ongoing)
+- [x] ws_restore (testing needed)
+- [x] ws_find
 - [ ] add tests for new tools
 - [ ] debug what is there
 - [x] get CMake setup in better shape
