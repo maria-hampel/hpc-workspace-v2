@@ -126,6 +126,9 @@ public:
 	// read entry
 	std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted);
 
+        // delete entry
+        void deleteEntry(const string wsid, const bool deleted);
+
         // return list of identifiers of DB entries matching pattern from filesystem or all valid filesystems
         //  does not check if request for "deleted" is valid, has to be done on caller side
         //  throws IO exceptions in case of access problems

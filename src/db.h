@@ -106,6 +106,9 @@ public:
 	// read specific entry
 	virtual std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted) = 0;
 	
+	// delete entry, can be a deleted one, wsID has to contain timestamp in that case
+	virtual void deleteEntry(const WsID, const bool deleted) = 0;
+
 	// return a list of entries
 	virtual std::vector<WsID> matchPattern(const string pattern, const string user, 
 			const vector<string> groups, const bool deleted, const bool groupworkspaces) = 0;
