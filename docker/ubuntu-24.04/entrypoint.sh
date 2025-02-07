@@ -48,6 +48,7 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
 
   cmake --build --preset debug -j
 
+  cmake --preset release
   cmake --build --preset release -j
 
   # prepare setuid executable
