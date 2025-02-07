@@ -59,7 +59,7 @@ bool traceflag = false;
 Cap caps{};
 
 void commandline(po::variables_map &opt, string &name, string &target,
-                    string &filesystem, bool &listflag, bool &terse, string &username,  int argc, char**argv) {
+                    string &filesystem, bool &listflag, bool &terse, string &username,  int argc, char**argv, std::string &configfile) {
     // define all options
 
     po::options_description cmd_options( "\nOptions" );
@@ -71,6 +71,7 @@ void commandline(po::variables_map &opt, string &name, string &target,
             ("name,n", po::value<string>(&name), "workspace name")
             ("target,t", po::value<string>(&target), "existing target workspace name")
             ("filesystem,F", po::value<string>(&filesystem), "filesystem")
+            ("config,c", po::value<string>(&configfile), "config file")
             ("username,u", po::value<string>(&username), "username")
     ;
 
@@ -335,7 +336,7 @@ int main(int argc, char **argv) {
     utils::setCLocal();
 
     // check commandline, get flags which are used to create ws object or for workspace allocation
-    commandline(opt, name, target, filesystem, listflag, terse, username, argc, argv);
+    commandline(opt, name, target, filesystem, listflag, terse, username, argc, argv, configfile);
 
     // find which config files to read
     //   user can change this if no setuid installation OR if root
