@@ -73,6 +73,7 @@ void commandline(po::variables_map &opt, string &name, string &target,
             ("filesystem,F", po::value<string>(&filesystem), "filesystem")
             ("config,c", po::value<string>(&configfile), "config file")
             ("username,u", po::value<string>(&username), "username")
+            ("delete-data", "delete all data, workspace can NOT BE RECOVERED!")
     ;
 
     po::options_description secret_options("Secret");
@@ -136,7 +137,7 @@ void commandline(po::variables_map &opt, string &name, string &target,
 
     if (opt.count("name"))
     {
-        if (!opt.count("target")) {
+        if (!opt.count("target") && !opt.count("delete-data")) {
             fmt::println(stderr, "Error  : no target given.");
             fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
             cerr << cmd_options << "\n";
@@ -182,7 +183,7 @@ bool check_name(const string name, const string username, const string real_user
 }
 
 
-void restore(const string name, const string target, const string username, const Config &config, const string filesystem) {
+void restore(const string name, const string target, const string username, const Config &config, const string filesystem, const bool deletedata) {
     // list of groups of this process
     auto grouplist = user::getGrouplist();
 
@@ -245,80 +246,144 @@ void restore(const string name, const string target, const string username, cons
         return;
     }
     
-    // find target workspace
-    validfs = config.validFilesystems(username,grouplist);
-    std::unique_ptr<Database> db;
-    string targetpath;
-    for(auto const &fs: fslist) {
-        if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
-        std::unique_ptr<Database> candiate_db(config.openDB(fs));
+    if (deletedata) {
 
-        try {
-            std::unique_ptr<DBEntry> entry(candiate_db->readEntry(fmt::format("{}-{}", username, target), false));
-            targetpath = entry->getWSPath();
-            db = std::move(candiate_db);
-            break;
-        } catch (DatabaseException &e) {
-            // nothing...
+        // this is path of original workspace, from this we derive the deleted name
+        string wsdir = source_entry->getWSPath();
+
+        // go one up, add deleted subdirectory and add workspace name
+        string wssourcename = cppfs::path(wsdir).parent_path().string() + "/" +
+                                config.getFsConfig(source_filesystem).deletedPath +
+                                "/" + name;
+
+        fmt::println(stderr, "Info   : deleting files as --delete-data was given");
+        fmt::println(stderr, "Info   : you have 5 seconds to interrupt with CTRL-C to prevent deletion");
+        sleep(5);
+
+        caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+        if (caps.isSetuid()) {
+            // get process owner to be allowed to delete files
+            if(seteuid(getuid())) {
+                fmt::println(stderr, "Error  : can not setuid, bad installation?");
+            }
         }
-    }
 
-    if (targetpath=="") {
-        fmt::println(stderr, "Error  : target does not exist!");
-        return;
-    }
-
-    // source and target are known now and exist both
-
-    // this is path of original workspace, from this we derive the deleted name
-    string wsdir = source_entry->getWSPath();
-
-    // go one up, add deleted subdirectory and add workspace name
-    string wssourcename = cppfs::path(wsdir).parent_path().string() + "/" +
-                            config.getFsConfig(source_filesystem).deletedPath +
-                            "/" + name;
-
-    string targetpathname = targetpath + "/" + cppfs::path(wssourcename).filename().string();
-
-
-    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));
-    caps.raise_cap(CAP_DAC_READ_SEARCH, utils::SrcPos(__FILE__, __LINE__, __func__));
-
-    int ret = rename(wssourcename.c_str(), targetpathname.c_str());
-
-    // FIXME: move this to deleteEntry?
-    if (caps.isSetuid()) {
-        // get db user to be able to unlink db entry from root_squash filesystems
-        if(setegid(config.dbgid()) || seteuid(config.dbuid())) {
-            cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
-            exit(-1);
+        // remove the directory
+        std::error_code ec;
+        if (debugflag) {
+            fmt::println("Debug  : remove_all({})", cppfs::path(wssourcename).string());
         }
-    }
+        cppfs::remove_all(cppfs::path(wssourcename), ec);  // we ignore return wert as we expect an error return anyhow
 
-    if (ret==0) {
+        if (ec.value() != 0) {
+            fmt::println(stderr, "Error  : unexpected error {}", ec.message());
+        }
+
+        if (caps.isSetuid()) {
+            // get root so we can drop again
+            if(seteuid(0)) {
+                fmt::println(stderr, "Error  : can not setuid, bad installation?");
+            }
+        }
+        caps.lower_cap(CAP_FOWNER, source_entry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+
+        // FIXME: move this to deleteEntry?
+        if (caps.isSetuid()) {
+            // get db user to be able to unlink db entry from root_squash filesystems
+            if(setegid(config.dbgid()) || seteuid(config.dbuid())) {
+                cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
+                exit(-1);
+            }
+        }
+
         // remove DB entry
         try {
-            db->deleteEntry(name, true);
-            syslog(LOG_INFO, "restore for user <%s> from <%s> to <%s> done, removed DB entry <%s>.", username.c_str(), wssourcename.c_str(), targetpathname.c_str(), name.c_str());
-            fmt::println(stderr, "Info   : restore successful, database entry removed.");
+            source_db->deleteEntry(name, true);
+            syslog(LOG_INFO, "delete for user <%s> from <%s> done, removed DB entry <%s>.", username.c_str(), wssourcename.c_str(), name.c_str());
+            fmt::println(stderr, "Info   : delete successful, database entry removed.");
         } catch (DatabaseException const &ex) {
             fmt::println(stderr, "Error  : error in DB entry removal, {}", ex.what());
         }
-    }else {
-        syslog(LOG_INFO, "restore for user <%s> from <%s> to <%s> failed, kept DB entry <%s>.", username.c_str(), wssourcename.c_str(), targetpathname.c_str(), name.c_str());
-        cerr << "Error  : moving data failed, database entry kept! " <<  ret << endl;
-    }
 
-    // get user again
-    if (caps.isSetuid()) {
-        if(seteuid(0)||setegid(0)) {
-            cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
-            exit(-1);
+
+    } else {
+
+        // find target workspace
+        validfs = config.validFilesystems(username,grouplist);
+        std::unique_ptr<Database> db;
+        string targetpath;
+        for(auto const &fs: fslist) {
+            if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+            std::unique_ptr<Database> candiate_db(config.openDB(fs));
+
+            try {
+                std::unique_ptr<DBEntry> entry(candiate_db->readEntry(fmt::format("{}-{}", username, target), false));
+                targetpath = entry->getWSPath();
+                db = std::move(candiate_db);
+                break;
+            } catch (DatabaseException &e) {
+                // nothing...
+            }
         }
-    }
-    caps.lower_cap(CAP_DAC_OVERRIDE, config.dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-    caps.lower_cap(CAP_DAC_READ_SEARCH,  config.dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
+        if (targetpath=="") {
+            fmt::println(stderr, "Error  : target does not exist!");
+            return;
+        }
+
+        // source and target are known now and exist both
+
+        // this is path of original workspace, from this we derive the deleted name
+        string wsdir = source_entry->getWSPath();
+
+        // go one up, add deleted subdirectory and add workspace name
+        string wssourcename = cppfs::path(wsdir).parent_path().string() + "/" +
+                                config.getFsConfig(source_filesystem).deletedPath +
+                                "/" + name;
+
+        string targetpathname = targetpath + "/" + cppfs::path(wssourcename).filename().string();
+
+
+        caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.raise_cap(CAP_DAC_READ_SEARCH, utils::SrcPos(__FILE__, __LINE__, __func__));
+
+        // do the move
+        int ret = rename(wssourcename.c_str(), targetpathname.c_str());
+
+        // FIXME: move this to deleteEntry?
+        if (caps.isSetuid()) {
+            // get db user to be able to unlink db entry from root_squash filesystems
+            if(setegid(config.dbgid()) || seteuid(config.dbuid())) {
+                cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
+                exit(-1);
+            }
+        }
+
+        if (ret==0) {
+            // remove DB entry
+            try {
+                db->deleteEntry(name, true);
+                syslog(LOG_INFO, "restore for user <%s> from <%s> to <%s> done, removed DB entry <%s>.", username.c_str(), wssourcename.c_str(), targetpathname.c_str(), name.c_str());
+                fmt::println(stderr, "Info   : restore successful, database entry removed.");
+            } catch (DatabaseException const &ex) {
+                fmt::println(stderr, "Error  : error in DB entry removal, {}", ex.what());
+            }
+        }else {
+            syslog(LOG_INFO, "restore for user <%s> from <%s> to <%s> failed, kept DB entry <%s>.", username.c_str(), wssourcename.c_str(), targetpathname.c_str(), name.c_str());
+            cerr << "Error  : moving data failed, database entry kept! " <<  ret << endl;
+        }
+
+        // get user again
+        if (caps.isSetuid()) {
+            if(seteuid(0)||setegid(0)) {
+                cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
+                exit(-1);
+            }
+        }
+        caps.lower_cap(CAP_DAC_OVERRIDE, config.dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap(CAP_DAC_READ_SEARCH,  config.dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+
+    }
 }
 
 
@@ -433,12 +498,12 @@ int main(int argc, char **argv) {
         if (check_name(name, username, real_username)) {
             if (cppfs::path(argv[0]).filename() == "ws_restore") {
                 if (utils::ruh()) {
-                    restore(name, target, username, config, filesystem);
+                    restore(name, target, username, config, filesystem, opt.count("delete-data"));
                 } else {
                     syslog(LOG_INFO, "user <%s> failed ruh test.", username.c_str());
                 }
             } else {
-                    restore(name, target, username, config, filesystem);
+                    restore(name, target, username, config, filesystem, opt.count("delete-data"));
             }
         }
   
