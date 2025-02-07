@@ -77,6 +77,7 @@ void commandline(po::variables_map &opt, string &name, string &target,
     po::options_description secret_options("Secret");
     secret_options.add_options()
         ("debug", "show debugging information")
+        ("trace", "show calling information")
         ;
 
     // define options without names
@@ -128,11 +129,9 @@ void commandline(po::variables_map &opt, string &name, string &target,
         terse = false;
     }
 
-    if (opt.count("debug")) {
-        debugflag = true;
-    } else {
-        debugflag = false;
-    }
+    // globalflags
+    debugflag = opt.count("debug");
+    traceflag = opt.count("trace");
 
     if (opt.count("name"))
     {
@@ -330,7 +329,7 @@ int main(int argc, char **argv) {
     bool listflag, terse;
 
     // lower capabilities to user, before interpreting any data from user
-    caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.drop_caps({CAP_DAC_OVERRIDE, CAP_DAC_READ_SEARCH}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     // locals settings to prevent strange effects
     utils::setCLocal();
