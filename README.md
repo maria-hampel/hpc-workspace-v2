@@ -79,10 +79,12 @@ for testing:
 
 ## Status
 
-- basically working implementation of config and DB reading for old format
-- basically working implementation of ws_list in C++ (that was proof of concept for the separation of tool and config and DB implementation)
-- basically working implementation of ws_find in C++
-- bascially working implementation of ws_allocate
+- working implementation of config and DB reading for old format
+- working implementation of ws_list in C++ (that was proof of concept for the separation of tool and config and DB implementation)
+- working implementation of ws_find in C++
+- working implementation of ws_allocate
+- working implementation of ws_release
+- working implementation of ws_restore
  
 ## Todo
 
@@ -96,7 +98,7 @@ for testing:
 - [x] ws_list 
 - [x] ws_allocate (testing ongoing)
 - [x] ws_release (testing ongoing)
-- [x] ws_restore (testing needed)
+- [x] ws_restore (testing ongoing)
 - [x] ws_find
 - [ ] add tests for new tools
 - [ ] debug what is there
