@@ -48,16 +48,26 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
 
   cmake --build --preset debug -j
 
+  cmake --build --preset release -j
+
   # prepare setuid executable
   mkdir /tmp/setuid
   cp build/debug/bin/ws_allocate /tmp/setuid
+  cp build/debug/bin/ws_release /tmp/setuid
+  cp build/debug/bin/ws_restore /tmp/setuid
   sudo chown root /tmp/setuid/ws_allocate
   sudo chmod u+s /tmp/setuid/ws_allocate
+  sudo chmod u+s /tmp/setuid/ws_release
+  sudo chmod u+s /tmp/setuid/ws_restore
 
   # prepare capability executable
   mkdir /tmp/cap
-  cp build/debug/bin/ws_allocate /tmp/cap
+  cp build/release/bin/ws_allocate /tmp/cap
+  cp build/release/bin/ws_release /tmp/cap
+  cp build/release/bin/ws_restore /tmp/cap
   sudo setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" /tmp/cap/ws_allocate
+  sudo setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" /tmp/cap/ws_release
+  sudo setcap "CAP_DAC_OVERRIDE=p CAP_DAC_READ_SEARCH=p" /tmp/cap/ws_restore
 
   # create a config for setuid 
   export MYUID=$(id -u)
