@@ -14,6 +14,12 @@ setup() {
     assert_success
 }
 
+@test "ws_restore print help" {
+    run ws_restore --help
+    assert_output --partial "Usage"
+    assert_success
+}
+
 @test "ws_restore list" {
     wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
     ws_release --config bats/ws.conf $ws_name
@@ -22,8 +28,13 @@ setup() {
     assert_success
 }
 
-@test "ws_restore print help" {
-    run ws_restore --help
-    assert_output --partial "Usage"
-    assert_success
+@test "ws_restore workspace" {
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    touch $wsdir/TESTFILE
+    ws_release --config bats/ws.conf $ws_name
+    wsid=$( ws_restore --config bats/ws.conf -l | head -1)
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_restore_notest --config bats/ws.conf $wsid $ws_name
+    assert_file_exists $wsdir/$wsid/TESTFILE
 }
+
