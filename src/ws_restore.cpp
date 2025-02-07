@@ -431,13 +431,16 @@ int main(int argc, char **argv) {
             }
         }
         if (check_name(name, username, real_username)) {
-            if (utils::ruh()) {
-                restore(name, target, username, config, filesystem);
+            if (cppfs::path(argv[0]).filename() == "ws_restore") {
+                if (utils::ruh()) {
+                    restore(name, target, username, config, filesystem);
+                } else {
+                    syslog(LOG_INFO, "user <%s> failed ruh test.", username.c_str());
+                }
             } else {
-                syslog(LOG_INFO, "user <%s> failed ruh test.", username.c_str());
+                    restore(name, target, username, config, filesystem);
             }
         }
-
   
     }
 }
