@@ -139,7 +139,7 @@ void commandline(po::variables_map &opt, string &name, string &filesystem,
         exit(1);
     }
 
-    deletedata = opt.count("deletedata");
+    deletedata = opt.count("delete-data");  // FIXME: unused
 
     // globalflags
     debugflag = opt.count("debug");
@@ -324,7 +324,7 @@ void release(
         //
 
         if (opt.count("delete-data")) {
-            fmt::println(stderr, "Info   : deleting files workspace as --delete-data was given");
+            fmt::println(stderr, "Info   : deleting workspace as --delete-data was given");
             fmt::println(stderr, "Info   : you have 5 seconds to interrupt with CTRL-C to prevent deletion");
             sleep(5);
 
