@@ -470,16 +470,18 @@ int main(int argc, char **argv) {
         for(auto const &fs: fslist) {
             if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
             std::unique_ptr<Database> db(config.openDB(fs));
-
-            for(auto const &id: db->matchPattern("*", userpattern, grouplist, true, false)) {
-                fmt::println("{}", id);
-                if (!terse) {
-                    auto pos = id.rfind("-")+1;
-                    time_t t = atol(id.substr(pos).c_str());
-                    fmt::print("\tunavailable since : {}", std::ctime(&t));
+            try {
+                for(auto const &id: db->matchPattern("*", userpattern, grouplist, true, false)) {
+                    fmt::println("{}", id);
+                    if (!terse) {
+                        auto pos = id.rfind("-")+1;
+                        time_t t = atol(id.substr(pos).c_str());
+                        fmt::print("\tunavailable since : {}", std::ctime(&t));
+                    }
                 }
+            } catch (DatabaseException &e) {
+                fmt::println(stderr, "Error  : DB access error ({})", e.what());
             }
-
         } // loop over fs
 
     } else {

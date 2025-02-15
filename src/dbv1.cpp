@@ -227,36 +227,40 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
     // list directory, this also reads YAML file in case of groupworkspaces
     auto listdir = [&groupworkspaces, &groups] (const string pathname, const string filepattern) -> vector<string> {
         if(debugflag) fmt::print("Debug  : listdir({},{})\n", pathname, filepattern);
-        // in case of groupworkspace, read entry
-        if (groupworkspaces) {
-            auto filelist = utils::dirEntries(pathname, filepattern);
-            vector<string> list;
-            for(auto const &f: filelist) {  
-#ifndef WS_RAPIDYAML_DB
-                YAML::Node dbentry;
-                try {
-                    dbentry = YAML::LoadFile((cppfs::path(pathname) / f).string().c_str());
-                } catch (const YAML::BadFile& e) {
-                    fmt::print(stderr,"Error  : Could not read db entry {}: {}", f, e.what());
-                }
+        try {
+            // in case of groupworkspace, read entry
+            if (groupworkspaces) {
+                auto filelist = utils::dirEntries(pathname, filepattern);
+                vector<string> list;
+                for(auto const &f: filelist) {  
+    #ifndef WS_RAPIDYAML_DB
+                    YAML::Node dbentry;
+                    try {
+                        dbentry = YAML::LoadFile((cppfs::path(pathname) / f).string().c_str());
+                    } catch (const YAML::BadFile& e) {
+                        fmt::print(stderr,"Error  : Could not read db entry {}: {}", f, e.what());
+                    }
 
-                string group = dbentry["group"].as<string>();
-#else
-                string filecontent = utils::getFileContents((cppfs::path(pathname) / f).string().c_str());
-                ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(filecontent));                // FIXME: error check?
+                    string group = dbentry["group"].as<string>();
+    #else
+                    string filecontent = utils::getFileContents((cppfs::path(pathname) / f).string().c_str());
+                    ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(filecontent));                // FIXME: error check?
 
-                ryml::NodeRef node;
-                string group;
-                node=dbentry["group"]; if(node.has_val()&& node.val()!="") node>>group; else group = "";
-#endif
+                    ryml::NodeRef node;
+                    string group;
+                    node=dbentry["group"]; if(node.has_val()&& node.val()!="") node>>group; else group = "";
+    #endif
 
-                if (canFind(groups, group)) {
-                        list.push_back(f);
-                }
-            }         
-            return list;   
-        } else {
-            return utils::dirEntries(pathname, filepattern);
+                    if (canFind(groups, group)) {
+                            list.push_back(f);
+                    }
+                }         
+                return list;   
+            } else {
+                return utils::dirEntries(pathname, filepattern);
+            }
+        } catch (cppfs::filesystem_error const &e) {
+            throw DatabaseException(e.what());
         }
     };
 
