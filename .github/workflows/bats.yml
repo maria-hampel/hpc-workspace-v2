@@ -58,6 +58,7 @@ jobs:
       run: |
         cmake --preset ${{ matrix.cmake_preset }}
         cmake --build --preset ${{ matrix.cmake_preset }}
+        cp build/${{ matrix.cmake_preset }}/bin/ws_restore build/${{ matrix.cmake_preset }}/bin/ws_restore_notest
 
     - name: Run bats non-sudo tests
       run: |
