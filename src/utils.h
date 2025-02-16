@@ -76,7 +76,12 @@ namespace utils {
     std::string getID(const std::string wsid);
     
     // check if person behind tty is human
-    bool ruh();
+    // bool ruh();
+
+    // aRe yoU Human?
+	// new version, no terminfo
+	bool new_ruh();
+
 }
 
 #endif

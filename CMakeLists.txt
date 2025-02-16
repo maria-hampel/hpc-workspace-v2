@@ -67,17 +67,17 @@ find_package(Boost COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 
 
 # find terminfo for "are you human" checker
-find_library(LIBTINFO NAMES libtinfo.a libtinfo.so)
-if(LIBTINFO)
-    message(STATUS "Found libtinfo")
-else()
-    message(WARNING "No libtinfo found, trying curses alternative ...")
-    set(CURSES_NEED_NCURSES TRUE)
-    find_package(Curses REQUIRED)
-    include_directories(${CURSES_INCLUDE_DIR})
-    link_directories(${CURSES_LIBRARY_DIR})
-    set(LIBTINFO ${CURSES_LIBRARIES})
-endif()
+#find_library(LIBTINFO NAMES libtinfo.a libtinfo.so)
+#if(LIBTINFO)
+#message(STATUS "Found libtinfo")
+#else()
+#message(WARNING "No libtinfo found, trying curses alternative ...")
+#set(CURSES_NEED_NCURSES TRUE)
+#find_package(Curses REQUIRED)
+#include_directories(${CURSES_INCLUDE_DIR})
+#link_directories(${CURSES_LIBRARY_DIR})
+##set(LIBTINFO ${CURSES_LIBRARIES})
+#endif()
 
 
 # for parallel ws_list

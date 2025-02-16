@@ -37,11 +37,13 @@
 #include <cassert>
 #include <iostream>
 
+/*
 #ifdef TERMCAP
 #include <termcap.h>
 #else
 #include <term.h>
 #endif
+*/
 
 namespace fs = std::filesystem;
 
@@ -240,6 +242,8 @@ namespace utils {
         return wsid.substr(spos+1, wsid.length());
     }
 
+
+	/*
 	// print a character r times
 	static void repstr(char *c, int r) {
 			for(int i=0; i<r; i++) {
@@ -332,7 +336,37 @@ namespace utils {
         }
 
 	}
+	*/
 
 
+	// aRe yoU Human?
+	// new version, no terminfo
+	bool new_ruh() {
+
+		const std::map<std::string, std::vector<std::string>> wordmap = {
+		{ "0", {"Dog","Cat","Elephant","Lion","Tiger","Cow","Horse","Monkey","Snake","Eagle","Bear","Wolf","Fox","Deer","Rabbit","Squirrel","Pig","Chicken","Duck","Fish","Shark","Whale","Dolphin","Frog","Butterfly"}},
+		{ "1", {"Apple","Banana","Orange","Strawberry","Blueberry","Watermelon","Mango","Pineapple","Grapes","Avocado","Tomato","Potato","Carrot","Broccoli","Spinach","Onion","Garlic","Cucumber","Bell pepper","Lettuce","Corn","Green beans","Peas","Asparagus","Zucchini"}},
+		{ "2", {"Car","House","Tree","Book","Computer","Phone","Chair","Table","Shirt","Pants","Shoes","Hat","Door","Window","Wall","Floor","Ceiling","Lightbulb","Pen","Paper","Clock","Television","Radio","Cloud","Rock"}}
+		};
+
+		srand (time(NULL));
+
+		int cat_index = rand() % 2;
+		int obj_index = rand() % 24;
+
+		const std::vector<std::string> idx = {"0", "1", "2"};
+
+		auto ol = wordmap.at(idx[cat_index]);
+
+		std::cout << fmt::format("Is '{}' an [0] Animal, [1] Fruit or Vegetable or [2] Object? <type 0/1/2 + enter> :", ol[obj_index]) << std::flush;
+
+		string line;
+		getline(cin, line);
+		if (line.length()>0) {
+			if (line[0]-'0' == cat_index) return true;
+		}
+
+		return false;
+	}
 
 }

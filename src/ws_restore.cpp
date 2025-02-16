@@ -499,7 +499,7 @@ int main(int argc, char **argv) {
         }
         if (check_name(name, username, real_username)) {
             if (cppfs::path(argv[0]).filename() == "ws_restore") {
-                if (utils::ruh()) {
+                if (utils::new_ruh()) {
                     restore(name, target, username, config, filesystem, opt.count("delete-data"));
                 } else {
                     syslog(LOG_INFO, "user <%s> failed ruh test.", username.c_str());

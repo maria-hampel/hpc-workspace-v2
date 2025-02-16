@@ -21,7 +21,6 @@ target_link_libraries(ws_common
         ryml::ryml
         yaml-cpp::yaml-cpp
         ${LIBCAP}
-        ${LIBTINFO}
     PRIVATE
         Microsoft.GSL::GSL
 )
