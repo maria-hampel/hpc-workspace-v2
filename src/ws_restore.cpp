@@ -217,7 +217,7 @@ void restore(const string name, const string target, const string username, cons
         }        
     }
 
-    // exit in cae not unique (unlikely!)
+    // exit in case not unique (unlikely due to labels with second precision!)
     if (hits.size()>1) {
         fmt::println(stderr, "Error  : id {} is not unique, please give filesystem with -F!", name);
         for (const auto &h: hits) {
@@ -246,6 +246,8 @@ void restore(const string name, const string target, const string username, cons
         return;
     }
     
+
+    // SPEC:CHANGE new in V2, wipe data on demand
     if (deletedata) {
 
         // this is path of original workspace, from this we derive the deleted name
@@ -305,8 +307,7 @@ void restore(const string name, const string target, const string username, cons
             fmt::println(stderr, "Error  : error in DB entry removal, {}", ex.what());
         }
 
-
-    } else {
+    } else { // don't delete data
 
         // find target workspace
         validfs = config.validFilesystems(username,grouplist);
@@ -484,7 +485,7 @@ int main(int argc, char **argv) {
             }
         } // loop over fs
 
-    } else {
+    } else { // listflag
 
         // construct db-entry username  name
         string real_username = user::getUsername();
