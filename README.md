@@ -39,7 +39,7 @@ future test platforms:
   - gcc 11.4.0
   - clang 14.0.0
 
-- Ubuntu 23.4 LTS
+- Ubuntu 24.4 LTS
   - CMake 3.28.3
   - gcc 13.3.0
   - clang 18.1.3
@@ -94,7 +94,7 @@ for testing:
 - [x] add more unit tests to existing code
 - [x] build/select a better test framework for the tools
 - [x] debug what is there
-- [ ] migrate more tools: migrate ws_release, ws_restore, ws_expirer, ws_validate
+- [ ] migrate more tools: migrate ws_expirer, ws_validate
 - [x] ws_list 
 - [x] ws_allocate (testing ongoing)
 - [x] ws_release (testing ongoing)
@@ -116,13 +116,23 @@ for testing:
 
 ## Howto Build
 
+for developers
+
 ```
+cmake --preset debug
 cmake --build --preset debug  -j 12
 ```
 
 for mold users:
 ```
 cmake --build --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" -j 12
+```
+
+for production
+
+```
+cmake --preset release
+cmake --build --preset release  -j 12
 ```
 
 ## Testing
