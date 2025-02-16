@@ -111,7 +111,7 @@ Cap::Cap() {
 }
 
 
-// drop effective capabilities, except CAP_DAC_OVERRIDE | CAP_CHOWN
+// drop effective capabilities, except CAP_DAC_OVERRIDE | CAP_CHOWN // FIXME: this comment is wrong? why?
 void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos srcpos)
 {
     if (traceflag) {
