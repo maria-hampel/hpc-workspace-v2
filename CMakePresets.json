@@ -30,7 +30,23 @@
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "BUILD_TESTS": true,
         "WS_ALLOW_USER_DEBUG": true,
-        "CMAKE_CXX_FLAGS": "-fstack-protector-all -fcf-protection=full -fsanitize=address -fsanitize=undefined -fsanitize=leak"
+        "CMAKE_CXX_FLAGS": "-D_GLIBCXX_ASSERTIONS -fstack-protector-all -fcf-protection=full -fsanitize=address -fsanitize=undefined -fsanitize=leak"
+      }
+    },
+    {
+      "name": "debug-nosan",
+      "displayName": "Debug-nosan",
+      "hidden": false,
+      "inherits": [
+        "config_common"
+      ],
+      "binaryDir": "build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "BUILD_TESTS": true,
+        "WS_ALLOW_USER_DEBUG": true,
+        "CMAKE_CXX_FLAGS": "-D_GLIBCXX_ASSERTIONS"
       }
     },
     {
@@ -76,6 +92,16 @@
       "hidden": false,
       "configurePreset": "debug",
       "configuration": "Debug",
+      "inherits": [
+        "build_common"
+      ]
+    },
+    {
+      "name": "debug-nosan",
+      "displayName": "Debug-nosan build",
+      "hidden": false,
+      "configurePreset": "debug-nosan",
+      "configuration": "Debug-nosan",
       "inherits": [
         "build_common"
       ]
