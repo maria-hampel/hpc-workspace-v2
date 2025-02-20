@@ -53,11 +53,11 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
 
   # prepare setuid executable
   mkdir /tmp/setuid
-  cp build/debug/bin/ws_allocate /tmp/setuid
-  cp build/debug/bin/ws_release /tmp/setuid
-  cp build/debug/bin/ws_restore /tmp/setuid
-  cp build/debug/bin/ws_restore build/debug/bin/ws_restore_notest
-  cp build/debug/bin/ws_restore_notest /tmp/setuid
+  cp build/release/bin/ws_allocate /tmp/setuid
+  cp build/release/bin/ws_release /tmp/setuid
+  cp build/release/bin/ws_restore /tmp/setuid
+  cp build/release/bin/ws_restore build/release/bin/ws_restore_notest
+  cp build/release/bin/ws_restore_notest /tmp/setuid
   sudo chown root /tmp/setuid/ws_allocate
   sudo chmod u+s /tmp/setuid/ws_allocate
   sudo chmod u+s /tmp/setuid/ws_release
@@ -69,7 +69,6 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
   cp build/release/bin/ws_allocate /tmp/cap
   cp build/release/bin/ws_release /tmp/cap
   cp build/release/bin/ws_restore /tmp/cap
-  cp build/release/bin/ws_restore build/release/bin/ws_restore_notest
   cp build/release/bin/ws_restore_notest /tmp/cap
   sudo setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" /tmp/cap/ws_allocate
   sudo setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" /tmp/cap/ws_release
