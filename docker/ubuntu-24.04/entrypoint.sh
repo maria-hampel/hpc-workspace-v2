@@ -51,12 +51,14 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
   cmake --preset release
   cmake --build --preset release -j
 
+  cp build/debug/bin/ws_restore build/debug/bin/ws_restore_notest
+  cp build/release/bin/ws_restore build/release/bin/ws_restore_notest
+
   # prepare setuid executable
   mkdir /tmp/setuid
   cp build/release/bin/ws_allocate /tmp/setuid
   cp build/release/bin/ws_release /tmp/setuid
   cp build/release/bin/ws_restore /tmp/setuid
-  cp build/release/bin/ws_restore build/release/bin/ws_restore_notest
   cp build/release/bin/ws_restore_notest /tmp/setuid
   sudo chown root /tmp/setuid/ws_allocate
   sudo chmod u+s /tmp/setuid/ws_allocate
