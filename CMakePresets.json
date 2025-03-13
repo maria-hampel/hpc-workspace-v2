@@ -42,7 +42,7 @@
       ],
       "binaryDir": "build/debug",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_BUILD_TYPE": "Debug-nosan",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "BUILD_TESTS": true,
         "WS_ALLOW_USER_DEBUG": true,
