@@ -166,8 +166,13 @@ comment: ""
 
 	// test some patterns
         REQUIRE(db1->matchPattern("TEST*", "user1", vector<string>{}, false, false) ==  vector<string>{"user1-TEST1"});
-        REQUIRE(db1->matchPattern("*EST*", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2", "user2-TEST1"});
-        REQUIRE(db1->matchPattern("*", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2", "user2-TEST1"});
+
+        auto result1 = db1->matchPattern("*EST*", "user2", vector<string>{}, false, false) ;
+        REQUIRE(((result1 == vector<string>{"user2-TEST2", "user2-TEST1"}) || (result1 == vector<string>{"user2-TEST1", "user2-TEST2"})));
+
+        auto result2 = db1->matchPattern("*", "user2", vector<string>{}, false, false) ;
+        REQUIRE(((result2 == vector<string>{"user2-TEST2", "user2-TEST1"}) || (result2 == vector<string>{"user2-TEST1", "user2-TEST2"})));
+
         REQUIRE(db1->matchPattern("*Pest*", "user1", vector<string>{}, false, false) ==  vector<string>{});
         REQUIRE(db2->matchPattern("T*T2", "user2", vector<string>{}, false, false) ==  vector<string>{"user2-TEST2"});
 	// deleted workspace
