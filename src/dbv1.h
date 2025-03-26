@@ -5,15 +5,15 @@
  *  hpc-workspace-v2
  *
  *  dbv1.h
- * 
- *  - interface to v1 format database 
+ *
+ *  - interface to v1 format database
  *    this is the DB format as written from legacy workspace++
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@
 
 #include "config.h"
 #include "db.h"
-#include "caps.h"
+// #include "caps.h"
 
 class FilesystemDBV1;
 
@@ -71,8 +71,8 @@ public:
         // simple constructor to read from file
         DBEntryV1(FilesystemDBV1* pdb) : parent_db(pdb) {};
         // constructor to make new entry to write out
-        DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation, 
-                        const long _expiration, const long _reminder, const int _extensions, 
+        DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation,
+                        const long _expiration, const long _reminder, const int _extensions,
 			const string _group, const string _mailaddress, const string _comment);
 
         // read yaml entry from string
@@ -119,8 +119,8 @@ public:
         FilesystemDBV1(const Config* config_, const string fs_) : config(config_), fs(fs_) {};
 
         // create new DB entry
-        void createEntry(const WsID id, const string workspace, const long creation, const long expiration, 
-                        const long reminder, const int extensions, 
+        void createEntry(const WsID id, const string workspace, const long creation, const long expiration,
+                        const long reminder, const int extensions,
 			const string group, const string mailaddress, const string comment);
 
 	// read entry
