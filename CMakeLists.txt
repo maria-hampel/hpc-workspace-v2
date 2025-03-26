@@ -108,3 +108,5 @@ if(BUILD_TESTS)
 
     add_subdirectory(tests)
 endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
