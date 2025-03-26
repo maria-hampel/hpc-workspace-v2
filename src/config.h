@@ -5,14 +5,14 @@
  *  hpc-workspace-v2
  *
  *  config.h
- * 
+ *
  * - deals with global configuration files
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ struct Filesystem_config {
     int maxduration;                // max duration a user can choose for this filesystem
     int maxextensions;              // max extensiones a user can do for this filesystem
     // migration helpers
-    bool allocatable;               // is this filesystem allocatable? (or read only?) 
+    bool allocatable;               // is this filesystem allocatable? (or read only?)
     bool extendable;                // is this filesystem extendable? (or read only?)
     bool restorable;                // can a workspace be restored into this filesystem?
 };
@@ -117,6 +117,9 @@ public:
     vector<string> validFilesystems(const string user, const vector<string> groups) const;
     // check if given user can assess given filesystem with current config
     bool hasAccess(const string user, const std::vector<string> groups, const string filesystem) const;
+    // get list of all filesystems
+    vector<string> Filesystems() const;
+
 
     // return DB handle of right version
     Database* openDB(const string fs) const;

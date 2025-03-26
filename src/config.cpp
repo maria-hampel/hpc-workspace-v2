@@ -2,14 +2,14 @@
  *  hpc-workspace-v2
  *
  *  config.cpp
- * 
+ *
  *  - deals with glocal configuration files
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -36,10 +36,10 @@
 #include "fmt/ranges.h"
 
 #ifdef WS_RAPIDYAML_CONFIG
-    #define RYML_USE_ASSERT 0 
+    #define RYML_USE_ASSERT 0
     #include "ryml.hpp"
-    #include "ryml_std.hpp" 
-    #include "c4/format.hpp" 
+    #include "ryml_std.hpp"
+    #include "c4/format.hpp"
     #include "c4/std/std.hpp"
 #else
     #include "yaml-cpp/yaml.h"
@@ -96,8 +96,8 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
                     if (cppfs::is_regular_file(cfile)) {
                         if (debugflag) fmt::println("Debug  : Reading config file {}", cfile);
                         string yaml = utils::getFileContents(cfile);
-                        readYAML(yaml);                    
-                    } 
+                        readYAML(yaml);
+                    }
                 }
 
             } else {
@@ -123,7 +123,7 @@ Config::Config(const std::string configstring) {
     readYAML(configstring);
 }
 
-// validate config, return false if invalid 
+// validate config, return false if invalid
 //  unitest: indirect
 bool Config::validate() {
     bool valid = true;
@@ -142,29 +142,29 @@ bool Config::validate() {
     if (global.adminmail.empty()) {
         valid = false;
         fmt::println(stderr, "Error  : No adminmail in config!");
-    }    
+    }
     // SPEC:CHANGE: require default workspace
     if (global.defaultWorkspace.empty()) {
         valid = false;
         fmt::println(stderr, "Error  : No default filesystem in config!");
-    }    
+    }
     if (filesystems.empty()) {
         valid = false;
-        fmt::println(stderr, "Error  : No filesystems in config!");        
+        fmt::println(stderr, "Error  : No filesystems in config!");
     }
 
     for (auto const &[fsname, fsdata]: filesystems) {
         if (fsdata.spaces.empty()) {
             valid = false;
-            fmt::println(stderr, "Error  : No spaces in filesystem <> in config!", fsname);      
+            fmt::println(stderr, "Error  : No spaces in filesystem <> in config!", fsname);
         }
         if (fsdata.database.empty()) {
             valid = false;
-            fmt::println(stderr, "Error  : No database path in filesystem <> in config!", fsname);      
+            fmt::println(stderr, "Error  : No database path in filesystem <> in config!", fsname);
         }
         if (fsdata.deletedPath.empty()) {
             valid = false;
-            fmt::println(stderr, "Error  : No deleted name in filesystem <> in config!", fsname);      
+            fmt::println(stderr, "Error  : No deleted name in filesystem <> in config!", fsname);
         }
     }
     isvalid = valid;
@@ -172,7 +172,7 @@ bool Config::validate() {
 }
 
 #ifdef RYAML
-// helper to read a sequence of strings from a yaml node 
+// helper to read a sequence of strings from a yaml node
 static void readRyamlSequence(const ryml::NodeRef parent, const std::string key, std::vector<std::string>&target) {
     if (parent.has_child(key.c_str())) {
         auto node = parent[key.c_str()];
@@ -187,7 +187,7 @@ static void readRyamlScalar(ryml::Tree config, const char* key, T &target) {
     ryml::NodeRef root = config.rootref();
     if (root.has_child(key)) {
         auto node = config[key]; node>>target;
-    }    
+    }
 }
 
 // parse YAML from a string (using yaml-cpp)
@@ -219,10 +219,10 @@ void Config::readYAML(string yamlstr) {
 
     // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
 
-  
+
    if (root.has_child("workspaces") || root.has_child("filesystems")) {
         for(auto key: vector<const char*>{"workspaces","filesystems"}) {
-            if (root.has_child(key)) { 
+            if (root.has_child(key)) {
 
                 auto list = root[key];
 
@@ -230,7 +230,7 @@ void Config::readYAML(string yamlstr) {
                     Filesystem_config fs;
                     auto name = it.key();
                     fs.name = {name.str, name.len}; // c4::string -> std::string
-                    
+
                     if (debugflag) fmt::print(stderr, "Debug  : config, reading workspace {}\n", fs.name);
 
                     auto ws=it[fs.name.c_str()];
@@ -272,19 +272,19 @@ void Config::readYAML(const string yaml) {
     if (config["mail_from"]) global.mail_from= config["mail_from"].as<string>();
     if (config["default_workspace"]) global.defaultWorkspace = config["default_workspace"].as<string>();  // SPEC:CHANGE accept alias default_workspace
     if (config["default"]) global.defaultWorkspace = config["default"].as<string>();
-    if (config["duration"]) global.maxduration = config["duration"].as<int>(); 
-    if (config["durationdefault"]) global.durationdefault = config["durationdefault"].as<int>(); 
-    if (config["reminderdefault"]) global.reminderdefault = config["reminderdefault"].as<int>(); 
+    if (config["duration"]) global.maxduration = config["duration"].as<int>();
+    if (config["durationdefault"]) global.durationdefault = config["durationdefault"].as<int>();
+    if (config["reminderdefault"]) global.reminderdefault = config["reminderdefault"].as<int>();
     if (config["maxextensions"]) global.maxextensions = config["maxextensions"].as<int>();
-    if (config["dbuid"]) global.dbuid = config["dbuid"].as<int>(); 
-    if (config["dbgid"]) global.dbgid = config["dbgid"].as<int>(); 
+    if (config["dbuid"]) global.dbuid = config["dbuid"].as<int>();
+    if (config["dbgid"]) global.dbgid = config["dbgid"].as<int>();
     if (config["admins"]) global.admins = config["admins"].as<vector<string>>();
     if (config["adminmail"]) global.adminmail = config["adminmail"].as<vector<string>>();
 
     // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
     if (config["workspaces"] || config["filesystems"]) {
         for(auto key: std::vector<string>{"workspaces","filesystems"}) {
-            if (config[key]) { 
+            if (config[key]) {
 
                 auto list = config[key];
 
@@ -293,9 +293,9 @@ void Config::readYAML(const string yaml) {
                     fs.name = it.first.as<string>();
                     if (debugflag) fmt::print(stderr, "Debug  : config, reading workspace {}\n", fs.name);
                     auto ws=it.second;
-                    if (ws["spaces"]) fs.spaces = ws["spaces"].as<vector<string>>(); 
+                    if (ws["spaces"]) fs.spaces = ws["spaces"].as<vector<string>>();
                     if (ws["spaceselection"]) fs.spaceselection = ws["spaceselection"].as<string>(); else fs.spaceselection = "random";
-                    if (ws["deleted"]) fs.deletedPath = ws["deleted"].as<string>(); 
+                    if (ws["deleted"]) fs.deletedPath = ws["deleted"].as<string>();
                     if (ws["database"]) fs.database = ws["database"].as<string>();
                     if (ws["groupdefault"]) fs.groupdefault = ws["groupdefault"].as<vector<string>>();
                     if (ws["userdefault"]) fs.userdefault = ws["userdefault"].as<vector<string>>();
@@ -379,12 +379,20 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
 
 }
 
+// get list of all filesystems
+vector<string> Config::Filesystems() const {
+    vector<string> fslist;
+    for(auto const &[fs,val]: filesystems) {
+        fslist.push_back(fs);
+    }
+    return fslist;
+}
 
 // get list of valid filesystems for given user, each filesystem is only once in the list
 //  SPEC: validFilesystems(user, groups)
 //  SPEC: this list is sorted: userdefault, groupdefault, global default, others
-//  SPEC:CHANGE: a user has to be able to access global default filesystem, otherwise it will be not returned here 
-//  SPEC:CHANGE: a user or group acl can contain a username with - prefixed, to disallow access  
+//  SPEC:CHANGE: a user has to be able to access global default filesystem, otherwise it will be not returned here
+//  SPEC:CHANGE: a user or group acl can contain a username with - prefixed, to disallow access
 //  SPEC:CHANGE: a user or group acl can contain a username with + prefix, to allow access, same as only listing user/group
 //  SPEC: as soon as an ACL exists, access is denied to those not in ACL
 //  SPEC: user acls are checked after groups for - entries, so users can be excluded after having group access
@@ -454,7 +462,7 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
         return validfs;
 }
 
-// get DB type for the fs 
+// get DB type for the fs
 Database* Config::openDB(const string fs) const {
     if (traceflag) fmt::print(stderr, "Trace  : opendb {}\n", fs);
     // TODO: version check here to determine which DB to open
@@ -464,7 +472,7 @@ Database* Config::openDB(const string fs) const {
 // return path to database for given filesystem, or empy string
 string Config::database(const string filesystem) const {
     auto it = filesystems.find(filesystem);
-    if (it == filesystems.end()) 
+    if (it == filesystems.end())
         return string("");
     else
         return it->second.database;
@@ -473,10 +481,10 @@ string Config::database(const string filesystem) const {
 // return path to deletedpath for given filesystem, or empty string
 string Config::deletedPath(const string filesystem) const {
     auto it = filesystems.find(filesystem);
-    if (it == filesystems.end()) 
+    if (it == filesystems.end())
         return string("");
     else
-        return it->second.deletedPath;  
+        return it->second.deletedPath;
 }
 
 // return config of filesystem throw if invalid
