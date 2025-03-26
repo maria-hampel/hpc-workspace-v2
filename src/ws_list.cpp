@@ -6,16 +6,16 @@
  *  - tool to list workspaces
  *    changes to workspace++:
  *      - c++ implementation (not python anymore)
- *      - option to run in parallel (PARALLEL CMake flag), 
+ *      - option to run in parallel (PARALLEL CMake flag),
  *        which helps to hide network latency of parallel filesystems
- *        needs as of 2024 tbb as dependency of std::par
+ *        needs as of 2024 openmp support
  *      - fast YAML reader with rapidyaml
- * 
+ *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024
- * 
+ *  (c) Holger Berger 2021,2023,2024,2025
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -31,13 +31,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with workspace-ng  If not, see <http://www.gnu.org/licenses/>.
  *
- */
-
-/*
-    TODO:
-        -l  print details about filesystems. like max extensions, max duration
-        option to show deleted workspaces?
-
  */
 
 
@@ -175,9 +168,9 @@ int main(int argc, char **argv) {
     }
 
 
-    // read config 
+    // read config
     //   user can change this if no setuid installation OR if root
-    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"}; 
+    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"};
     if (configfile != "") {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
@@ -222,10 +215,10 @@ int main(int argc, char **argv) {
         for(auto fs: config.validFilesystems(username,grouplist)) {
             auto fsc = config.getFsConfig(fs);
             fmt::print("{:>10}{:>10}{:>12}{:>10}   {}\n", fs, fsc.maxduration, fsc.maxextensions, fsc.keeptime, fsc.comment);
-        }        
+        }
     } else {
         bool sort = sortbyname || sortbycreation || sortbyremaining;
-        
+
         // if not pattern, show all entries
         if (pattern=="") pattern = "*";
 
@@ -242,8 +235,8 @@ int main(int argc, char **argv) {
             fslist = validfs;
         }
 
-        vector<std::unique_ptr<DBEntry>> entrylist; 
-        
+        vector<std::unique_ptr<DBEntry>> entrylist;
+
         // iterate over filesystems and print or create list to be sorted
         for(auto const &fs: fslist) {
             if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
@@ -279,11 +272,11 @@ int main(int argc, char **argv) {
         // in case of sorted output, sort and print here
         if(sort) {
             if (debugflag) fmt::println(stderr, "Debug  : sorting remaining={},creation={},name={},reverse={}", sortbyremaining,sortbycreation,sortbyname,sortreverted);
-            if (sortbyremaining) std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getRemaining() < y->getRemaining());} ); 
+            if (sortbyremaining) std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getRemaining() < y->getRemaining());} );
             if (sortbycreation)  std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getCreation() < y->getCreation());} );
             if (sortbyname)      std::sort(entrylist.begin(), entrylist.end(), [](const auto &x, const auto &y) { return (x->getId() < y->getId());} );
 
-            if (sortreverted) {                
+            if (sortreverted) {
                 std::reverse(entrylist.begin(), entrylist.end());
             }
 
@@ -298,5 +291,5 @@ int main(int argc, char **argv) {
 
 
     }
-  
+
 }
