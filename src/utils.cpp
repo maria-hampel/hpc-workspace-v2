@@ -2,14 +2,14 @@
  *  hpc-workspace-v2
  *
  *  utils.cpp
- * 
+ *
  *  - helper functions
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024,2025
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -80,6 +80,17 @@ namespace utils {
 		std::ostringstream contents;
 		contents << in.rdbuf();
 		return contents.str();
+	}
+
+	// write a (small) string to a file
+	void writeFile(const std::string filename, const std::string content) {
+	    std::ofstream out(filename);
+		if (out.is_open()) {
+    		out << content;
+    		out.close();
+		} else {
+		    fmt::println(stderr, "Error   : Can not open file {}!", filename);
+		}
 	}
 
 	// get file names matching glob pattern from path, ("/etc", "p*d") -> passwd
@@ -225,13 +236,13 @@ namespace utils {
 
 	// get first line of a multiline string
 	std::string getFirstLine(const std::string& multilineString) {
-		size_t pos = multilineString.find('\n'); 
-		if (pos == std::string::npos) { 
+		size_t pos = multilineString.find('\n');
+		if (pos == std::string::npos) {
 			// No newline found, return the entire string
 			return multilineString;
 		} else {
 			// Extract the first line
-			return multilineString.substr(0, pos); 
+			return multilineString.substr(0, pos);
 		}
 	}
 

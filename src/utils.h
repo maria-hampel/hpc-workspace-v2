@@ -7,12 +7,12 @@
  *  utils.h
  *
  *  - helper functions
- * 
+ *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024,2025
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -60,6 +60,9 @@ namespace utils {
     std::string getFileContents(const char *filename);
     inline std::string getFileContents(const std::string filename) { return getFileContents(filename.c_str()); }
 
+    // write a (small) string to a file
+	void writeFile(const std::string filename, const std::string content);
+
     // retrurn list of filesnames mit unix name globbing
     std::vector<std::string> dirEntries(const std::string path, const std::string pattern);
 
@@ -71,10 +74,10 @@ namespace utils {
 
     // get first line of a multiline string
     std::string getFirstLine(const std::string& multilineString);
-    
+
     // getID returns id part of workspace id <username-id>
     std::string getID(const std::string wsid);
-    
+
     // check if person behind tty is human
     // bool ruh();
 
