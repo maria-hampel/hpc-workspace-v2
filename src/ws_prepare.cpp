@@ -4,6 +4,8 @@
  *  ws_prepare
  *
  *  - tool to prepare workspaces according to a configuration
+ *    Does not fix bad permissions of structure exists!
+ *    only for initial creation, useful e.g. for testing
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
@@ -59,6 +61,11 @@ int main(int argc, char **argv) {
 
     // options and flags
     string configfile;
+
+    if (!user::isRoot()) {
+        fmt::println(stderr, "Error   : you are not root!");
+        exit(1);
+    }
 
     po::variables_map opts;
 
@@ -135,6 +142,7 @@ int main(int argc, char **argv) {
     for(auto const &fs: config.Filesystems()) {
         fmt::println("workspace: {}",fs);
 
+        // create DB directory
         auto DBdir = cppfs::path(config.getFsConfig(fs).database);
         fmt::println("  DB directory: {}",DBdir.string());
         if (!cppfs::exists(DBdir)) {
@@ -151,6 +159,7 @@ int main(int argc, char **argv) {
             fmt::println("    existed already, did not check/change permissions!");
         }
 
+        // create DB deleted
         auto DBdeleted = cppfs::path(config.getFsConfig(fs).database) / cppfs::path(config.getFsConfig(fs).deletedPath);
         fmt::println("  DB deleted directory: {}",DBdeleted.string());
         if (!cppfs::exists(DBdeleted)) {
@@ -167,7 +176,45 @@ int main(int argc, char **argv) {
             fmt::println("    existed already, did not check/change permissions!");
         }
 
-        // TODO: .ws_db_magic!
+        // make sure magic is written
+        if (!cppfs::exists(DBdir / ".ws_db_magic")) {
+            utils::writeFile(DBdir / ".ws_db_magic", fs+"\n");
+        }
+
+        // workspace directories
+        for(auto const &sp: config.getFsConfig(fs).spaces) {
+            // workspace itself
+            fmt::println("  workspace directory: {}", sp);
+            if (!cppfs::exists(sp)) {
+                try {
+                    cppfs::create_directories(sp);
+                } catch (cppfs::filesystem_error const &e) {
+                    fmt::println(stderr, e.what());
+                }
+                auto ret = chmod(sp.c_str(), 0755);
+                if (ret!=0) perror(NULL);
+                ret = chown(sp.c_str(), config.dbuid(), config.dbgid());
+                if (ret!=0) perror(NULL);
+            } else {
+                fmt::println("    existed already, did not check/change permissions!");
+            }
+            // deleted
+            auto WSdeleted = cppfs::path(sp) / cppfs::path(config.getFsConfig(fs).deletedPath);
+            fmt::println("  deleted workspace directory: {}", WSdeleted.string());
+            if (!cppfs::exists(WSdeleted)) {
+                try {
+                    cppfs::create_directories(WSdeleted);
+                } catch (cppfs::filesystem_error const &e) {
+                    fmt::println(stderr, e.what());
+                }
+                auto ret = chmod(WSdeleted.c_str(), 0755);
+                if (ret!=0) perror(NULL);
+                ret = chown(WSdeleted.c_str(), config.dbuid(), config.dbgid());
+                if (ret!=0) perror(NULL);
+            } else {
+                fmt::println("    existed already, did not check/change permissions!");
+            }
+        }
 
     }
  }
