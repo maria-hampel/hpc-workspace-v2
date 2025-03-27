@@ -87,7 +87,6 @@ Vagrant.configure("2") do |config|
     sudo systemctl start nfs-server
     sudo mkdir /tmp/ws
     sudo chown daemon:daemon /tmp/ws
-    sudo mount localhost:/mnt /tmp/ws
 
     sudo git clone https://github.com/bats-core/bats-core.git
     cd bats-core
@@ -112,21 +111,37 @@ Vagrant.configure("2") do |config|
     echo .......................................
     cd hpc-workspace-v2 
     ctest --preset debug .
+
     cd
     echo .......................................
     echo ...release build.......................
     echo .......................................
     scl enable gcc-toolset-14 "cd hpc-workspace-v2/external; ./get_externals.sh; cd ..;  cmake --preset release; cmake --build --preset release -j 8; cp build/release/bin/ws_restore build/release/bin/ws_restore_notest"
     echo .......................................
-    cd hpc-workspace-v2 
 
+    cd hpc-workspace-v2 
     sudo chown root build/release/bin/ws_restore build/release/bin/ws_allocate build/release/bin/ws_release build/release/bin/ws_restore_notest
-    sudo chmod +s build/release/bin/ws_restore build/release/bin/ws_allocate build/release/bin/ws_release build/release/bin/ws_restore_notest
+    sudo chmod u+s build/release/bin/ws_restore build/release/bin/ws_allocate build/release/bin/ws_release build/release/bin/ws_restore_notest
+
+    # bindmount to be able to work as root
+    sudo mount --bind /mnt /tmp/ws
+    sudo build/release/bin/ws_prepare --config bats/ws.config
+    sudo umount /tmp/ws
+    # now mount with rootsquash
+    sudo mount localhost:/mnt /tmp/ws
 
     echo .......................................
-    echo ...bats tests..........................
+    echo ...bats tests with rootsquash..........
     echo .......................................
     env PATH=/home/vagrant/hpc-workspace-v2/build/release/bin:$PATH /usr/local/bin/bats bats/test
+
+    sudo umount /ws/tmp
+    sudo mount --bind /mnt /tmp/ws
+    echo .......................................
+    echo ...bats tests without rootsquash..........
+    echo .......................................
+    env PATH=/home/vagrant/hpc-workspace-v2/build/release/bin:$PATH /usr/local/bin/bats bats/test
+   
 EOF
     true
   SHELL
