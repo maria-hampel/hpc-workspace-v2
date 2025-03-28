@@ -63,11 +63,11 @@ Vagrant.configure("2") do |config|
     vb.memory = "2048"
     #vb.memory = "1024"
 
-    unless File.exist?('./secondDisk.vdi')
-        vb.customize ['createhd', '--filename', './secondDisk.vdi', '--variant', 'Fixed', '--size', 1 * 1024]
-    end
-    vb.customize ['storagectl', :id, '--name', 'SATA', '--add', 'sata', '--controller', 'IntelAHCI', '--portcount', 1]
-    vb.customize ['storageattach', :id, '--storagectl', 'SATA', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './secondDisk.vdi']
+    #unless File.exist?('./secondDisk.vdi')
+    #    vb.customize ['createhd', '--filename', './secondDisk.vdi', '--variant', 'Fixed', '--size', 1 * 1024]
+    #end
+    #vb.customize ['storagectl', :id, '--name', 'SATA', '--add', 'sata', '--controller', 'IntelAHCI', '--portcount', 1]
+    #vb.customize ['storageattach', :id, '--storagectl', 'SATA', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './secondDisk.vdi']
 
   end
 
@@ -80,11 +80,11 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: <<-SHELL
     sudo dnf install -y git cmake libasan libubsan boost-devel ncurses-devel libcap-devel wget which gcc-toolset-14.x86_64 gcc-toolset-14-libasan-devel.x86_64 gcc-toolset-14-libubsan-devel
 
-    sudo mkfs.xfs /dev/sdb
-    sudo mount /dev/sdb /mnt
-    sudo chown daemon:daemon /mnt
-    echo "/mnt localhost(rw,sync,no_subtree_check,root_squash)" | sudo tee /etc/exports
-    sudo systemctl start nfs-server
+    #sudo mkfs.xfs /dev/sdb
+    #sudo mount /dev/sdb /mnt
+    #sudo chown daemon:daemon /mnt
+    #echo "/mnt localhost(rw,sync,no_subtree_check,root_squash)" | sudo tee /etc/exports
+    #sudo systemctl start nfs-server
     sudo mkdir /tmp/ws
     sudo chown daemon:daemon /tmp/ws
 
@@ -119,26 +119,27 @@ Vagrant.configure("2") do |config|
     scl enable gcc-toolset-14 "cd hpc-workspace-v2/external; ./get_externals.sh; cd ..;  cmake --preset release; cmake --build --preset release -j 8; cp build/release/bin/ws_restore build/release/bin/ws_restore_notest"
     echo .......................................
 
+ 
+
     cd hpc-workspace-v2 
     sudo chown root build/release/bin/ws_restore build/release/bin/ws_allocate build/release/bin/ws_release build/release/bin/ws_restore_notest
     sudo chmod u+s build/release/bin/ws_restore build/release/bin/ws_allocate build/release/bin/ws_release build/release/bin/ws_restore_notest
 
-    # bindmount to be able to work as root
-    sudo mount --bind /mnt /tmp/ws
-    sudo build/release/bin/ws_prepare --config bats/ws.config
-    sudo umount /tmp/ws
-    # now mount with rootsquash
-    sudo mount localhost:/mnt /tmp/ws
+    # get a valid config
+    sudo cp bats/ws.conf /etc
 
     echo .......................................
-    echo ...bats tests with rootsquash..........
+    echo ...bats tests with setuid..............
     echo .......................................
     env PATH=/home/vagrant/hpc-workspace-v2/build/release/bin:$PATH /usr/local/bin/bats bats/test
 
-    sudo umount /ws/tmp
-    sudo mount --bind /mnt /tmp/ws
+    sudo chmod u-s build/release/bin/ws_restore build/release/bin/ws_allocate build/release/bin/ws_release build/release/bin/ws_restore_notest
+    sudo setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" build/release/bin/ws_allocate
+    sudo setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" build/release/bin/ws_release
+    sudo setcap "CAP_DAC_OVERRIDE=p CAP_DAC_READ_SEARCH=p" build/release/bin/ws_restore build/release/bin/ws_restore_notest
+
     echo .......................................
-    echo ...bats tests without rootsquash..........
+    echo ...bats tests with setcap..............
     echo .......................................
     env PATH=/home/vagrant/hpc-workspace-v2/build/release/bin:$PATH /usr/local/bin/bats bats/test
    
