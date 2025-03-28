@@ -11,7 +11,7 @@ Please use the discussion tab if you would like to share input.
 
 ## Motivation/Goals
 
-The codebase got harder and scarier to maintain and needs a major cleanup and modernization.
+The codebase got harder and scarier to maintain and needed a major cleanup and modernization.
 
 - Separation of configuration and database implementation from the client tools
 is the first goal.
@@ -82,9 +82,10 @@ for testing:
 - working implementation of config and DB reading for old format
 - working implementation of ws_list in C++ (that was proof of concept for the separation of tool and config and DB implementation)
 - working implementation of ws_find in C++
-- working implementation of ws_allocate
-- working implementation of ws_release
-- working implementation of ws_restore
+- working implementation of ws_allocate in C++
+- working implementation of ws_release in C++
+- working implementation of ws_restore in C++
+- working implementation of ws_prepare in C++
  
 ## Todo
 
@@ -100,6 +101,7 @@ for testing:
 - [x] ws_release (testing ongoing)
 - [x] ws_restore (testing ongoing)
 - [x] ws_find
+- [x] ws_prepare
 - [ ] add tests for new tools
 - [ ] debug what is there
 - [x] get CMake setup in better shape
@@ -160,3 +162,11 @@ sudo docker run hpcwsv2 testall
 ```
 
 note: setcap tests will fail with ASAN error messages if sysctl `fs.suid_dumpable = 2`
+Update: turned out that capability version seems to have restrictions in docker
+
+### testing with VM
+
+A first Vagrant file is provided to allow testing with rocky linux 8,
+this should allow to test capability version as well as setup with root_squash
+filesystems.
+
