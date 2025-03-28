@@ -23,14 +23,14 @@ setup() {
     assert_success
     rm -f ~/.ws_user.conf
     [ -f ~/.ws_user.conf_testbackup ] && mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
-    rm -f /tmp/ws/ws2-db/${USER}-REMINDER
+    ws_release REMINDER
 }
 
 @test "ws_allocate with reminder, invalid email" {
     run ws_allocate -r 1 -m a@b REMINDER
     assert_output --partial "Invalid email address"
     assert_success
-    rm -f /tmp/ws/ws2-db/${USER}-REMINDER
+    ws_release REMINDER
 }
 
 @test "ws_allocate with reminder, valid email" {
@@ -39,7 +39,7 @@ setup() {
     assert_success
     run ws_list -v REMINDER
     assert_output --partial "a@b.c"
-    rm -f /tmp/ws/ws2-db/${USER}-REMINDER
+    ws_release REMINDER
 }
 
 @test "ws_allocate with user config for email and duration" {
@@ -52,7 +52,7 @@ setup() {
     assert_success
     rm -f ~/.ws_user.conf
     [ -f ~/.ws_user.conf_testbackup ] && mv -f ~/.ws_user.conf_testbackup ~/.ws_user.conf
-    rm -f /tmp/ws/ws2-db/${USER}-REMINDER
+    ws_release REMINDER
 }
 
 @test "ws_allocate with group" {
@@ -61,7 +61,7 @@ setup() {
     wsdir=$(ws_find WS2)
     run stat $wsdir
     assert_output --partial "drwxr-x---" 
-    rm -f /tmp/ws/ws2-db/${USER}-WS2
+    ws_release WS2
 }
 
 @test "ws_allocate with invalid group" {
@@ -127,7 +127,7 @@ setup() {
     assert_failure
     assert_output --partial "no more extensions!"
 
-    rm -f /tmp/ws/ws2-db/${USER}-extensiontest
+    ws_release extensiontest
 }
 
 cleanup() {
