@@ -79,13 +79,19 @@ for testing:
 
 ## Status
 
-- working implementation of config and DB reading for old format
-- working implementation of ws_list in C++ (that was proof of concept for the separation of tool and config and DB implementation)
-- working implementation of ws_find in C++
-- working implementation of ws_allocate in C++
-- working implementation of ws_release in C++
-- working implementation of ws_restore in C++
-- working implementation of ws_prepare in C++
+- [x] ws_allocate (C++)
+- [ ] ws_extend (will remain a shell wrapper)
+- [x] ws_find (new in C++)
+- [x] ws_list (new in C++)
+- [ ] ws_register (might get based on ws_list)
+- [x] ws_release (C++) 
+- [x] ws_restore (C++)
+- [ ] ws_send_ical (might get based on ws_list)
+- [ ] ws_share (will remain a shell script)
+- [ ] ws_expirer (will be migrated to C++) 
+- [ ] ws_validate_config (might be migrated to C++)
+- [x] ws_prepare (new in C++)
+
  
 ## Todo
 
@@ -95,13 +101,7 @@ for testing:
 - [x] add more unit tests to existing code
 - [x] build/select a better test framework for the tools
 - [x] debug what is there
-- [ ] migrate more tools: migrate ws_expirer, ws_validate
-- [x] ws_list 
-- [x] ws_allocate (testing ongoing)
-- [x] ws_release (testing ongoing)
-- [x] ws_restore (testing ongoing)
-- [x] ws_find
-- [x] ws_prepare
+- [ ] migrate more tools: migrate ws_expirer, ws_validate_config
 - [ ] add tests for new tools
 - [ ] debug what is there
 - [x] get CMake setup in better shape
@@ -170,3 +170,5 @@ A first Vagrant file is provided to allow testing with rocky linux 8,
 this should allow to test capability version as well as setup with root_squash
 filesystems.
 
+turns out that NFS root_squash and Lustre root_sqash do not behave the same way,
+what works on Lustre does not on NFS, so NFS is not suitable for testing.
