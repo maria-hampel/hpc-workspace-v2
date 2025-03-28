@@ -152,7 +152,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
         fmt::print(stderr, "Error  : could not create workspace directory <{}>!\n", wsdir);
         if (debugflag) {
             fmt::println(stderr, "Debug  : error = {}", e.what());
-            fmt::print(stderr, "Debug  : uid: {} euid: {}", uid, euid);
+            fmt::println(stderr, "Debug  : uid: {} euid: {}", uid, euid);
         }
         exit(-1); // FIXME: throw
     }
@@ -223,11 +223,11 @@ void FilesystemDBV1::createEntry(const WsID id, const string workspace, const lo
 vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string user, const vector<string> groups,
                                                 const bool deleted, const bool groupworkspaces)
 {
-    if(traceflag) fmt::print(stderr, "Trace  : matchPattern(pattern={},user={},groups={},deleted={},groupworkspace={})\n",pattern, user, groups, deleted,groupworkspaces);
+    if(traceflag) fmt::println(stderr, "Trace  : matchPattern(pattern={},user={},groups={},deleted={},groupworkspace={})",pattern, user, groups, deleted,groupworkspaces);
 
     // list directory, this also reads YAML file in case of groupworkspaces
     auto listdir = [&groupworkspaces, &groups] (const string pathname, const string filepattern) -> vector<string> {
-        if(debugflag) fmt::print("Debug  : listdir({},{})\n", pathname, filepattern);
+        if(debugflag) fmt::println("Debug  : listdir({},{})", pathname, filepattern);
         try {
             // in case of groupworkspace, read entry
             if (groupworkspaces) {
@@ -283,7 +283,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 // read entry
 //  unittest: yes
 std::unique_ptr<DBEntry> FilesystemDBV1::readEntry(const WsID id, const bool deleted) {
-    if(traceflag) fmt::print(stderr, "Trace  : readEntry({},{})\n", id, deleted);
+    if(traceflag) fmt::println(stderr, "Trace  : readEntry({},{})", id, deleted);
     std::unique_ptr<DBEntry> entry( new DBEntryV1(this) );
     string filename;
     if (deleted)
@@ -327,7 +327,7 @@ DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspac
 // read db entry from yaml file
 //  unittest: yes
 void DBEntryV1::readFromFile(const WsID id, const string filesystem, const string filename) {
-    if(traceflag) fmt::print(stderr, "Trace  : readFromFile({},{},{})\n", id, filesystem, filename);
+    if(traceflag) fmt::println(stderr, "Trace  : readFromFile({},{},{})", id, filesystem, filename);
 
     this->id = id;
     this->filesystem = filesystem;
@@ -347,7 +347,7 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
     }
 
     if(debugflag) {
-        fmt::print(stderr, "Debug  : creation={} released={} expiration={} reminder={} workspace={} extensions={} mailaddress={} comment={} group={}\n" ,
+        fmt::println(stderr, "Debug  : creation={} released={} expiration={} reminder={} workspace={} extensions={} mailaddress={} comment={} group={}" ,
                     creation, released, expiration, reminder, workspace, extensions, mailaddress, comment, group);
     }
 }
@@ -358,7 +358,7 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
 // read db entry from yaml file
 //  unittest: yes
 void DBEntryV1::readFromString(std::string str) {
-    if(traceflag) fmt::print(stderr, "Trace  : readFromString_YAMLCPP\n");
+    if(traceflag) fmt::println(stderr, "Trace  : readFromString_YAMLCPP");
 
     YAML::Node dbentry;
     try {
@@ -386,7 +386,7 @@ void DBEntryV1::readFromString(std::string str) {
 // read db entry from yaml string
 //  unittest: yes
 void DBEntryV1::readFromString(std::string str) {
-    if(traceflag) fmt::print(stderr, "Trace  : readFromString_RAPIDYAML\n");
+    if(traceflag) fmt::println(stderr, "Trace  : readFromString_RAPIDYAML");
 
     ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(str));  // FIXME: error check?
 
@@ -427,23 +427,23 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
 
     fmt::println("    workspace directory  : {}", workspace);
     if (remaining<0) {
-        fmt::print("    remaining time       : {}\n", "expired");
+        fmt::println("    remaining time       : {}", "expired");
     } else {
-        fmt::print("    remaining time       : {} days, {} hours\n", remaining/(24*3600), (remaining%(24*3600))/3600);
+        fmt::println("    remaining time       : {} days, {} hours", remaining/(24*3600), (remaining%(24*3600))/3600);
     }
     if(!terse) {
         if(comment!="")
-            fmt::print("    comment              : {}\n", comment);
+            fmt::println("    comment              : {}", comment);
         if (creation>0)
             fmt::print("    creation time        : {}", ctime(&creation));
         fmt::print("    expiration time      : {}", ctime(&expiration));
-        fmt::print("    filesystem name      : {}\n", filesystem);
+        fmt::println("    filesystem name      : {}", filesystem);
     }
-    fmt::print("    available extensions : {}\n", extensions);
+    fmt::println("    available extensions : {}", extensions);
     if (verbose) {
         long rd = expiration - reminder/(24*3600);
         fmt::print("    reminder             : {}", ctime(&rd));
-        fmt::print("    mailaddress          : {}\n", mailaddress);
+        fmt::println("    mailaddress          : {}", mailaddress);
     }
 };
 
