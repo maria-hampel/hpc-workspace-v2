@@ -16,3 +16,6 @@ build-release
 .exrc
 .cache
 build
+docker/coverage
+external
+.vagrant
