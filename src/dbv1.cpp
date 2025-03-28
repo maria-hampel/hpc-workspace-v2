@@ -2,15 +2,15 @@
  *  hpc-workspace-v2
  *
  *  dbv1.cpp
- * 
- *  - interface to v1 format database 
+ *
+ *  - interface to v1 format database
  *    this is the DB format as written from legacy workspace++
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -37,10 +37,10 @@
 #define WS_RAPIDYAML_DB
 
 #ifdef WS_RAPIDYAML_DB
-    #define RYML_USE_ASSERT 0 
+    #define RYML_USE_ASSERT 0
     #include "ryml.hpp"
-    #include "ryml_std.hpp" 
-    #include "c4/format.hpp" 
+    #include "ryml_std.hpp"
+    #include "c4/format.hpp"
 #else
     #include <yaml-cpp/yaml.h>
 #endif
@@ -56,7 +56,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 // for statfs
-#include <sys/vfs.h> 
+#include <sys/vfs.h>
 // for getgrpnam
 #include <sys/types.h>
 #include <grp.h>
@@ -95,16 +95,16 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
         auto spaceselection = config->getFsConfig(fs).spaceselection;
         if (debugflag) {
             fmt::println(stderr, "Debug  : spaceseletion for {} = {}", fs, spaceselection);
-        }       
+        }
         // select space according to spaceselection in config
         if (spaceselection == "random") {
             srand(time(NULL));
-            spaceid=rand()%spaces.size(); 
+            spaceid=rand()%spaces.size();
         } else if (spaceselection == "uid") {
             spaceid = getuid() % spaces.size();
-        } else if (spaceselection == "gid") {              
+        } else if (spaceselection == "gid") {
             spaceid = getgid() % spaces.size();
-        } else if (spaceselection == "mostspace") {           
+        } else if (spaceselection == "mostspace") {
             spaceid = 0;
             fsblkcnt_t max_free_bytes = 0;
             for (size_t i = 0; i < spaces.size(); ++i) {
@@ -120,7 +120,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
         if (debugflag) {
             fmt::println(stderr, "Debug  : spaceid={}", spaceid);
         }
-    } 
+    }
 
     // determine name of workspace directory
 
@@ -133,7 +133,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
         } else {
             wsdir = randspace+"/"+username+"-"+name;
         }
-    }       
+    }
 
     auto db_uid = config->dbuid();
     //auto db_gid = config->dbgid();
@@ -145,12 +145,13 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
         cppfs::create_directories(wsdir);
         umask(oldmask);
         caps.lower_cap(CAP_DAC_OVERRIDE, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
-    } catch (...) {
+    } catch (cppfs::filesystem_error const &e) {
         auto uid=getuid();
         auto euid=geteuid();
         caps.lower_cap(CAP_DAC_OVERRIDE, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
         fmt::print(stderr, "Error  : could not create workspace directory <{}>!\n", wsdir);
         if (debugflag) {
+            fmt::println(stderr, "Debug  : error = {}", e.what());
             fmt::print(stderr, "Debug  : uid: {} euid: {}", uid, euid);
         }
         exit(-1); // FIXME: throw
@@ -185,7 +186,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
     caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__));
     mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
 
-    // group workspaces can be read and listed by group  
+    // group workspaces can be read and listed by group
     if (groupflag || groupname!="") {
         mode |= S_IRGRP | S_IXGRP;
     }
@@ -207,11 +208,11 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
 
 
 // create new DB entry
-void FilesystemDBV1::createEntry(const WsID id, const string workspace, const long creation, 
-                                const long expiration, const long reminder, const int extensions, 
+void FilesystemDBV1::createEntry(const WsID id, const string workspace, const long creation,
+                                const long expiration, const long reminder, const int extensions,
                                 const string group, const string mailaddress, const string comment) {
 
-    DBEntryV1 entry(this, id, workspace, creation, expiration, reminder, extensions, 
+    DBEntryV1 entry(this, id, workspace, creation, expiration, reminder, extensions,
                     group, mailaddress, comment);
     entry.writeEntry();
 }
@@ -232,7 +233,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
             if (groupworkspaces) {
                 auto filelist = utils::dirEntries(pathname, filepattern);
                 vector<string> list;
-                for(auto const &f: filelist) {  
+                for(auto const &f: filelist) {
     #ifndef WS_RAPIDYAML_DB
                     YAML::Node dbentry;
                     try {
@@ -254,8 +255,8 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
                     if (canFind(groups, group)) {
                             list.push_back(f);
                     }
-                }         
-                return list;   
+                }
+                return list;
             } else {
                 return utils::dirEntries(pathname, filepattern);
             }
@@ -285,7 +286,7 @@ std::unique_ptr<DBEntry> FilesystemDBV1::readEntry(const WsID id, const bool del
     if(traceflag) fmt::print(stderr, "Trace  : readEntry({},{})\n", id, deleted);
     std::unique_ptr<DBEntry> entry( new DBEntryV1(this) );
     string filename;
-    if (deleted) 
+    if (deleted)
         filename = cppfs::path(config->database(fs)) / config->deletedPath(fs) / id;
     else
         filename = cppfs::path(config->database(fs)) / id;
@@ -314,12 +315,12 @@ void FilesystemDBV1::deleteEntry(const string wsid, const bool deleted) {
 
 
 // constructor to make new entry to write out
-DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation, 
-                        const long _expiration, const long _reminder, const int _extensions, 
+DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation,
+                        const long _expiration, const long _reminder, const int _extensions,
 			const string _group, const string _mailaddress, const string _comment)
                 : parent_db(pdb), id(_id), workspace(_workspace), creation(_creation), expiration(_expiration), reminder(_reminder),
                 extensions(_extensions), group(_group), mailaddress(_mailaddress), comment(_comment)
-        {           
+        {
                 dbfilepath = pdb->getconfig()->getFsConfig(pdb->getfs()).database + "/" + id;
         }
 
@@ -343,10 +344,10 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
         readFromString(filecontent);
     } catch (const std::exception &e) {
         throw DatabaseException(fmt::format("Error  : while reading file <{}>\n{}", filename, e.what()));
-    } 
+    }
 
     if(debugflag) {
-        fmt::print(stderr, "Debug  : creation={} released={} expiration={} reminder={} workspace={} extensions={} mailaddress={} comment={} group={}\n" , 
+        fmt::print(stderr, "Debug  : creation={} released={} expiration={} reminder={} workspace={} extensions={} mailaddress={} comment={} group={}\n" ,
                     creation, released, expiration, reminder, workspace, extensions, mailaddress, comment, group);
     }
 }
@@ -376,7 +377,7 @@ void DBEntryV1::readFromString(std::string str) {
     extensions = dbentry["extensions"] ? dbentry["extensions"].as<int>() : 0;
     mailaddress = dbentry["mailaddress"] ? dbentry["mailaddress"].as<string>() : "";
     comment = dbentry["comment"] ? dbentry["comment"].as<string>() : "";
-    group = dbentry["group"] ? dbentry["group"].as<string>() : ""; 
+    group = dbentry["group"] ? dbentry["group"].as<string>() : "";
 }
 
 #else
@@ -490,7 +491,7 @@ long DBEntryV1::getCreation() const {
 string DBEntryV1::getWSPath() const {
     return workspace;
 };
-		
+
 string DBEntryV1::getMailaddress() const {
     return mailaddress;
 }
@@ -513,7 +514,7 @@ void DBEntryV1::setExpiration(const time_t timestamp) {
 }
 
 // change release date (mark as released and not expired)
-// write DB entry 
+// write DB entry
 // move DB entry to releases entries
 void DBEntryV1::release(const std::string timestamp) {
 
@@ -529,8 +530,8 @@ void DBEntryV1::release(const std::string timestamp) {
     if (debugflag) fmt::println(stderr, "Debug  : dbtarget={}", dbtarget.string());
 
     // FIXME: implement list for caps?
-    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__)); 
-    caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__));
 
     if (caps.isSetuid()) {
         // for filesystem with root_squash, we need to be DB user here
@@ -559,7 +560,7 @@ void DBEntryV1::release(const std::string timestamp) {
 
 // remove DB entry
 void DBEntryV1::remove() {
-    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));
 
     if (caps.isSetuid()) {
         // for filesystem with root_squash, we need to be DB user here
@@ -571,7 +572,7 @@ void DBEntryV1::remove() {
     if (debugflag) fmt::println(stderr, "Debug  : deleting db entry file {}", dbfilepath);
 
     cppfs::remove(dbfilepath);
-    
+
     caps.lower_cap(CAP_DAC_OVERRIDE, getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     syslog(LOG_INFO, "removed db entry <%s> for user <%s>.", id.c_str(), user::getUsername().c_str());
@@ -627,15 +628,15 @@ void DBEntryV1::writeEntry()
 
     caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));   // === Section with raised capabuility START ====
 
-    long dbgid=0, dbuid=0;    
+    long dbgid=0, dbuid=0;
 
     if (user::isSetuid()) {
         // for filesystem with root_squash, we need to be DB user here
         dbuid = parent_db->getconfig()->dbuid();
         dbgid = parent_db->getconfig()->dbgid();
-        
+
         if (debugflag) fmt::println("Debug  : isSetuid -> dbuid={}, dbgid={}", dbuid, dbgid);
-        
+
         if (setegid(dbgid) || seteuid(dbuid)) {
                 fmt::print(stderr, "Error  : can not seteuid or setgid. Bad installation?\n");
                 exit(-1);
