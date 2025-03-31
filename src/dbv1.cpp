@@ -591,7 +591,7 @@ void DBEntryV1::writeEntry()
     entry["creation"] = creation;
     entry["expiration"] = expiration;
     entry["extensions"] = extensions;
-    // entry["acctcode"] = acctcode;  // FIXME: ???
+    entry["acctcode"] = "";
     entry["reminder"] = reminder;
     entry["mailaddress"] = mailaddress;
     if (group.length()>0) {
@@ -609,7 +609,7 @@ void DBEntryV1::writeEntry()
     root["creation"] << creation;
     root["expiration"] << expiration;
     root["extensions"] << extensions;
-    // root["acctcode"] << acctcode;  FIXME: ???
+    root["acctcode"] << "";  
     root["reminder"] << reminder;
     root["mailaddress"] << mailaddress;
     if (group.length()>0) {
