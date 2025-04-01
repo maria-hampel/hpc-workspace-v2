@@ -78,6 +78,15 @@ Vagrant.configure("2") do |config|
   # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
+
+    export DOCKER_USER=vagrant
+    OTHER_USER=userb
+    sudo groupadd  $DOCKER_USER 
+    sudo adduser --home-dir /home/$DOCKER_USER -m -G sudo,$DOCKER_USER --system $DOCKER_USER  
+    sudo groupadd  $OTHER_USER 
+    sudo adduser --home-dir /home/$OTHER_USER -m -g userb -G $DOCKER_USER --system $OTHER_USER   
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' | sudo tee -a /etc/sudoers
+
     sudo dnf install -y git cmake libasan libubsan boost-devel ncurses-devel libcap-devel wget which gcc-toolset-14.x86_64 gcc-toolset-14-libasan-devel.x86_64 gcc-toolset-14-libubsan-devel
 
     #sudo mkfs.xfs /dev/sdb
@@ -93,6 +102,8 @@ Vagrant.configure("2") do |config|
     sudo ./docker/install_libs.sh support 0.3.0
     sudo ./docker/install_libs.sh assert 2.1.0
     sudo ./docker/install_libs.sh file 0.4.0
+
+    sudo chmod a+x /home/vagrant
 
     sudo -i -u vagrant bash <<EOF
 
