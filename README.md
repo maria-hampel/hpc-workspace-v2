@@ -2,7 +2,7 @@
 
 This is the construction site of next major version of hpc-workspace++ tool.
 
-**DO NOT USE - it does not work - it is incomplete - it might even not compile - it might eat your dog**
+**DO NOT USE - it is incomplete**
 
 This is very rough and not ment for usage, and I will for the time being also
 not expect or accept contributions, until some things are settled.
@@ -20,7 +20,8 @@ is the first goal.
 
 - It is likely that all python tools will be replaced with C++ tools on the long run.
 
-- backwards compatibility will be maintained, might have some restrictions.
+- backwards compatibility will be maintained, might have some restrictions (e.g. old config files will need some
+  flags to be added)
 
 Functional extension is possible after this is achieved.
 
@@ -46,11 +47,11 @@ future test platforms:
 
 - Rocky Linux 8.10
   - CMake 3.26.5
-  - gcc 8.5.0
+  - gcc 14
 
-- Rocky Linux 9.4
+- Rocky Linux 9.5
   - Cmake 3.26.5
-  - gcc 11.4.1
+  - gcc 11.5
 
 this list can be extended.
 
@@ -109,7 +110,7 @@ for testing:
 - [ ] migrate and check/correct/add documentation, guides and man pages
 - [ ] test with more compilers and distributions
 - [ ] do real live tests
-- [ ] define and implement new DB formart
+- [ ] define and implement new DB format
 
 ## Input and ideas and contributions needed
 
@@ -173,7 +174,7 @@ Update: turned out that capability version seems to have restrictions in docker,
 
 ### testing with VM
 
-A first Vagrant file is provided to allow testing with rocky linux 8,
+Vagrant files are provided to allow testing with rocky linux 8 and rocky linux 9.
 this should allow to test capability version as well as setup with root_squash
 filesystems.
 
@@ -184,3 +185,9 @@ vagrant up
 
 turns out that NFS root_squash and Lustre root_sqash do not behave the same way,
 what works on Lustre does not on NFS, so NFS is not suitable for testing.
+
+latest lustre versions also drop capabilites, unless 
+```
+lctl set_param -P mdt.<fsname>-*.enable_cap_mask=+cap_dac_read_search,cap_chown,cap_dac_override,cap_fowner
+```
+is used.
