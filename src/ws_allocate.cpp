@@ -541,9 +541,6 @@ int main(int argc, char **argv) {
     po::variables_map opt;
     std::string user_conf;
 
-    debugflag=true;
-    traceflag=true;
-
     // lower capabilities to user, before interpreting any data from user
     caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
