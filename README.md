@@ -127,7 +127,14 @@ cmake --build --preset debug  -j 12
 
 for mold users:
 ```
-cmake --build --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" -j 12
+cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
+cmake --build --preset debug -j 12
+```
+
+for lld users:
+```
+cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
+cmake --build --preset debug -j 12
 ```
 
 for production
@@ -162,13 +169,18 @@ sudo docker run hpcwsv2 testall
 ```
 
 note: setcap tests will fail with ASAN error messages if sysctl `fs.suid_dumpable = 2`
-Update: turned out that capability version seems to have restrictions in docker
+Update: turned out that capability version seems to have restrictions in docker, can only be tested fully in VM
 
 ### testing with VM
 
 A first Vagrant file is provided to allow testing with rocky linux 8,
 this should allow to test capability version as well as setup with root_squash
 filesystems.
+
+```
+cd vm/rocky-8
+vagrant up
+```
 
 turns out that NFS root_squash and Lustre root_sqash do not behave the same way,
 what works on Lustre does not on NFS, so NFS is not suitable for testing.
