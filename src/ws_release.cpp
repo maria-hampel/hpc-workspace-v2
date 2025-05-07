@@ -4,12 +4,12 @@
  *  ws_release
  *
  *  - tool to release workspaces
- * 
+ *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024,2025
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -62,8 +62,8 @@ Cap caps{};
 
 
 
-/* 
- *  parse the commandline and see if all required arguments are passed, and check the workspace name for 
+/*
+ *  parse the commandline and see if all required arguments are passed, and check the workspace name for
  *  bad characters
  */
 void commandline(po::variables_map &opt, string &name, string &filesystem,
@@ -145,7 +145,7 @@ void commandline(po::variables_map &opt, string &name, string &filesystem,
     debugflag = opt.count("debug");
     traceflag = opt.count("trace");
 
-    // validate workspace name against nasty characters    
+    // validate workspace name against nasty characters
     //  static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$");  // #77
     // TODO: remove regexp dependency
     static const regex e("^[[:alnum:]][[:alnum:]_.-]*$");
@@ -160,7 +160,7 @@ void commandline(po::variables_map &opt, string &name, string &filesystem,
  *  validate parameters vs config file
  *
  *  return true if ok and false if not
- * 
+ *
  *  changes duration and maxextensions, does return true if they are out of bounds
  */
 bool validateFsAndGroup(const Config &config, const po::variables_map &opt, const std::string username)
@@ -185,7 +185,7 @@ bool validateFsAndGroup(const Config &config, const po::variables_map &opt, cons
             fmt::print(stderr, "Error  : You are not allowed to use the specified filesystem!\n");
             return false;
         }
-    } 
+    }
 
     return true;
 }
@@ -198,11 +198,11 @@ bool validateFsAndGroup(const Config &config, const po::variables_map &opt, cons
  *  file accesses and config access are hidden in DB and config handling
  *  FIXME: make it -> int and return errors for tesing
  */
-void release(  
+void release(
             const Config &config,
             const po::variables_map &opt, string filesystem, const string name,
             string user_option, const string groupname, const bool deletedata
-            ) 
+            )
 {
     if (traceflag) fmt::print(stderr, "Trace  : releae({}, {}, {}, {}, {})\n", filesystem, name,
                                 user_option, groupname, deletedata);
@@ -218,11 +218,11 @@ void release(
         exit(-1); // FIXME: bad for testing
     }
 
-    // validate filesystem and group given on command line 
+    // validate filesystem and group given on command line
     if (!validateFsAndGroup(config, opt, user_option )) {
         fmt::print(stderr, "Error: aborting!\n");
     }
-  
+
 
     // if no filesystem provided, get valid filesystems from config, ordered: userdefault, groupdefault, globaldefault, others
     vector<string> searchlist;
@@ -238,7 +238,7 @@ void release(
 
     bool ws_exists = false;
     std::string foundfs;
-    
+
     std::unique_ptr<DBEntry> dbentry;
     std::string dbid;
 
@@ -255,9 +255,9 @@ void release(
 
         // check if entry exists
         try {
-            if(user_option.length()>0 && (getuid()==0)) 
+            if(user_option.length()>0 && (getuid()==0))
                 dbid = user_option+"-"+name;
-            else 
+            else
                 dbid = username+"-"+name;
 
             dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
@@ -268,13 +268,13 @@ void release(
         } catch (DatabaseException &e) {
             // silently ignore non existiong entries
             if (debugflag) fmt::print(stderr, "Debug  :  existence check failed for {}/{}\n", cfilesystem, dbid);
-        }   
+        }
     } // searchloop
 
     // workspace exists, release it
 
     if(ws_exists) {
-        
+
         // timestamp for versioning, has to be identical for DB and workspace DIR
         string timestamp = fmt::format("{}", time(NULL));
 
@@ -303,20 +303,20 @@ void release(
         auto wsconfig = dbentry->getConfig()->getFsConfig(dbentry->getFilesystem());
         cppfs::path target = cppfs::path(dbentry->getWSPath()).parent_path() / cppfs::path(wsconfig.deletedPath) / cppfs::path(fmt::format("{}-{}", dbentry->getId(), timestamp));
 
-        caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+        caps.raise_cap({CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));
 
         try {
             if (debugflag) fmt::println("Debug  : rename({}, {})", dbentry->getWSPath() , target.string());
             cppfs::rename(dbentry->getWSPath() , target);
         } catch (const std::filesystem::filesystem_error &e) {
-            caps.lower_cap(CAP_DAC_OVERRIDE, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+            caps.lower_cap({CAP_DAC_OVERRIDE}, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
             if (debugflag) fmt::println(stderr, "Error  : {}", e.what());
             fmt::println(stderr, "Error  : database entry could not be deleted!");
             exit(-1);
         }
 
-        caps.lower_cap(CAP_DAC_OVERRIDE, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-         
+        caps.lower_cap({CAP_DAC_OVERRIDE}, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+
         syslog(LOG_INFO, "release for user <%s> from <%s> to <%s> done.", user::getUsername().c_str(), dbentry->getWSPath().c_str(), target.c_str());
 
         //
@@ -328,7 +328,7 @@ void release(
             fmt::println(stderr, "Info   : you have 5 seconds to interrupt with CTRL-C to prevent deletion");
             sleep(5);
 
-            caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+            caps.raise_cap({CAP_FOWNER}, utils::SrcPos(__FILE__, __LINE__, __func__));
             if (caps.isSetuid()) {
                 // get process owner to be allowed to delete files
                 if(seteuid(getuid())) {
@@ -354,7 +354,7 @@ void release(
                     fmt::println(stderr, "Error  : can not setuid, bad installation?");
                 }
             }
-            caps.lower_cap(CAP_FOWNER, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+            caps.lower_cap({CAP_FOWNER}, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
             // remove what is left as DB user (could be done by ws_expirer)
             if (debugflag) {
@@ -401,7 +401,7 @@ int main(int argc, char **argv) {
 
     // find which config files to read
     //   user can change this if no setuid installation OR if root
-    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"}; 
+    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"};
     if (configfile != "") {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
@@ -417,7 +417,7 @@ int main(int argc, char **argv) {
         exit(-2);
     }
 
-    // read user config 
+    // read user config
     string user_conf_filename = user::getUserhome()+"/.ws_user.conf";
     if (!cppfs::is_symlink(user_conf_filename)) {
         if (cppfs::is_regular_file(user_conf_filename)) {
@@ -435,6 +435,3 @@ int main(int argc, char **argv) {
     release(config, opt, filesystem, name, user_option, groupname, deletedata);
 
 }
-
-
-

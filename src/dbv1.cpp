@@ -9,7 +9,7 @@
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024
+ *  (c) Holger Berger 2021,2023,2024,2025
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -140,15 +140,15 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
 
      // make directory and change owner + permissions
     try {
-        caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.raise_cap({CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));
         mode_t oldmask = umask( 077 );    // as we create intermediate directories, we better take care of umask!!
         cppfs::create_directories(wsdir);
         umask(oldmask);
-        caps.lower_cap(CAP_DAC_OVERRIDE, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap({CAP_DAC_OVERRIDE}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
     } catch (cppfs::filesystem_error const &e) {
         auto uid=getuid();
         auto euid=geteuid();
-        caps.lower_cap(CAP_DAC_OVERRIDE, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap({CAP_DAC_OVERRIDE}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
         fmt::print(stderr, "Error  : could not create workspace directory <{}>!\n", wsdir);
         if (debugflag) {
             fmt::println(stderr, "Debug  : error = {}", e.what());
@@ -173,17 +173,17 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
         }
     }
 
-    caps.raise_cap(CAP_CHOWN, utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.raise_cap({CAP_CHOWN}, utils::SrcPos(__FILE__, __LINE__, __func__));
 
     if(chown(wsdir.c_str(), tuid, tgid)) {
-        caps.lower_cap(CAP_CHOWN, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap({CAP_CHOWN}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
         fmt::println(stderr, "Error  : could not change owner of workspace!");
         unlink(wsdir.c_str());
         exit(-1); // FIXME: throw
     }
-    caps.lower_cap(CAP_CHOWN, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.lower_cap({CAP_CHOWN}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
 
-    caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.raise_cap({CAP_FOWNER}, utils::SrcPos(__FILE__, __LINE__, __func__));
     mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
 
     // group workspaces can be read and listed by group
@@ -195,12 +195,12 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
         mode |= S_IWGRP | S_ISGID;
     }
     if(chmod(wsdir.c_str(), mode)) {
-        caps.lower_cap(CAP_FOWNER, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap({CAP_FOWNER}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
         fmt::println(stderr, "Error: could not change permissions of workspace!");
         unlink(wsdir.c_str());
         exit(-1);  // FIXME: throw
     }
-    caps.lower_cap(CAP_FOWNER, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.lower_cap({CAP_FOWNER}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
 
 
     return wsdir;
@@ -529,15 +529,12 @@ void DBEntryV1::release(const std::string timestamp) {
 
     if (debugflag) fmt::println(stderr, "Debug  : dbtarget={}", dbtarget.string());
 
-    // FIXME: implement list for caps?
-    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));
-    caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.raise_cap({CAP_FOWNER,CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));
 
     if (caps.isSetuid()) {
         // for filesystem with root_squash, we need to be DB user here
         if(setegid(parent_db->getconfig()->dbgid()) || seteuid(parent_db->getconfig()->dbuid())) {
-            caps.lower_cap(CAP_DAC_OVERRIDE, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-            caps.lower_cap(CAP_FOWNER, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+            caps.lower_cap({CAP_DAC_OVERRIDE,CAP_FOWNER}, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
             throw DatabaseException("Error  : can not seteuid or setgid. Bad installation?");
         }
     }
@@ -547,20 +544,18 @@ void DBEntryV1::release(const std::string timestamp) {
         cppfs::rename(dbfilepath, dbtarget);
         dbfilepath = dbtarget.string(); // entry knows now the new name, for remove, but is not persistent
     } catch (const std::filesystem::filesystem_error &e) {
-        caps.lower_cap(CAP_DAC_OVERRIDE, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-        caps.lower_cap(CAP_FOWNER, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap({CAP_DAC_OVERRIDE,CAP_FOWNER}, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
         if (debugflag) fmt::println(stderr, "Error  : {}", e.what());
         throw DatabaseException("Error  : database entry could not be deleted!");
     }
 
-    caps.lower_cap(CAP_DAC_OVERRIDE, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-    caps.lower_cap(CAP_FOWNER, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.lower_cap({CAP_DAC_OVERRIDE,CAP_FOWNER}, parent_db->getconfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 }
 
 
 // remove DB entry
 void DBEntryV1::remove() {
-    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.raise_cap({CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));
 
     if (caps.isSetuid()) {
         // for filesystem with root_squash, we need to be DB user here
@@ -573,7 +568,7 @@ void DBEntryV1::remove() {
 
     cppfs::remove(dbfilepath);
 
-    caps.lower_cap(CAP_DAC_OVERRIDE, getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.lower_cap({CAP_DAC_OVERRIDE}, getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     syslog(LOG_INFO, "removed db entry <%s> for user <%s>.", id.c_str(), user::getUsername().c_str());
 }
@@ -609,7 +604,7 @@ void DBEntryV1::writeEntry()
     root["creation"] << creation;
     root["expiration"] << expiration;
     root["extensions"] << extensions;
-    root["acctcode"] << "";  
+    root["acctcode"] << "";
     root["reminder"] << reminder;
     root["mailaddress"] << mailaddress;
     if (group.length()>0) {
@@ -626,7 +621,7 @@ void DBEntryV1::writeEntry()
     // suppress ctrl-c to prevent broken DB entries when FS is hanging and user gets nervous
     signal(SIGINT,SIG_IGN);
 
-    caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));   // === Section with raised capabuility START ====
+    caps.raise_cap({CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));   // === Section with raised capabuility START ====
 
     long dbgid=0, dbuid=0;
 
@@ -660,23 +655,21 @@ void DBEntryV1::writeEntry()
         perm = 0644;
     }
 
-    caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.raise_cap({CAP_FOWNER}, utils::SrcPos(__FILE__, __LINE__, __func__));
     if (chmod(dbfilepath.c_str(), perm) != 0) {
         fmt::print(stderr, "Error  : could not change permissions of database entry\n");
         if (debugflag) fmt::println("Error  : {}", std::strerror(errno));
     }
 
-    caps.lower_cap(CAP_FOWNER, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
-    caps.lower_cap(CAP_DAC_OVERRIDE, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__)); // === Section with raised capabuility END ===
-
+    caps.lower_cap({CAP_FOWNER,CAP_DAC_OVERRIDE}, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
 
     if (caps.isSetuid()) {
-        caps.raise_cap(CAP_CHOWN, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.raise_cap({CAP_CHOWN}, utils::SrcPos(__FILE__, __LINE__, __func__));
         if (chown(dbfilepath.c_str(), dbuid, dbgid)) {
-            caps.lower_cap(CAP_CHOWN, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
+            caps.lower_cap({CAP_CHOWN}, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
             fmt::print(stderr, "Error  : could not change owner of database entry.\n");
         }
-        caps.lower_cap(CAP_CHOWN, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap({CAP_CHOWN}, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
     }
 
     // normal signal handling

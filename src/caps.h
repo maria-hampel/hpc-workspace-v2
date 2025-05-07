@@ -5,14 +5,14 @@
  *  hpc-workspace-v2
  *
  *  caps.h
- * 
+ *
  *  - privilege elevation with capabilites or setuid implementation
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024
- * 
+ *  (c) Holger Berger 2021,2023,2024,2025
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -56,8 +56,8 @@ public:
 
     // functions that can be called to raise and lower caps
     void drop_caps(std::vector<cap_value_t>cap_arg, int uid, utils::SrcPos srcpos);
-    void lower_cap(int cap, int dbuid, utils::SrcPos);
-    void raise_cap(int cap, utils::SrcPos);
+    void lower_cap(std::vector<cap_value_t>cap_arg, int dbuid, utils::SrcPos);
+    void raise_cap(std::vector<cap_value_t>cap_arg, utils::SrcPos);
 
     bool isSetuid() {return issetuid;};
     bool hasCaps() {return hascaps;};

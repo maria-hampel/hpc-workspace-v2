@@ -4,12 +4,12 @@
  *  ws_allocate
  *
  *  - tool to create workspaces
- * 
+ *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -60,13 +60,13 @@ Cap caps{};
 
 
 
-/* 
- *  parse the commandline and see if all required arguments are passed, and check the workspace name for 
+/*
+ *  parse the commandline and see if all required arguments are passed, and check the workspace name for
  *  bad characters
  */
-void commandline(po::variables_map &opt, string &name, int &duration, string &filesystem, bool &extension, 
+void commandline(po::variables_map &opt, string &name, int &duration, string &filesystem, bool &extension,
                     int &reminder, string &mailaddress, string &user, string &groupname, string &comment,
-                    int argc, char**argv, std::string &userconf, std::string &configfile) 
+                    int argc, char**argv, std::string &userconf, std::string &configfile)
 {
     // define all options
 
@@ -152,7 +152,7 @@ void commandline(po::variables_map &opt, string &name, int &duration, string &fi
     // globalflags
     debugflag = opt.count("debug");
     traceflag = opt.count("trace");
-    
+
     // parse user config
     UserConfig userconfig(userconf);
 
@@ -191,13 +191,13 @@ void commandline(po::variables_map &opt, string &name, int &duration, string &fi
         duration=userconfig.getDuration();
     }
 
-    // validate email 
+    // validate email
     if (mailaddress!="" && !utils::isValidEmail(mailaddress)) {
             fmt::println(stderr,"Error  : Invalid email address, ignoring and using local user account");
-            mailaddress = user::getUsername();      
+            mailaddress = user::getUsername();
     }
 
-    // validate workspace name against nasty characters    
+    // validate workspace name against nasty characters
     //  static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$");  // #77
     // TODO: remove regexp dependency
     static const regex e("^[[:alnum:]][[:alnum:]_.-]*$");
@@ -235,7 +235,7 @@ bool validateFsAndGroup(const Config &config, const po::variables_map &opt, cons
             fmt::print(stderr, "Error  : You are not allowed to use the specified filesystem!\n");
             return false;
         }
-    } 
+    }
 
     return true;
 }
@@ -275,14 +275,14 @@ bool validateDuration(const Config &config, const std::string filesystem, int &d
  *  FIXME: make it -> int and return errors for tesing
  *  FIXME: unit test this? make smaller functions to be able to test?
  */
-void allocate(  
+void allocate(
             const Config &config,
             const po::variables_map &opt,  int duration, string filesystem,
-            const string name, const bool extensionflag, const int reminder, 
+            const string name, const bool extensionflag, const int reminder,
             const string mailaddress, string user_option, const string groupname, const string comment
-            ) 
+            )
 {
-    if (traceflag) fmt::print(stderr, "Trace  : allocate({}, {}, {}, {}, {}, {}, {}, {}, {})\n", duration, filesystem, name, extensionflag, 
+    if (traceflag) fmt::print(stderr, "Trace  : allocate({}, {}, {}, {}, {}, {}, {}, {}, {})\n", duration, filesystem, name, extensionflag,
                                 reminder, mailaddress, user_option, groupname, comment);
 
     long exp;
@@ -297,12 +297,12 @@ void allocate(
         exit(-1); // FIXME: bad for testing
     }
 
-    // validate filesystem and group given on command line 
+    // validate filesystem and group given on command line
     if (!validateFsAndGroup(config, opt, user_option )) {
         //fmt::print(stderr, "Error  : aborting!\n");
         exit(-2);
     }
-  
+
 
     // if no filesystem provided, get valid filesystems from config, ordered: userdefault, groupdefault, globaldefault, others
     vector<string> searchlist;
@@ -318,7 +318,7 @@ void allocate(
 
     bool ws_exists = false;
     std::string foundfs;
-    
+
     std::unique_ptr<DBEntry> dbentry;
     std::string dbid;
 
@@ -348,11 +348,11 @@ void allocate(
                 exit(-1); // FIXME: is exit good here?
             }
         } else {
-            // check if entry exists 
+            // check if entry exists
             try {
-                if(user_option.length()>0 && (getuid()==0)) 
+                if(user_option.length()>0 && (getuid()==0))
                     dbid = user_option+"-"+name;
-                else 
+                else
                     dbid = username+"-"+name;
 
                 dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
@@ -363,7 +363,7 @@ void allocate(
             } catch (DatabaseException &e) {
                 // silently ignore non existiong entries
                 if (debugflag) fmt::print(stderr, "Debug  : existence check failed for {}/{}\n", cfilesystem, dbid);
-            }   
+            }
         }
     } // searchloop
 
@@ -444,9 +444,9 @@ void allocate(
             //extension = dbentry->getExtension(); // for output // FIXME: see below?
 
         // extensionflag
-        } else {   
+        } else {
             fmt::print(stderr, "Info   : reusing workspace\n");
-            syslog(LOG_INFO, "reusing <%s/%s>.", foundfs.c_str(), dbid.c_str()); 
+            syslog(LOG_INFO, "reusing <%s/%s>.", foundfs.c_str(), dbid.c_str());
         }
 
         extension = dbentry->getExtension();
@@ -465,7 +465,7 @@ void allocate(
 
         if (extensionflag) {
             fmt::println(stderr, "Error  : workspace does not exist, can not be extended!");
-            exit(-1); 
+            exit(-1);
         }
 
         // workspace does not exist and a new one has to be created
@@ -475,13 +475,13 @@ void allocate(
         if(opt.count("filesystem")) {
             newfilesystem = opt["filesystem"].as<string>();     // commandline or
         } else {
-            newfilesystem = searchlist[0];                      // highest prio 
+            newfilesystem = searchlist[0];                      // highest prio
         }
 
         // is that filesystem open for allocations?
         if (!config.getFsConfig(newfilesystem).allocatable) {
             fmt::print(stderr, "Error  : this workspace can not be used for allocation.\n");
-            exit(-2);            
+            exit(-2);
         }
 
         // if it does not exist, create it
@@ -489,7 +489,7 @@ void allocate(
 
         // read the possible spaces for the filesystem
         vector<string> spaces = config.getFsConfig(newfilesystem).spaces;
-        
+
         // SPEC:CHANGE: no LUA callouts
 
         // open DB where workspace will be created
@@ -522,7 +522,7 @@ void allocate(
         syslog(LOG_INFO, "created for user <%s> DB <%s> with space <%s>.", username.c_str(), id.c_str(), wsdir.c_str());
     }
 
-    
+
 
 }
 
@@ -541,13 +541,16 @@ int main(int argc, char **argv) {
     po::variables_map opt;
     std::string user_conf;
 
+    debugflag=true;
+    traceflag=true;
+
     // lower capabilities to user, before interpreting any data from user
     caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     // locals settings to prevent strange effects
     utils::setCLocal();
 
-    // read user config 
+    // read user config
     string user_conf_filename = user::getUserhome()+"/.ws_user.conf";
     if (!cppfs::is_symlink(user_conf_filename)) {
         if (cppfs::is_regular_file(user_conf_filename)) {
@@ -560,12 +563,12 @@ int main(int argc, char **argv) {
     }
 
     // check commandline, get flags which are used to create ws object or for workspace allocation
-    commandline(opt, name, duration, filesystem, extensionflag, reminder, mailaddress, 
+    commandline(opt, name, duration, filesystem, extensionflag, reminder, mailaddress,
                    user_option, groupname, comment, argc, argv, user_conf, configfile);
 
     // find which config files to read
     //   user can change this if no setuid installation OR if root
-    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"}; 
+    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"};
     if (configfile != "") {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
@@ -592,6 +595,3 @@ int main(int argc, char **argv) {
     allocate(config, opt, duration, filesystem, name, extensionflag, reminder, mailaddress, user_option, groupname, comment);
 
 }
-
-
-

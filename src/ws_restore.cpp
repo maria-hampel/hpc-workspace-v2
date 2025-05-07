@@ -4,12 +4,12 @@
  *  ws_restore
  *
  *  - tool to list and restore expired or released workspaces
- * 
+ *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024,2025
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -143,7 +143,7 @@ void commandline(po::variables_map &opt, string &name, string &target,
             cerr << cmd_options << "\n";
             exit(1);
         }
-        // validate workspace name against nasty characters    
+        // validate workspace name against nasty characters
         // static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$"); // #77
         static const std::regex e1("^[[:alnum:]][[:alnum:]_.-]*$");
         if (!regex_match(name.substr(0,2) , e1)) {
@@ -207,14 +207,14 @@ void restore(const string name, const string target, const string username, cons
 
     vector<pair<string, string>> hits;
 
-    // iterate over filesystems 
+    // iterate over filesystems
     for(auto const &fs: fslist) {
         if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
 
         for(auto const &id: db->matchPattern(id_noowner, username, grouplist, true, false)) {
             hits.push_back({fs, id});
-        }        
+        }
     }
 
     // exit in case not unique (unlikely due to labels with second precision!)
@@ -234,7 +234,7 @@ void restore(const string name, const string target, const string username, cons
     if (!config.getFsConfig(source_filesystem).restorable) {
         fmt::println(stderr, "Error  : it is not possible to restore workspaces in this filesystem.");
         return;
-    } 
+    }
 
     std::unique_ptr<Database> source_db(config.openDB(source_filesystem));
     // get source entry
@@ -245,7 +245,7 @@ void restore(const string name, const string target, const string username, cons
         fmt::println(stderr, "Error  : workspace does not exist!");
         return;
     }
-    
+
 
     // SPEC:CHANGE new in V2, wipe data on demand
     if (deletedata) {
@@ -262,7 +262,7 @@ void restore(const string name, const string target, const string username, cons
         fmt::println(stderr, "Info   : you have 5 seconds to interrupt with CTRL-C to prevent deletion");
         sleep(5);
 
-        caps.raise_cap(CAP_FOWNER, utils::SrcPos(__FILE__, __LINE__, __func__)); 
+        caps.raise_cap({CAP_FOWNER}, utils::SrcPos(__FILE__, __LINE__, __func__));
         if (caps.isSetuid()) {
             // get process owner to be allowed to delete files
             if(seteuid(getuid())) {
@@ -287,7 +287,7 @@ void restore(const string name, const string target, const string username, cons
                 fmt::println(stderr, "Error  : can not setuid, bad installation?");
             }
         }
-        caps.lower_cap(CAP_FOWNER, source_entry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap({CAP_FOWNER}, source_entry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
         // FIXME: move this to deleteEntry?
         if (caps.isSetuid()) {
@@ -344,9 +344,7 @@ void restore(const string name, const string target, const string username, cons
 
         string targetpathname = targetpath + "/" + cppfs::path(wssourcename).filename().string();
 
-
-        caps.raise_cap(CAP_DAC_OVERRIDE, utils::SrcPos(__FILE__, __LINE__, __func__));
-        caps.raise_cap(CAP_DAC_READ_SEARCH, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.raise_cap({CAP_DAC_OVERRIDE,CAP_DAC_READ_SEARCH}, utils::SrcPos(__FILE__, __LINE__, __func__));
 
         // do the move
         int ret = rename(wssourcename.c_str(), targetpathname.c_str());
@@ -381,9 +379,7 @@ void restore(const string name, const string target, const string username, cons
                 exit(-1);
             }
         }
-        caps.lower_cap(CAP_DAC_OVERRIDE, config.dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-        caps.lower_cap(CAP_DAC_READ_SEARCH,  config.dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
-
+        caps.lower_cap({CAP_DAC_OVERRIDE,CAP_DAC_READ_SEARCH}, config.dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
     }
 }
 
@@ -406,7 +402,7 @@ int main(int argc, char **argv) {
 
     // find which config files to read
     //   user can change this if no setuid installation OR if root
-    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"}; 
+    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"};
     if (configfile != "") {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
@@ -422,7 +418,7 @@ int main(int argc, char **argv) {
         exit(-2);
     }
 
-    // read user config 
+    // read user config
     string user_conf_filename = user::getUserhome()+"/.ws_user.conf";
     if (!cppfs::is_symlink(user_conf_filename)) {
         if (cppfs::is_regular_file(user_conf_filename)) {
@@ -467,7 +463,7 @@ int main(int argc, char **argv) {
 
         // FIXME: add pattern and sorting as in ws_list?
 
-        // iterate over filesystems 
+        // iterate over filesystems
         for(auto const &fs: fslist) {
             if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
             std::unique_ptr<Database> db(config.openDB(fs));
@@ -509,6 +505,6 @@ int main(int argc, char **argv) {
                     restore(name, target, username, config, filesystem, opt.count("delete-data"));
             }
         }
-  
+
     }
 }
