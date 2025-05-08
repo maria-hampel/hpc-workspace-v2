@@ -29,12 +29,12 @@ setup() {
 }
 
 @test "ws_restore workspace" {
+    ws_name=restore_$RANDOM
     wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
     touch $wsdir/TESTFILE
     ws_release --config bats/ws.conf $ws_name
-    wsid=$( ws_restore --config bats/ws.conf -l | head -1)
+    wsid=$( ws_restore --config bats/ws.conf -l | grep $ws_name | head -1)
     wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
     ws_restore_notest --config bats/ws.conf $wsid $ws_name
     assert_file_exists $wsdir/$wsid/TESTFILE
 }
-
