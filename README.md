@@ -161,7 +161,6 @@ bats bats/test
 
 ## testing with docker
 
-Tests in docker will use setuid and setcap mode as well and cover more corner cases.
 
 ```
 cd docker
@@ -169,8 +168,18 @@ sudo docker build ubuntu-24.04 -t hpcwsv2
 sudo docker run hpcwsv2 testall
 ```
 
+Tests in docker allow coverage analysis
+
+```
+cd docker
+mkdir coverage
+sudo docker run  -v $PWD/coverage:/ws/coverage_report hpcw lcov
+sudo chown -R $USERNAME coverage
+```
+
 note: setcap tests will fail with ASAN error messages if sysctl `fs.suid_dumpable = 2`
 Update: turned out that capability version seems to have restrictions in docker, can only be tested fully in VM
+TODO: remove capabuility tests from docker 
 
 ### testing with VM
 
