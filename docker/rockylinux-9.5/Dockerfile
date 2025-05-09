@@ -12,6 +12,7 @@ RUN dnf install -y \
     ncurses-devel \
     libcap-devel \
     wget \
+    lld \
     which
 
 # Installing libs for static build;

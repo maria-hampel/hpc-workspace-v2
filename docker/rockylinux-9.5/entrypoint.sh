@@ -31,7 +31,7 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
   ./get_externals.sh
   cd ..
 
-  cmake --preset debug
+  cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
   cmake --build --preset debug -j
 
   if [ "$run_ctest_test" = true ]; then

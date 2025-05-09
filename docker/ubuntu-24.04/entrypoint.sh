@@ -41,14 +41,14 @@ if [ "$run_bats_test" = true ] || [ "$run_ctest_test" = true ]; then
   cd ..
 
   if [ "$run_coverage" = true ]; then
-    cmake --preset debug -DCMAKE_CXX_FLAGS=--coverage
+    cmake --preset debug -DCMAKE_CXX_FLAGS=--coverage -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
   else
-    cmake --preset debug
+    cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
   fi
 
   cmake --build --preset debug -j
 
-  cmake --preset release
+  cmake --preset release -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
   cmake --build --preset release -j
 
   cp build/debug/bin/ws_restore build/debug/bin/ws_restore_notest

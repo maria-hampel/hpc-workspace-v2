@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libcap2-bin \
     libcap-dev \
     libcap2 \
+    lld \
     wget \
     sudo \
     lcov
