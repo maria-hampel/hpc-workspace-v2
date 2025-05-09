@@ -33,7 +33,7 @@ jobs:
     steps:
     - name: Install OS package dependencies
       run: |
-        sudo apt install libboost-all-dev
+        sudo apt install libboost-all-dev libcap-dev
 
     - name: Checkout repository
       uses: actions/checkout@v4
