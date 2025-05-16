@@ -481,7 +481,8 @@ int main(int argc, char **argv) {
                     if (!terse) {
                         auto pos = id.rfind("-")+1;
                         time_t t = atol(id.substr(pos).c_str());
-                        fmt::print("\tunavailable since : {}", std::ctime(&t));
+                        fmt::print("\tunavailable since : {}", std::ctime(&t));  // contains a \n
+                        fmt::println("\tin filesystem     : {}", db->readEntry(id, true)->getFilesystem());
                     }
                 }
             } catch (DatabaseException &e) {
