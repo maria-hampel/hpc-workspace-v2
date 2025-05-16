@@ -8,7 +8,7 @@
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024
+ *  (c) Holger Berger 2021,2023,2024,2025
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -400,6 +400,7 @@ vector<string> Config::Filesystems() const {
 //  SPEC: admins have access to all filesystems
 // unittest: yes
 vector<string> Config::validFilesystems(const string user, const vector<string> groups) const {
+        if(traceflag) fmt::print(stderr, "Trace  : validFilesystems(user={},groups={})\n", user, groups);
         vector<string> validfs;
 
         if (debugflag) {
