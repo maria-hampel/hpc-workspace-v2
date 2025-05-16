@@ -49,6 +49,7 @@
 //#include "fmt/ostream.h"
 
 #include "caps.h"
+#include "ws.h"
 
 // init caps here, when euid!=uid
 Cap caps{};
@@ -206,13 +207,13 @@ int main(int argc, char **argv) {
     // list of fileystems or list of workspaces
     if (listfilesystems) {
         fmt::print("available filesystems (sorted according to priority):\n");
-        for(auto fs: config.validFilesystems(username,grouplist)) {
+        for(auto fs: config.validFilesystems(username,grouplist, ws::LIST)) {
             fmt::print("{}\n", fs);
         }
     } else if (listfilesystemdetails) {
         fmt::print("available filesystems (sorted according to priority):\n");
         fmt::println("{:>10}{:>10}{:>12}{:>10}{:>10}","name","duration","extensions","keeptime","comment");
-        for(auto fs: config.validFilesystems(username,grouplist)) {
+        for(auto fs: config.validFilesystems(username,grouplist, ws::LIST)) {
             auto fsc = config.getFsConfig(fs);
             fmt::print("{:>10}{:>10}{:>12}{:>10}   {}\n", fs, fsc.maxduration, fsc.maxextensions, fsc.keeptime, fsc.comment);
         }
@@ -224,7 +225,7 @@ int main(int argc, char **argv) {
 
         // where to list from?
         vector<string> fslist;
-        vector<string> validfs = config.validFilesystems(username,grouplist);
+        vector<string> validfs = config.validFilesystems(username,grouplist, ws::LIST);
         if (filesystem != "") {
             if (canFind(validfs, filesystem)) {
                 fslist.push_back(filesystem);

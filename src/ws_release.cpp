@@ -43,6 +43,7 @@
 #include "user.h"
 #include "utils.h"
 #include "caps.h"
+#include "ws.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -180,7 +181,7 @@ bool validateFsAndGroup(const Config &config, const po::variables_map &opt, cons
 
     // if the user specifies a filesystem, he must be allowed to use it
     if(opt.count("filesystem")) {
-        auto validfs = config.validFilesystems(username, groupnames);
+        auto validfs = config.validFilesystems(username, groupnames, ws::RELEASE);
         if ( !canFind(validfs, opt["filesystem"].as<string>()) && getuid()!=0 ) {
             fmt::print(stderr, "Error  : You are not allowed to use the specified filesystem!\n");
             return false;
@@ -211,7 +212,7 @@ void release(
     std::string username = user::getUsername(); // current user
 
     // get valid filesystems to bail out if there is none
-    auto valid_filesystems = config.validFilesystems(user::getUsername(), user::getGrouplist());
+    auto valid_filesystems = config.validFilesystems(user::getUsername(), user::getGrouplist(), ws::RELEASE);
 
     if (valid_filesystems.size()==0) {
         fmt::print(stderr, "Error: no valid filesystems in configuration, can not allocate\n");
@@ -229,7 +230,7 @@ void release(
     if(opt.count("filesystem")) {
         searchlist.push_back(opt["filesystem"].as<string>());
     } else {
-        searchlist = config.validFilesystems(user::getUsername(), user::getGrouplist());  // FIXME: getUsername or user_option? getGrouplist uses current uid
+        searchlist = config.validFilesystems(user::getUsername(), user::getGrouplist(), ws::RELEASE);  // FIXME: getUsername or user_option? getGrouplist uses current uid
     }
 
     //

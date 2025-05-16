@@ -9,12 +9,12 @@
  *      - search oder is better defined
  *      - fast YAML reader with rapidyaml
  *      - correct handling of group workspaces FIXME: is it broken in V1? looks like
- * 
+ *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -47,6 +47,7 @@
 //#include "fmt/ostream.h"
 
 #include "caps.h"
+#include "ws.h"
 
 // init caps here, when euid!=uid
 Cap caps{};
@@ -121,7 +122,7 @@ int main(int argc, char **argv) {
 
     if (opts.count("help")) {
         fmt::print("Usage: {} [options] name\n", argv[0]);
-        cout << cmd_options << endl; 
+        cout << cmd_options << endl;
         exit(0);
     }
 
@@ -140,9 +141,9 @@ int main(int argc, char **argv) {
         exit(-4);
     }
 
-    // read config 
+    // read config
     //   user can change this if no setuid installation OR if root
-    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"}; 
+    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d","/etc/ws.conf"};
     if (configfile != "") {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
@@ -177,7 +178,7 @@ int main(int argc, char **argv) {
 
     // where to list from?
     vector<string> fslist;
-    vector<string> validfs = config.validFilesystems(username,grouplist);
+    vector<string> validfs = config.validFilesystems(username,grouplist, ws::USE);
     if (filesystem != "") {
         if (canFind(validfs, filesystem)) {
             fslist.push_back(filesystem);
@@ -189,13 +190,13 @@ int main(int argc, char **argv) {
         fslist = validfs;
     }
 
-    vector<std::unique_ptr<DBEntry>> entrylist; 
-    
+    vector<std::unique_ptr<DBEntry>> entrylist;
+
     // iterate over filesystems and print or create list to be sorted
     for(auto const &fs: fslist) {
         if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
-                
+
         // catch DB access errors, if DB directory or DB is accessible
         try {
             for(auto const &id: db->matchPattern(name, userpattern, grouplist, false, listgroups)) {

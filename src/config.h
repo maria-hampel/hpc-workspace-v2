@@ -38,6 +38,7 @@
 #include <algorithm>
 
 #include "db.h"
+#include "ws.h"
 
 using namespace std;
 namespace cppfs = std::filesystem;
@@ -114,7 +115,7 @@ public:
     // check if user is an admin
     bool isAdmin(const string user) const;
     // get list of valid filesystems for user
-    vector<string> validFilesystems(const string user, const vector<string> groups) const;
+    vector<string> validFilesystems(const string user, const vector<string> groups, const ws::intent intent) const;
     // check if given user can assess given filesystem with current config
     bool hasAccess(const string user, const std::vector<string> groups, const string filesystem) const;
     // get list of all filesystems

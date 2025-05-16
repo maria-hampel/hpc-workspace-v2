@@ -34,8 +34,8 @@ TEST_CASE("config file: multiple files and order", "[config]") {
     fs::create_directories(basedirname / "ws.d");
 
     // create a normal config file, V1 way
-    std::ofstream wsconf(basedirname / "ws.conf"); 
-    fmt::println(wsconf, 
+    std::ofstream wsconf(basedirname / "ws.conf");
+    fmt::println(wsconf,
 R"yaml(
 admins: [root]
 clustername: old_ws_conf
@@ -55,13 +55,13 @@ workspaces:
         database: /tmp
         deleted: .removed
         spaces: [/tmp/ws2-old]
-)yaml"    
+)yaml"
     );
     wsconf.close();
 
     // create a bad normal config file, V1 way
-    std::ofstream wsconfbad(basedirname / "ws.conf-bad"); 
-    fmt::println(wsconfbad, 
+    std::ofstream wsconfbad(basedirname / "ws.conf-bad");
+    fmt::println(wsconfbad,
 R"yaml(
 admins: [root]
 clustername: old_ws_conf
@@ -79,14 +79,14 @@ workspaces:
         database: /tmp
         deleted: .removed
         spaces: [/tmp/ws2-old]
-)yaml"    
+)yaml"
     );
     wsconfbad.close();
 
     // create new style multi file config
 
-    std::ofstream wsconf1(basedirname / "ws.d" / "0-global.conf"); 
-    fmt::println(wsconf1, 
+    std::ofstream wsconf1(basedirname / "ws.d" / "0-global.conf");
+    fmt::println(wsconf1,
 R"yaml(
 admins: [root]
 clustername: new_ws_conf
@@ -96,50 +96,50 @@ dbuid: 2
 duration: 10
 smtphost: mailhost
 default: ws2
-)yaml"    
+)yaml"
     );
     wsconf1.close();
 
-    std::ofstream wsconf2(basedirname / "ws.d" / "1-ws2.conf"); 
-    fmt::println(wsconf2, 
+    std::ofstream wsconf2(basedirname / "ws.d" / "1-ws2.conf");
+    fmt::println(wsconf2,
 R"yaml(
 workspaces:
     ws2:
         database: /tmp
         deleted: .removed
         spaces: [/tmp/ws2]
-)yaml"    
+)yaml"
     );
     wsconf2.close();
 
     // write a file first with a name later in sorted list
-    std::ofstream wsconf4(basedirname / "ws.d" / "3-ws3.conf"); 
-    fmt::println(wsconf4, 
+    std::ofstream wsconf4(basedirname / "ws.d" / "3-ws3.conf");
+    fmt::println(wsconf4,
 R"yaml(
 workspaces:
     ws3:
         database: /tmp
         deleted: .removed
         spaces: [/tmp/ws3-overwrite]
-)yaml"    
+)yaml"
     );
     wsconf4.close();
 
-    std::ofstream wsconf3(basedirname / "ws.d" / "2-ws3.conf"); 
-    fmt::println(wsconf3, 
+    std::ofstream wsconf3(basedirname / "ws.d" / "2-ws3.conf");
+    fmt::println(wsconf3,
 R"yaml(
 workspaces:
     ws3:
         database: /tmp
         deleted: .removed
         spaces: [/tmp/ws3]
-)yaml"    
+)yaml"
     );
     wsconf3.close();
 
 
     SECTION("readconfig") {
-        
+
         auto config = Config(std::vector<fs::path>{basedirname / "ws.conf"});
 
         REQUIRE(config.clustername() == "old_ws_conf");
@@ -149,7 +149,7 @@ workspaces:
         REQUIRE(filesystem.name == "ws2");
         REQUIRE(filesystem.spaces == vector<string>{"/tmp/ws2-old"});
         REQUIRE(config.isValid());
-        
+
         // check if stop after first file works
 
         auto config2 = Config(std::vector<fs::path>{
@@ -157,7 +157,7 @@ workspaces:
                                 basedirname / "ws.d"
                             });
 
-        REQUIRE(config2.clustername() == "old_ws_conf");  
+        REQUIRE(config2.clustername() == "old_ws_conf");
         REQUIRE(config2.isValid());
 
 
@@ -167,7 +167,7 @@ workspaces:
                                 basedirname / "ws.conf"
                             });
 
-        REQUIRE(config3.clustername() == "new_ws_conf");  
+        REQUIRE(config3.clustername() == "new_ws_conf");
         REQUIRE(config3.maxextensions() ==10); // default form code
         REQUIRE(config3.dbuid() == 2);
         REQUIRE(config3.dbgid() == 2);
@@ -182,11 +182,11 @@ workspaces:
         // check validation
 
         auto config4 = Config(std::vector<fs::path>{basedirname / "ws.conf-bad"});
-        REQUIRE(config4.isValid() == false);        
+        REQUIRE(config4.isValid() == false);
 
         // check bad file
         auto config5= Config(std::vector<fs::path>{basedirname / "invalid-file"});
-        REQUIRE(config5.isValid() == false);        
+        REQUIRE(config5.isValid() == false);
     }
 
     // TODO: could use more tests for errors in config file
@@ -226,7 +226,7 @@ workspaces:
         database: /tmp
         spaces: [/tmp]
         deleted: .del
-filesystems: 
+filesystems:
     second:
         userdefault: [a]
         database: /tmp
@@ -240,19 +240,19 @@ filesystems:
 )"));
 
         // see if workspace and filesystems are used
-        REQUIRE(config.validFilesystems("c", std::vector<string>{}) == std::vector<string>{"third","fourth","second"} );
+        REQUIRE(config.validFilesystems("c", std::vector<string>{}, ws::LIST) == std::vector<string>{"third","fourth","second"} );
         // see if userdefault and acl works
-        REQUIRE(config.validFilesystems("a", std::vector<string>{}) == std::vector<string>{"second","third","first","fourth"});
+        REQUIRE(config.validFilesystems("a", std::vector<string>{}, ws::LIST) == std::vector<string>{"second","third","first","fourth"});
         // see if ACL works, default does not override ACL
-        REQUIRE(config.validFilesystems("b", std::vector<string>{"gb"}) == std::vector<string>{"third", "fourth","second"});
+        REQUIRE(config.validFilesystems("b", std::vector<string>{"gb"}, ws::LIST) == std::vector<string>{"third", "fourth","second"});
         // global, groupdefault, others
-        REQUIRE(config.validFilesystems("d", std::vector<string>{"gb"}) == std::vector<string>{"first","third","fourth","second"});
+        REQUIRE(config.validFilesystems("d", std::vector<string>{"gb"}, ws::LIST) == std::vector<string>{"first","third","fourth","second"});
         // userdefault first, group second, multiple groups
-        REQUIRE(config.validFilesystems("a", std::vector<string>{"gc","gb"}) == std::vector<string>{"second","first","third","fourth"});
+        REQUIRE(config.validFilesystems("a", std::vector<string>{"gc","gb"}, ws::LIST) == std::vector<string>{"second","first","third","fourth"});
         // user first, others, no denied, not only for first user, multiple groups
-        REQUIRE(config.validFilesystems("y", std::vector<string>{"ga","gc"}) == std::vector<string>{"third","fourth","second"});
+        REQUIRE(config.validFilesystems("y", std::vector<string>{"ga","gc"}, ws::LIST) == std::vector<string>{"third","fourth","second"});
         // admin user check, sees all filesystems
-        REQUIRE(config.validFilesystems("e", std::vector<string>{}) == std::vector<string>{"third","first","fourth", "second"});
+        REQUIRE(config.validFilesystems("e", std::vector<string>{}, ws::LIST) == std::vector<string>{"third","first","fourth", "second"});
     }
 
     SECTION( "hasAccess") {
@@ -345,13 +345,13 @@ workspaces:                     # now the list of the workspaces
     keeptime: 1                 # mandatory, time in days to keep workspaces after they expired
     spaces: [/lustre1/ws, /lustre2/ws]  # mandatory, list of directories
     spaceselection: random      # "random" (default), "uid" (uid%#spaces), "gid" (gid%#spaces), "mostspace"
-    deleted: .removed           # mandatory, will be appended to spaces and database 
+    deleted: .removed           # mandatory, will be appended to spaces and database
                                 # to move deleted files to
     database: /lustre-db        # mandatory, the DB directory, this is where DB files will end
     duration: 30                # max duration, overwrites global value
     groupdefault: [inst1,inst2] # users of those groups will have this workspace as default
     userdefault: [user1]        # those users will have this workspace as default
-    user_acl: [user1]           # as soon as user_acl or group_acl exist, 
+    user_acl: [user1]           # as soon as user_acl or group_acl exist,
                                 # the workspace is access restricted to those users/groups listed
     group_acl: [adm]
     maxextensions: 5            # maximum extensions allowed
@@ -368,7 +368,7 @@ workspaces:                     # now the list of the workspaces
 
     SECTION("check config") {
 
-        REQUIRE(config.clustername() == "aName");  
+        REQUIRE(config.clustername() == "aName");
         REQUIRE(config.smtphost() == "localhost");
         REQUIRE(config.mailfrom() == "noreply@mydomain.de");
         REQUIRE(config.defaultworkspace() == "lustre");

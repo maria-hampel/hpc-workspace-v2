@@ -42,6 +42,7 @@
 #include "user.h"
 #include "utils.h"
 #include "caps.h"
+#include "ws.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -193,7 +194,7 @@ void restore(const string name, const string target, const string username, cons
 
     // where to search for?
     vector<string> fslist;
-    vector<string> validfs = config.validFilesystems(username,grouplist);
+    vector<string> validfs = config.validFilesystems(username,grouplist, ws::RESTORE);
     if (filesystem != "") {
         if (canFind(validfs, filesystem)) {
             fslist.push_back(filesystem);
@@ -314,7 +315,7 @@ void restore(const string name, const string target, const string username, cons
     } else { // don't delete data
 
         // find target workspace
-        validfs = config.validFilesystems(username,grouplist);
+        validfs = config.validFilesystems(username,grouplist, ws::RESTORE);
         std::unique_ptr<Database> db;
         string targetpath;
         for(auto const &fs: fslist) {
@@ -454,7 +455,7 @@ int main(int argc, char **argv) {
 
         // where to list from?
         vector<string> fslist;
-        vector<string> validfs = config.validFilesystems(username,grouplist);
+        vector<string> validfs = config.validFilesystems(username,grouplist, ws::RESTORE);
         if (filesystem != "") {
             if (canFind(validfs, filesystem)) {
                 fslist.push_back(filesystem);

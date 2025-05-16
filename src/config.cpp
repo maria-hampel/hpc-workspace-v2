@@ -399,7 +399,7 @@ vector<string> Config::Filesystems() const {
 //  SPEC:CHANGE: a user default does NOT override an ACL
 //  SPEC: admins have access to all filesystems
 // unittest: yes
-vector<string> Config::validFilesystems(const string user, const vector<string> groups) const {
+vector<string> Config::validFilesystems(const string user, const vector<string> groups, const ws::intent intent) const {
         if(traceflag) fmt::print(stderr, "Trace  : validFilesystems(user={},groups={})\n", user, groups);
         vector<string> validfs;
 
