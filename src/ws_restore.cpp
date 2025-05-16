@@ -207,6 +207,9 @@ void restore(const string name, const string target, const string username, cons
 
     vector<pair<string, string>> hits;
 
+    // FIXME dbuid would be sufficient
+    caps.raise_cap({CAP_DAC_OVERRIDE,CAP_DAC_READ_SEARCH}, utils::SrcPos(__FILE__, __LINE__, __func__));
+
     // iterate over filesystems
     for(auto const &fs: fslist) {
         if (debugflag) fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
@@ -216,6 +219,7 @@ void restore(const string name, const string target, const string username, cons
             hits.push_back({fs, id});
         }
     }
+    caps.lower_cap({CAP_DAC_OVERRIDE,CAP_DAC_READ_SEARCH}, config.dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     // exit in case not unique (unlikely due to labels with second precision!)
     if (hits.size()>1) {
@@ -461,6 +465,10 @@ int main(int argc, char **argv) {
             fslist = validfs;
         }
 
+        // FIXME here db user would be sufficient, raise_cap could offer a setuid interface
+        // that does not require root here
+        caps.raise_cap({CAP_DAC_OVERRIDE,CAP_DAC_READ_SEARCH}, utils::SrcPos(__FILE__, __LINE__, __func__));
+
         // FIXME: add pattern and sorting as in ws_list?
 
         // iterate over filesystems
@@ -480,6 +488,7 @@ int main(int argc, char **argv) {
                 fmt::println(stderr, "Error  : DB access error ({})", e.what());
             }
         } // loop over fs
+        caps.lower_cap({CAP_DAC_OVERRIDE,CAP_DAC_READ_SEARCH}, config.dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     } else { // listflag
 
