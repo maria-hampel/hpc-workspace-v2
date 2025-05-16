@@ -330,7 +330,7 @@ bool Config::isAdmin(const string user) const {
 // check if given user can assess given filesystem with current config
 //  see validFilesystems for specification of ACLs
 // unittest: yes
-bool Config::hasAccess(const string user, const vector<string> groups, const string filesystem) const {
+bool Config::hasAccess(const string user, const vector<string> groups, const string filesystem, const ws::intent intent) const {
     if(traceflag) fmt::print(stderr, "Trace  : hasAccess(user={},groups={},filesystem={})\n", user, groups, filesystem);
 
     bool ok = true;
@@ -416,7 +416,7 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
             if (debugflag) fmt::print("Debug  : fs={} filesystems.at(fs).userdefault={}\n", fs, filesystems.at(fs).userdefault);
             if (canFind(filesystems.at(fs).userdefault, user)) {
                 if (debugflag) fmt::print(stderr, "Debug  :  checking if userdefault <{}> already added\n", fs);
-                if (hasAccess(user, groups, fs) && !canFind(validfs, fs)) {
+                if (hasAccess(user, groups, fs, intent) && !canFind(validfs, fs)) {
                     if (debugflag) fmt::print(stderr,"Debug  :    adding userdefault <{}>\n", fs);
                     validfs.push_back(fs);
                     break;
@@ -429,7 +429,7 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
             for(string group: groups) {
                 if (debugflag) fmt::print(stderr,"Debug  :  checking if group <{}> in groupdefault[{}]={}\n", group, fs, filesystems.at(fs).groupdefault);
                 if (canFind(filesystems.at(fs).groupdefault, group)) {
-                    if (hasAccess(user, groups, fs) && !canFind(validfs, fs)) {
+                    if (hasAccess(user, groups, fs, intent) && !canFind(validfs, fs)) {
                         if (debugflag) fmt::print(stderr,"Debug  :    adding groupdefault <{}>\n", fs);
                         validfs.push_back(fs);
                         goto groupend;
@@ -442,17 +442,17 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
         // global default last
         if (debugflag) {
             fmt::println(stderr, "Debug  : global.default_workspace={}", global.defaultWorkspace);
-            fmt::println(stderr, "Debug  : hasAccess({}, {}, {})={}", user, groups, global.defaultWorkspace,hasAccess(user, groups, global.defaultWorkspace));
+            fmt::println(stderr, "Debug  : hasAccess({}, {}, {})={}", user, groups, global.defaultWorkspace,hasAccess(user, groups, global.defaultWorkspace, intent));
             fmt::println(stderr, "Debug  : canFind({}, {})={}", validfs, global.defaultWorkspace, canFind(validfs, global.defaultWorkspace));
         }
-        if ((global.defaultWorkspace != "") && hasAccess(user, groups, global.defaultWorkspace) && !canFind(validfs, global.defaultWorkspace) ) {
+        if ((global.defaultWorkspace != "") && hasAccess(user, groups, global.defaultWorkspace, intent) && !canFind(validfs, global.defaultWorkspace) ) {
             if (debugflag) fmt::print(stderr,"Debug  :  adding default_workspace <{}>\n", global.defaultWorkspace);
             validfs.push_back(global.defaultWorkspace);
         }
 
         // now all others with access
         for(auto const &[fs,val]: filesystems) {
-            if (hasAccess(user, groups, fs) && !canFind(validfs, fs)) {
+            if (hasAccess(user, groups, fs, intent) && !canFind(validfs, fs)) {
                 if (debugflag) fmt::print(stderr,"Debug  :    adding as having access <{}>\n", fs);
                 validfs.push_back(fs);
             }

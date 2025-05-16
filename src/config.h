@@ -117,7 +117,7 @@ public:
     // get list of valid filesystems for user
     vector<string> validFilesystems(const string user, const vector<string> groups, const ws::intent intent) const;
     // check if given user can assess given filesystem with current config
-    bool hasAccess(const string user, const std::vector<string> groups, const string filesystem) const;
+    bool hasAccess(const string user, const std::vector<string> groups, const string filesystemm, const ws::intent intent) const;
     // get list of all filesystems
     vector<string> Filesystems() const;
 
