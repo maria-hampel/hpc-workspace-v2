@@ -2,15 +2,15 @@
  *  hpc-workspace-v2
  *
  *  user.cpp
- * 
+ *
  *  - some helpers to deal with user information
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024
+ *  (c) Holger Berger 2021,2023,2024,2025
  *  (c) Christoph Niethammer 2024
- * 
+ *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
@@ -37,7 +37,7 @@
 #include "user.h"
 
 #include "fmt/base.h"
-#include "fmt/ranges.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
 #include <gsl/pointers>
 
 extern bool traceflag;
@@ -77,7 +77,7 @@ namespace user {
         return getuid() != geteuid();
     }
 
-    // get name of effective group 
+    // get name of effective group
     std::string getGroupname() {
         std::string primarygroup;
         gsl::not_null<struct group *> grp = getgrgid(getegid());

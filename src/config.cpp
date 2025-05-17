@@ -33,7 +33,7 @@
 
 
 #include "fmt/base.h"
-#include "fmt/ranges.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
 
 #ifdef WS_RAPIDYAML_CONFIG
     #define RYML_USE_ASSERT 0
@@ -42,7 +42,7 @@
     #include "c4/format.hpp"
     #include "c4/std/std.hpp"
 #else
-    #include "yaml-cpp/yaml.h"
+    #include "yaml-cpp/yaml.h" // IWYU pragma: keep
 #endif
 
 #include "config.h"
@@ -50,9 +50,7 @@
 #include "dbv1.h"
 #include "utils.h"
 
-#include <iostream>
 #include <string>
-#include <sstream>
 
 #include <filesystem>
 namespace cppfs = std::filesystem;
@@ -343,11 +341,12 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
 
     // check ACLs, group first, user second to allow -user to override group grant
     if (filesystems.at(filesystem).user_acl.size()>0 || filesystems.at(filesystem).group_acl.size()>0) {
-        // as soon as any ACL is presents, access is denied and has to be granted
+        // as soon as any ACL is present access is denied and has to be granted
         ok = false;
         if (debugflag) fmt::print(stderr,"Debug  :  ACLs present\n");
 
         if (filesystems.at(filesystem).group_acl.size()>0) {
+            utils::parseACL(filesystems.at(filesystem).group_acl);
             if (debugflag) fmt::print(stderr, "Debug  :    group ACL present,");
             for(const auto & group : groups) {
                 if (canFind(filesystems.at(filesystem).group_acl, group)) ok = true;
@@ -358,6 +357,7 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
         }
 
         if (filesystems.at(filesystem).user_acl.size()>0) {
+            utils::parseACL(filesystems.at(filesystem).user_acl);
             if (debugflag) fmt::print(stderr, "Debug  :    user ACL present,");
             if (canFind(filesystems.at(filesystem).user_acl, user)) ok = true;
             if (canFind(filesystems.at(filesystem).user_acl, string("+")+user)) ok = true;
@@ -398,6 +398,9 @@ vector<string> Config::Filesystems() const {
 //  SPEC: user acls are checked after groups for - entries, so users can be excluded after having group access
 //  SPEC:CHANGE: a user default does NOT override an ACL
 //  SPEC: admins have access to all filesystems
+//  SPEC: exhanced ACL syntax: [+|-]id[:[permission{,permission}]]
+//  SPEC: permission is one of  list,use,create,extend,release,restore
+//  SPEC: if no permisson is given, all permission are granted or denied
 // unittest: yes
 vector<string> Config::validFilesystems(const string user, const vector<string> groups, const ws::intent intent) const {
         if(traceflag) fmt::print(stderr, "Trace  : validFilesystems(user={},groups={})\n", user, groups);

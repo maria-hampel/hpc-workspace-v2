@@ -45,7 +45,7 @@
 #include "db.h"
 #include "user.h"
 #include "fmt/base.h"
-#include "fmt/ranges.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
 //#include "fmt/ostream.h"
 
 #include "caps.h"

@@ -34,7 +34,7 @@
 
 
 #include "fmt/base.h"
-#include "fmt/ranges.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
 
 #include "user.h"
 #include "caps.h"

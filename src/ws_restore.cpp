@@ -31,7 +31,7 @@
 #include <string>
 #include <regex>
 #include "fmt/base.h"
-#include "fmt/ranges.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
 
 #include <syslog.h>
 #include <unistd.h>

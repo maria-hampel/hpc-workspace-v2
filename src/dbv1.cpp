@@ -38,9 +38,9 @@
 
 #ifdef WS_RAPIDYAML_DB
     #define RYML_USE_ASSERT 0
-    #include "ryml.hpp"
-    #include "ryml_std.hpp"
-    #include "c4/format.hpp"
+    #include "ryml.hpp" // IWYU pragma: keep
+    #include "ryml_std.hpp" // IWYU pragma: keep
+    #include "c4/format.hpp" // IWYU pragma: keep
 #else
     #include <yaml-cpp/yaml.h>
 #endif
@@ -49,7 +49,7 @@
 #include "utils.h"
 #include "user.h"
 #include "fmt/base.h"
-#include "fmt/ranges.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
 
 #include <signal.h>
 // for chown

@@ -31,7 +31,6 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include <iomanip>
 #include <sstream>
 #include <filesystem>
 #include <cassert>
@@ -50,7 +49,7 @@
 namespace fs = std::filesystem;
 
 #include "fmt/base.h"
-#include "fmt/ranges.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
 
 #include <pwd.h>
 #include <unistd.h>
@@ -386,16 +385,17 @@ namespace utils {
 	// split a string at delimiter and return a vector of tokens
 	std::vector<std::string> splitString(const std::string& str, char delimiter) {
         std::vector<std::string> words;
-        std::stringstream ss(str); // Create a stringstream from the input string
+        std::stringstream ss(str);
         std::string word;
 
         while (std::getline(ss, word, delimiter)) {
-            words.push_back(word); // Add each word to the vector
+            words.push_back(word);
         }
         return words;
     }
 
 	// parse ACL list into a map, empty intent list should be interpreted as all permissions granted
+	// FIXME: add unit tests
 	auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::pair<std::string, std::vector<int>>> {
 	    if (traceflag) fmt::println(stderr, "Trace  : parseACL({})", acl);
         std::map<std::string, std::pair<std::string, std::vector<int>>> aclmap;
@@ -418,7 +418,7 @@ namespace utils {
                     if(ws::intentnames.count(p)>0) {
                         numerical_intents.push_back(ws::intentnames.at(p));
                     } else {
-                        fmt::println(stderr, "Error  : invalid permission <{}> in ACL <{}>, ignoring", p, entry);
+                        fmt::println(stderr, "Error   : invalid permission <{}> in ACL <{}>, ignoring", p, entry);
                     }
                 }
                 aclmap[id] = std::pair{modifier, numerical_intents};

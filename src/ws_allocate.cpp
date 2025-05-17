@@ -30,7 +30,7 @@
 #include <iostream>
 #include <string>
 #include "fmt/base.h"
-#include "fmt/ranges.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
 
 #include <regex> // buggy in redhat 7
 

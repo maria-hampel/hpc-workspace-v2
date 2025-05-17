@@ -13,7 +13,7 @@
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024
+ *  (c) Holger Berger 2021,2023,2024,2025
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -43,7 +43,7 @@
 #include "db.h"
 #include "user.h"
 #include "fmt/base.h"
-#include "fmt/ranges.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
 //#include "fmt/ostream.h"
 
 #include "caps.h"
