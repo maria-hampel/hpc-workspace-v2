@@ -36,7 +36,6 @@
 
 #include <iostream>   // for program_options  FIXME:
 #include <memory>
-#include <mutex>
 
 #include <boost/program_options.hpp>
 #include "config.h"
@@ -46,7 +45,6 @@
 #include "user.h"
 #include "fmt/base.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
-//#include "fmt/ostream.h"
 
 #include "caps.h"
 #include "ws.h"

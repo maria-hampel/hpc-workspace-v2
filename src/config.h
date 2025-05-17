@@ -34,7 +34,6 @@
 #include <vector>
 #include <map>
 #include <filesystem>
-#include <fstream>
 #include <algorithm>
 
 #include "db.h"
@@ -82,7 +81,7 @@ struct Filesystem_config {
     bool extendable;                // is this filesystem extendable? (or read only?)
     bool restorable;                // can a workspace be restored into this filesystem?
 };
-#include "UserConfig.h"
+// #include "UserConfig.h"
 
 
 // global config, global settings + workspaces
