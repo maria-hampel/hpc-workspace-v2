@@ -85,6 +85,9 @@ namespace utils {
 	// new version, no terminfo
 	bool new_ruh();
 
+	// parse a ACL
+	auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::pair<std::string, std::vector<int>>>;
+
 }
 
 #endif
