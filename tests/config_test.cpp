@@ -255,6 +255,7 @@ filesystems:
         REQUIRE(config.validFilesystems("e", std::vector<string>{}, ws::LIST) == std::vector<string>{"third","first","fourth", "second"});
     }
 
+
     SECTION( "hasAccess") {
         auto config =  Config(std::string(R"(
 admins: [d]
@@ -278,17 +279,17 @@ filesystems:
 )"));
 
         // workspace no acl
-        REQUIRE(config.hasAccess("a", std::vector<string>{"cg","dg"},"testnoacl") == true);
+        REQUIRE(config.hasAccess("a", std::vector<string>{"cg","dg"},"testnoacl", ws::LIST) == true);
         // workspace with acl, through user
-        REQUIRE(config.hasAccess("a", std::vector<string>{"cg","dg"},"testacl") == true);
+        REQUIRE(config.hasAccess("a", std::vector<string>{"cg","dg"},"testacl", ws::LIST) == true);
         // workspace with acl, unknown user
-        REQUIRE(config.hasAccess("c", std::vector<string>{},"testacl") == false);
+        REQUIRE(config.hasAccess("c", std::vector<string>{},"testacl", ws::LIST) == false);
         // workspace with acl, through group
-        REQUIRE(config.hasAccess("c", std::vector<string>{"bg"},"testacl") == true);
+        REQUIRE(config.hasAccess("c", std::vector<string>{"bg"},"testacl", ws::LIST) == true);
         // workspace with acl, through group but forbidden as user
-        REQUIRE(config.hasAccess("b", std::vector<string>{"bg"},"testacl") == false);
+        REQUIRE(config.hasAccess("b", std::vector<string>{"bg"},"testacl", ws::LIST) == false);
         // admin user
-        REQUIRE(config.hasAccess("d", std::vector<string>{""},"testacl") == true);
+        REQUIRE(config.hasAccess("d", std::vector<string>{""},"testacl", ws::LIST) == true);
 
     }
 
@@ -314,7 +315,7 @@ filesystems:
 
 )"));
 
-        REQUIRE(config.hasAccess("d", std::vector<string>{""},"testacl") == true);
+        REQUIRE(config.hasAccess("d", std::vector<string>{""},"testacl", ws::LIST) == true);
     }
 
 
