@@ -1,3 +1,13 @@
+add_executable(utils_test
+    utils_test.cpp
+)
+target_link_libraries(utils_test
+    PRIVATE
+        ws_common
+        Catch2::Catch2WithMain
+)
+catch_discover_tests(utils_test)
+
 add_executable(config_test
     config_test.cpp
 )
