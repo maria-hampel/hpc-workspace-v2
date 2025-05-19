@@ -11,7 +11,7 @@ bool traceflag = false;
 
 TEST_CASE("utils", "[utils]") {
     SECTION("parceACL") {
-        auto m = utils::parseACL({"-a","+abc:list,create","c"});
+        auto m = utils::parseACL({"-a","+abc:list,create","-z","c"});
         REQUIRE(m["a"].first=="-");
         REQUIRE(m["abc"].first=="+");
         REQUIRE(m["c"].first=="+");

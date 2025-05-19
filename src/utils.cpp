@@ -401,8 +401,8 @@ namespace utils {
         std::map<std::string, std::pair<std::string, std::vector<int>>> aclmap;
         const std::regex acl_regex(R"(^([-+])?([^:]+)(:(\w+(,\w+)*)?)?$)");
         std::smatch base_match;
-        std::string modifier = "+";
         for(const auto &entry: acl) {
+            std::string modifier = "+";
             //if(debugflag) fmt::println(stderr, "   parseACL {}", entry);
             if (std::regex_match(entry, base_match, acl_regex)) {
                 if (base_match[1] == "+" || base_match[1] == "-") {
