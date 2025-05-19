@@ -346,23 +346,48 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
         if (debugflag) fmt::print(stderr,"Debug  :  ACLs present\n");
 
         if (filesystems.at(filesystem).group_acl.size()>0) {
-            utils::parseACL(filesystems.at(filesystem).group_acl);
             if (debugflag) fmt::print(stderr, "Debug  :    group ACL present,");
+            auto aclmap = utils::parseACL(filesystems.at(filesystem).group_acl);
+            for(const auto & group : groups) {
+                if (aclmap.count(group) > 0) {
+                    auto perm = aclmap[group];
+                    if (perm.second.size() == 0) {
+                       ok = perm.first == "+";
+                    } else {
+                       ok = canFind(perm.second, intent);
+                    }
+                    if (debugflag) fmt::print(stderr, "Debug  :    access for {} {}\n", group, ok?"granted":"denied");
+                }
+            }
+            /*  old cold old ACL syntax
             for(const auto & group : groups) {
                 if (canFind(filesystems.at(filesystem).group_acl, group)) ok = true;
                 if (canFind(filesystems.at(filesystem).group_acl, string("+")+group)) ok = true;
                 if (canFind(filesystems.at(filesystem).group_acl, string("-")+group)) ok = false;
                 if (debugflag) fmt::print(stderr, "Debug  :    access for {} {}\n", group, ok?"granted":"denied");
             }
+            */
         }
 
         if (filesystems.at(filesystem).user_acl.size()>0) {
-            utils::parseACL(filesystems.at(filesystem).user_acl);
             if (debugflag) fmt::print(stderr, "Debug  :    user ACL present,");
+            auto aclmap = utils::parseACL(filesystems.at(filesystem).user_acl);
+            if (aclmap.count(user) > 0) {
+                auto perm = aclmap[user];
+                if (perm.second.size() == 0) {
+                   ok = perm.first == "+";
+                } else {
+                   ok = canFind(perm.second, intent);
+                }
+                if (debugflag) fmt::print(stderr, "Debug  :    access for {} {}\n", user, ok?"granted":"denied");
+            }
+
+            /* old code for old ACL syntax
             if (canFind(filesystems.at(filesystem).user_acl, user)) ok = true;
             if (canFind(filesystems.at(filesystem).user_acl, string("+")+user)) ok = true;
             if (canFind(filesystems.at(filesystem).user_acl, string("-")+user)) ok = false;
             if (debugflag) fmt::print(stderr,"Debug  :    access for {} {}\n", user, ok?"granted":"denied");
+            */
         }
     }
 
