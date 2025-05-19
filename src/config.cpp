@@ -352,9 +352,13 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
                 if (aclmap.count(group) > 0) {
                     auto perm = aclmap[group];
                     if (perm.second.size() == 0) {
-                       ok = perm.first == "+";
+                        ok = (perm.first == "+");
                     } else {
-                       ok = canFind(perm.second, intent);
+                        if (perm.first == "+") {
+                            ok = canFind(perm.second, intent);
+                        } else {
+                            ok = !canFind(perm.second, intent);
+                        }
                     }
                     if (debugflag) fmt::print(stderr, "Debug  :    access for {} {}\n", group, ok?"granted":"denied");
                 }
@@ -375,9 +379,13 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
             if (aclmap.count(user) > 0) {
                 auto perm = aclmap[user];
                 if (perm.second.size() == 0) {
-                   ok = perm.first == "+";
+                    ok = (perm.first == "+");
                 } else {
-                   ok = canFind(perm.second, intent);
+                    if (perm.first == "+") {
+                        ok = canFind(perm.second, intent);
+                    } else {
+                        ok = !canFind(perm.second, intent);
+                    }
                 }
                 if (debugflag) fmt::print(stderr, "Debug  :    access for {} {}\n", user, ok?"granted":"denied");
             }
