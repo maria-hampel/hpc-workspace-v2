@@ -41,6 +41,7 @@
 #include "user.h"
 #include "utils.h"
 #include "caps.h"
+#include "UserConfig.h"
 #include "ws.h"
 
 #include <boost/program_options.hpp>
