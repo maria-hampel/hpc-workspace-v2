@@ -265,7 +265,7 @@ adminmail: [root]
 clustername: test
 workspaces:
     testacl:
-        user_acl: [+a,-b]
+        user_acl: [+a,-b,"+z:create","-y:list"]
         group_acl: [+bg]
         database: /tmp
         spaces: [/tmp]
@@ -290,6 +290,12 @@ filesystems:
         REQUIRE(config.hasAccess("b", std::vector<string>{"bg"},"testacl", ws::LIST) == false);
         // admin user
         REQUIRE(config.hasAccess("d", std::vector<string>{""},"testacl", ws::LIST) == true);
+
+        // acl extended syntax
+        REQUIRE(config.hasAccess("z", std::vector<string>{"cg","dg"},"testacl", ws::CREATE) == true);
+        REQUIRE(config.hasAccess("z", std::vector<string>{"cg","dg"},"testacl", ws::LIST) == false);
+        REQUIRE(config.hasAccess("y", std::vector<string>{"cg","dg"},"testacl", ws::LIST) == false);
+        REQUIRE(config.hasAccess("y", std::vector<string>{"cg","dg"},"testacl", ws::CREATE) == true);
 
     }
 
