@@ -34,6 +34,22 @@
       }
     },
     {
+      "name": "debug-macos",
+      "displayName": "Debug-MacOS",
+      "hidden": false,
+      "inherits": [
+        "config_common"
+      ],
+      "binaryDir": "build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug-MacOS",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "BUILD_TESTS": true,
+        "WS_ALLOW_USER_DEBUG": true,
+        "CMAKE_CXX_FLAGS": "-D_GLIBCXX_ASSERTIONS -fstack-protector-all -fsanitize=address -fsanitize=undefined"
+      }
+    },
+    {
       "name": "debug-nosan",
       "displayName": "Debug-nosan",
       "hidden": false,
@@ -92,6 +108,16 @@
       "hidden": false,
       "configurePreset": "debug",
       "configuration": "Debug",
+      "inherits": [
+        "build_common"
+      ]
+    },
+    {
+      "name": "debug-macos",
+      "displayName": "Debug build MacOS",
+      "hidden": false,
+      "configurePreset": "debug-macos",
+      "configuration": "Debug-MacOS",
       "inherits": [
         "build_common"
       ]

@@ -30,8 +30,6 @@
 
 
 #include <cstdlib>
-#include <sys/capability.h>
-
 
 #include "fmt/base.h"
 #include "fmt/ranges.h" // IWYU pragma: keep

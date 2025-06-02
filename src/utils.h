@@ -35,6 +35,7 @@
 #include <string>
 #include <vector>
 #include <regex>
+#include <map>
 
 #include "fmt/core.h"
 

@@ -56,7 +56,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 // for statfs
+#ifdef __linux__
 #include <sys/vfs.h>
+#elif __APPLE__
+#include <sys/mount.h>
+#include <sys/param.h>
+#endif
 // for getgrpnam
 #include <sys/types.h>
 #include <grp.h>
