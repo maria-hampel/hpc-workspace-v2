@@ -1,8 +1,6 @@
 setup() {
     load 'test_helper/common-setup'
     _common_setup
-    ws_name="bats_workspace_test"
-    export ws_name
 }
 
 
@@ -35,18 +33,25 @@ setup() {
     assert_output --partial "No such file or directory"
 }
 
-@test "ws_prepare create directorys" {
+@test "ws_prepare create directories" {
     sudo rm -fr /tmp/ws
     sudo env PATH=$PATH ws_prepare --config "bats/ws.conf"
     run ls /tmp/ws
     assert_output <<EOF1
     ws1
+    ws1-db
     ws2
     ws2-db
 EOF1
+    run ls -la /tmp/ws/ws1-db
+    assert_output --partial ".removed"
+    assert_output --partial ".ws_db_magic"
+    sudo rm -fr /tmp/ws 
 }
 
-cleanup() {
-    ws_release --config bats/ws.conf $ws_name
-    assert_failure
+@test "ws_prepare check existing directories - no change in permissions" {
+    run sudo env PATH=$PATH ws_prepare --config "bats/ws.conf"
+    assert_output --partial "existed already"
+    run rm -fr /tmp/ws
+    assert_success
 }
