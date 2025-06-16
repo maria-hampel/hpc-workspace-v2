@@ -88,6 +88,13 @@ ${USER}-sortTestB
 ${USER}-sortTestA
 ${USER}-sortTestC
 EOF3
+
+    run ws_list --config bats/ws.conf -s -r -C "sortTest*"
+    assert_output <<EOF9
+${USER}-sortTestC
+${USER}-sortTestA
+${USER}-sortTestB
+EOF9
 }
 
 @test "ws_list sorting by remaining time" {
@@ -101,6 +108,13 @@ ${USER}-sortTestA
 ${USER}-sortTestC
 ${USER}-sortTestB
 EOF4
+
+    run ws_list --config bats/ws.conf -s -r -R "sortTest*"
+    assert_output <<EOF10
+${USER}-sortTestB
+${USER}-sortTestC
+${USER}-sortTestA
+EOF10
 }
 
 @test "ws_list pattern" {
