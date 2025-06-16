@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
         fmt::println("  DB directory: {}", DBdir.string());
         if (!cppfs::exists(DBdir)) {
             try {
-                cppfs::create_directory(DBdir);
+                cppfs::create_directories(DBdir);
             } catch (cppfs::filesystem_error const& e) {
                 fmt::println(stderr, e.what());
             }
@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
         fmt::println("  DB deleted directory: {}", DBdeleted.string());
         if (!cppfs::exists(DBdeleted)) {
             try {
-                cppfs::create_directory(DBdeleted);
+                cppfs::create_directories(DBdeleted);
             } catch (cppfs::filesystem_error const& e) {
                 fmt::println(stderr, e.what());
             }
