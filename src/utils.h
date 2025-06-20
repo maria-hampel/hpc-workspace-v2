@@ -85,6 +85,11 @@ bool new_ruh();
 // parse a ACL
 auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::pair<std::string, std::vector<int>>>;
 
+// delete a directory and its contents, should be temper safe
+void rmtree(std::string path);
+
+
+
 } // namespace utils
 
 #endif

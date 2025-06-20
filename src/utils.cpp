@@ -34,6 +34,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <dirent.h>
 
 #include "ws.h"
 
@@ -65,6 +68,9 @@ using namespace std;
 extern bool debugflag;
 extern bool traceflag;
 extern Cap caps;
+
+// fwd
+static void rmtree_fd(int topfd, std::string path);
 
 namespace utils {
 
@@ -432,4 +438,95 @@ auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::
     }
     return aclmap;
 }
+
+
+// delete path be deleting contents and deleting path itself
+void rmtree(std::string path) {
+    struct stat orig_stat, new_stat;
+
+    int r = fstatat(0 , path.c_str(), &orig_stat, AT_SYMLINK_NOFOLLOW);
+    if (r) {
+        fmt::println(stderr, "Error   : fstatat {} -> {}", path, errno);
+    }
+
+    if(S_ISDIR(orig_stat.st_mode)) {
+        bool dirfd_closed = false;
+        int dirfd = openat(0, path.c_str(), O_RDONLY|O_CLOEXEC);
+        r = fstatat(dirfd, "", &new_stat, AT_EMPTY_PATH);
+        if (r==0 && memcmp(&new_stat, &orig_stat, sizeof(struct stat))==0) {
+            rmtree_fd(dirfd, path);
+            close(dirfd);
+            dirfd_closed = true;
+
+            r = unlinkat(0, path.c_str(), AT_REMOVEDIR);
+            if(r) {
+                fmt::println(stderr, "Error   : unlinkat {} -> {}", path, errno);
+            }
+        }
+        if (!dirfd_closed) close(dirfd);
+    }
+}
+
 } // namespace utils
+
+// internal recursive functions, based on file handles
+static void rmtree_fd(int topfd, std::string path) {
+    auto dir = fdopendir(topfd);
+    if (dir != nullptr) {
+        std::vector<struct dirent*> entries;
+
+        auto entry = readdir(dir);
+        while(entry) {
+            entries.push_back(entry);
+            errno=0;
+            entry = readdir(dir);
+            if(entry==nullptr && errno!=0) {
+                fmt::println(stderr, "Error   : errno={}", errno);
+            }
+        }
+
+        for(auto &ent: entries) {
+            if (ent->d_type==DT_DIR) {
+                // ignore . and .. !!!!!!!
+                if (strcmp((const char *)&ent->d_name[0], ".") &&
+                    strcmp((const char *)&ent->d_name[0], ".."))
+                {
+                    struct stat orig_stat, new_stat;
+
+                    int r = fstatat(topfd, (const char *)&ent->d_name[0], &orig_stat, AT_SYMLINK_NOFOLLOW);
+                    if (r) {
+                        fmt::println(stderr, "Error   : fstatat {} {}/{} -> {}", topfd, path, (const char *)&ent->d_name[0], errno);
+                        continue;
+                    }
+
+                    if(S_ISDIR(orig_stat.st_mode)) {
+                        int dirfd = openat(topfd, (const char *)&ent->d_name[0], O_RDONLY|O_CLOEXEC);
+                        bool dirfd_closed = false;
+                        r = fstatat(dirfd, "", &new_stat, AT_EMPTY_PATH);
+                        if (r==0 && memcmp(&new_stat, &orig_stat, sizeof(struct stat))==0) {
+                            rmtree_fd(dirfd, fs::path(path) / (const char *)&ent->d_name[0]);
+                            close(dirfd);
+                            dirfd_closed = true;
+
+                            r = unlinkat(topfd, (const char *)&ent->d_name[0],AT_REMOVEDIR);
+                            if(r) {
+                                fmt::println(stderr, "Error   : unlinkat {}/{} -> {}", path, (const char *)&ent->d_name[0], errno);
+                            }
+                        } else {
+                            fmt::println(stderr, "Error   : rmtree hit a symbolic link!");
+                        }
+                        if (!dirfd_closed) close(dirfd);
+                    }
+                }
+            } else {
+                int r = unlinkat(topfd, (const char *)&ent->d_name[0], 0);
+                if(r) {
+                    fmt::println(stderr, "Error   : unlinkat {}/{} -> {}", path, (const char *)&ent->d_name[0], errno);
+                }
+            }
+        }
+        closedir(dir);
+    } else {
+        fmt::println(stderr, "Error   : fdopendir {} -> {}", topfd, errno);
+    }
+}
