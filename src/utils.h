@@ -88,8 +88,6 @@ auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::
 // delete a directory and its contents, should be temper safe
 void rmtree(std::string path);
 
-
-
 } // namespace utils
 
 #endif
