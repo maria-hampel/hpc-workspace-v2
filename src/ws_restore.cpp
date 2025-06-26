@@ -162,8 +162,20 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
  */
 bool check_name(const string name, const string username, const string real_username) {
     // split the name in username, name and timestamp
-    auto pos = name.find("-");
-    auto owner = name.substr(0, pos);
+    // as username can contain -, splitting is not good here
+    //  name has shape:    username-id-timestamp
+    //                             ^ search for this
+    auto lpos = name.rfind("-");
+    if (lpos==string::npos) {
+	    fmt::println(stderr, "Error  : unexpected error in check_name, no - in name");
+            exit(-1);
+    }
+    auto pos = name.rfind("-", lpos-1);
+    if (pos==string::npos) {
+	    fmt::println(stderr, "Error  : unexpected error in check_name, no second - in name");
+            exit(-1);
+    }
+    auto owner = name.substr(0, pos+1);
 
     // we checked already that only root can use another username with -u, so here
     // we know we are either root or username == real_username
