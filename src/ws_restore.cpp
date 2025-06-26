@@ -175,7 +175,7 @@ bool check_name(const string name, const string username, const string real_user
         fmt::println(stderr, "Error  : unexpected error in check_name, no second - in name");
         exit(-1);
     }
-    auto owner = name.substr(0, pos + 1);
+    auto owner = name.substr(0, pos);
 
     // we checked already that only root can use another username with -u, so here
     // we know we are either root or username == real_username
