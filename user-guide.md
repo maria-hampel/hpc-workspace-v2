@@ -1,7 +1,7 @@
 # Workspace user guide
 
 For the latest version (which might not fit your installation) see
-    https://github.com/holgerBerger/hpc-workspace/blob/master/user-guide.md
+    https://github.com/holgerBerger/hpc-workspace-v2/blob/master/user-guide.md
 
 
 ## motivation
@@ -106,7 +106,7 @@ You can change reminder and email address of an existing workspace using ```ws_a
 
 ## cooperative usage (group workspaces and sharing with other users)
 
-When a workspace is created with ```-g``` it gets a group workspace that is visible to others with ```ws_list -g``` (if in same group), 
+When a workspace is created with ```-g``` it gets a group workspace that is visible to others with ```ws_list -g``` (if in same group),
 and is group readable.
 
 When it is created with ```-G <groupname>``` the workspace gets writable as well, and gets group sticky bit. The group can be specified in
@@ -130,4 +130,3 @@ duration: 10
 reminder: 3
 groupname: abba
 ```
-
