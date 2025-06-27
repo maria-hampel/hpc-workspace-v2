@@ -104,12 +104,12 @@ for testing:
 - [x] debug what is there
 - [ ] migrate more tools: migrate ws_expirer, ws_validate_config
 - [ ] add tests for new tools
-- [ ] debug what is there
+- [x] debug what is there
 - [x] get CMake setup in better shape
 - [x] remove tbb dependency
-- [ ] migrate and check/correct/add documentation, guides and man pages
-- [ ] test with more compilers and distributions
-- [ ] do real live tests
+- [x] migrate and check/correct/add documentation, guides and man pages
+- [x] test with more compilers and distributions
+- [x] do real live tests
 - [ ] define and implement new DB format
 
 ## Input and ideas and contributions needed
