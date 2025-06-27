@@ -1,0 +1,76 @@
+.TH ws_release 1 "February 2023" "USER COMMANDS"
+
+.SH NAME
+ws_release \- release a workspace directory and free the workspace name
+
+.SH SYNOPSIS
+.B ws_release
+[\-h] [\-F filesystem] [\-\-delete\-data] NAME 
+
+.SH DESCRIPTION
+Release the 
+.B workspace 
+NAME for the calling user.
+This command will make the workspace data unavailable to the user, and make NAME usable for a new
+.B workspace
+. 
+
+The idea of the 
+.B workspace 
+is to allow the administrator to keep control of filespace in working filesystems,
+and to avoid the situations that data of past and finished projects/jobs is idling for
+ever on disks. A user can create and dispose arbitrary number of workspaces, they are cheap,
+and can be created e.g. for each job.
+
+From the system side, 
+.B workspaces 
+will be deleted after beeing expired. A friendly user can release workspaces before the expiration
+date using
+.B ws_release
+which will mark the 
+.B workspace 
+for deletion and make the data unavailable.
+
+Deletion is probably a task done once a night and not immediately. Data left in workspaces after releasing them therefore still accounts for disk quota if enabled by the administrator. If the user is short on available quota it makes sense to manually remove the content inside the workspace directory using
+.B rm
+before releasing the workspace, or using the --deleta-data option.
+
+If a
+.B workspace
+was forgotten and expired or released in error, it might make sense to contact the administrator,
+as he probaly can restore a workspace for some time, if disk space is not low.
+
+.PP
+
+.SH OPTIONS
+.TP
+\-h 
+display usage help text
+.TP
+\-F
+select the filesystem to release the workspace from, there is always a default for this.
+See 
+.B ws_list
+\-l
+for a list of available filesystems.
+.TP
+\-\-delete-data
+delete the data in the workspace immediately. This will not allow you to recover the data in
+case of error. This might be usefull if you have to free quota. Use with care! There is a warning
+and a 5 second grace period to stop this operation.
+.TP
+\--userworkspace
+for root only: release a user's workspace, with the id as seen in
+.B ws_list.
+
+.SH EXAMPLES
+.TP
+release a workspace:
+.B ws_release
+myworkspace 
+
+.SH AUTHOR
+Written by Holger Berger
+
+.SH SEE ALSO
+ws_allocate, ws_list, ws_find, ws_restore

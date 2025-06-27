@@ -1,0 +1,134 @@
+.TH ws_allocate 1 "March 2013" "USER COMMANDS"
+
+.SH NAME
+ws_allocate \- create a workspace directory and return its path
+
+.SH SYNOPSIS
+.B ws_allocate
+[\-h] [\-x] [\-g] [\-G GROUPNAME] [\-F FILESYSTEM] [\-r DAYS] [\-m MAILADDRESS] [\-c COMMENT] NAME DURATION
+
+.SH DESCRIPTION
+Create a 
+.B workspace 
+for the calling user with name NAME which will exist for DURATION days.
+The command will always return the full name of the created directory on stdout, and will print
+some information to stderr.
+A 
+.B workspace 
+has a limited lifetime, which can be restricted by the administrator.
+The DURATION might be cut to that maximum, a warning will be printed in that case.
+
+A 
+.B workspace 
+can be extended if allowed by the administrator, who might limit the number
+of extensions.
+
+A reminder email can be sent to address MAILADDRESS (or address from ~/.ws_user.conf)
+DAYS before the 
+.B
+workspace 
+expires. This will be done probably during a nightly cleanup run, do not expect it to come
+exactly in time but rather the night after the warning period is met.
+
+The idea of the 
+.B workspace 
+is to allow the administrator to keep control of filespace in working filesystems,
+and to avoid the situations that data of past and finished projects/jobs is idling for
+ever on disks. A user can create and dispose arbitrary number of workspaces, they are cheap,
+and can be created e.g. for each job.
+
+For the administrator, 
+.B workspaces 
+offer further advantages, like beeing able to migrate users to another filesystem over time,
+and to do loadbalancing over directories and filesystems.
+
+From the system side, 
+.B workspaces 
+will be deleted after beeing expired. A friendly user can release workspaces before the expiration
+date using
+.B ws_release
+which will mark the 
+.B workspace 
+for future deletion and make the data unavailable for the user.
+
+Deletion is probably a task done once a night and not immediately.
+
+If a
+.B workspace
+was forgotten and expired, it might make sense to contact the administrator,
+as he probaly can restore a workspace for some time, if disk space is not low.
+Check if 
+.B ws_restore
+is available to restore workspaces that are still in the hidden area.
+
+.PP
+
+.SH OPTIONS
+.TP
+\-h 
+display usage help text
+.TP
+\-x
+extend an existing workspace until today + DURATION days.
+The number of extensions can be limited. Can be combined with -m to add a mail address
+and with -r to add reminder to existing workspaces. If used with 0 as duration, it does
+not consume an extension.
+.TP
+\-F
+select the filesystem to create the workspace in, there is always a default for this.
+See 
+.B ws_list
+\-l 
+for a list of available filesystems.
+.TP
+\-m
+mailaddress to send reminder mail to, can be combined with -x to add mailaddress to existing workspace (combine with duration 0).
+.TP
+\-c
+comment to attach to workspace, can be combined with -x to change comment of an existing workspace (combine with duration 0).
+.TP
+\-r DAYS
+reminder email will be sent DAYS days before the
+.B
+workspace 
+will expire, can be combined with -x to add reminder to existing workspace. This could be sent in the night after the exact point in time, during a cleanup.
+See 
+.B ws_send_ical 
+for a way to send calendar entries.
+.TP
+\-g 
+a group-workspace will be created, that is a workspace that can be seen by other members of current group with 
+.B ws_list -g
+and the workspace itself is created group readable.
+.TP
+\-G GROUPNAME
+use the GROUPNAME as group for the workspace, make the workspace group writable and set the group sticky bit.
+
+.SH EXAMPLES
+.TP
+create a workspace for 10 days:
+.B ws_allocate
+myworkspace 10
+
+.SH FILES
+.B
+~/.ws_user.conf 
+user config file to store some default values. File format is yaml, possible keys are mail, duration, reminder and groupname.
+Those values can be overwritten with options on commandline.
+
+.TP
+Example:
+mail: user@domain
+.br
+reminder: 1
+.br
+groupname: boygroup
+.br
+duration: 10
+
+
+.SH AUTHOR
+Written by Holger Berger
+
+.SH SEE ALSO
+ws_release, ws_list, ws_find, ws_restore, ws_send_ical
