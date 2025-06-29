@@ -94,3 +94,13 @@ target_link_libraries(ws_register
         ${Boost_LIBRARIES}
         fmt::fmt
 )
+
+add_executable(ws_expirer
+    ws_expirer.cpp
+)
+target_link_libraries(ws_expirer
+    PRIVATE
+        ws_common
+        ${Boost_LIBRARIES}
+        fmt::fmt
+)
