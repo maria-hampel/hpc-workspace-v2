@@ -29,10 +29,10 @@
  *
  */
 
+#include <filesystem>
 #include <iostream> // for program_options  FIXME:
 #include <memory>
 #include <vector>
-#include <filesystem>
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -60,11 +60,10 @@ bool traceflag = false;
 
 int main(int argc, char** argv) {
 
-    //options and flags
+    // options and flags
     string filesystem;
     string directory;
     string configfile;
-    bool verbose;
 
     po::variables_map opts;
 
@@ -73,13 +72,10 @@ int main(int argc, char** argv) {
 
     // define options
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()
-        ("help,h", "produce help message")
-        ("version,V", "show version")
-        ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
-        ("directory,d", po::value<string>(&directory), "target directory")
-        ("configfile,c", po::value<string>(&configfile), "path to configfile")
-        ("verbose,v","verbose output");
+    cmd_options.add_options()("help,h", "produce help message")("version,V", "show version")(
+        "filesystem,F", po::value<string>(&filesystem),
+        "filesystem to list workspaces from")("directory,d", po::value<string>(&directory), "target directory")(
+        "configfile,c", po::value<string>(&configfile), "path to configfile");
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show tracing information");
@@ -101,10 +97,6 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    // get flags
-
-    verbose = opts.count("verbose");
-
 #ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
 #else
@@ -114,11 +106,9 @@ int main(int argc, char** argv) {
         traceflag = opts.count("trace");
     }
 
-
     // handle options exiting here
 
-    if (opts.count("help") || opts.count("directory")==0 )
-    {
+    if (opts.count("help") || opts.count("directory") == 0) {
         fmt::print("Usage: {} [options] DIRECTORY\n", argv[0]);
         cout << cmd_options << endl; // FIXME: can not be printed with fmt??
         exit(0);
@@ -151,30 +141,40 @@ int main(int argc, char** argv) {
     string username = user::getUsername(); // used for rights checks
     auto grouplist = user::getGrouplist();
 
-    for(auto const &fs: config.validFilesystems(username, grouplist, ws::LIST)) {
-        std::vector<string> keeplist;
-        if (!cppfs::exists(cppfs::path(directory)/fs)) {
-            cppfs::create_directories(cppfs::path(directory)/fs);
+    for (auto const& fs : config.validFilesystems(username, grouplist, ws::LIST)) {
+        std::vector<string> keeplist, createlist;
+        if (!cppfs::exists(cppfs::path(directory) / fs)) {
+            cppfs::create_directories(cppfs::path(directory) / fs);
         }
 
         // create links
         std::unique_ptr<Database> db(config.openDB(fs));
         for (auto const& id : db->matchPattern("*", username, grouplist, false, false)) {
-            auto wsname = db->readEntry(id, false)->getWSPath();
-            auto linkpath = cppfs::path(directory) / fs / cppfs::path(wsname).filename();
-            keeplist.push_back(linkpath);
-            if (!cppfs::exists(linkpath) && !cppfs::is_symlink(linkpath)) {
-                cppfs::create_symlink(wsname, linkpath);
+            try {
+                std::unique_ptr<DBEntry> entry(db->readEntry(id, false));
+                if (entry) {
+                    auto wsname = entry->getWSPath();
+                    auto linkpath = cppfs::path(directory) / fs / cppfs::path(wsname).filename();
+                    keeplist.push_back(linkpath);
+                    if (!cppfs::exists(linkpath) && !cppfs::is_symlink(linkpath)) {
+                        fmt::println("creating link {}", linkpath.string());
+                        cppfs::create_symlink(wsname, linkpath);
+                        createlist.push_back(linkpath);
+                    }
+                }
+            } catch (DatabaseException& e) {
+                fmt::println(e.what());
             }
         }
 
         // delete links not beeing workspaces anymore
-        for(auto const &f: utils::dirEntries(cppfs::path(directory)/fs, username + "-*")) {
-            fmt::println(f);
-            auto fullpath = cppfs::path(directory)/fs/f;
+        for (auto const& f : utils::dirEntries(cppfs::path(directory) / fs, username + "-*")) {
+            auto fullpath = cppfs::path(directory) / fs / f;
             if (cppfs::is_symlink(fullpath)) {
                 if (canFind(keeplist, fullpath)) {
-                    fmt::println("keeping link {}", fullpath.string());
+                    if (!canFind(createlist, fullpath)) {
+                        fmt::println("keeping link {}", fullpath.string());
+                    }
                 } else {
                     fmt::println("removing link {}", fullpath.string());
                     cppfs::remove(fullpath);
@@ -182,5 +182,4 @@ int main(int argc, char** argv) {
             }
         }
     }
-
 }
