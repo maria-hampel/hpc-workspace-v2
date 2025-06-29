@@ -591,6 +591,29 @@ void DBEntryV1::release(const std::string timestamp) {
                    utils::SrcPos(__FILE__, __LINE__, __func__));
 }
 
+// set expired (not released)
+// SPEC: can be called by root only!
+// SPEC: does not work on root_squash!
+void DBEntryV1::expire(const std::string timestamp) {
+    auto wsconfig = parent_db->getconfig()->getFsConfig(filesystem);
+    cppfs::path dbtarget = cppfs::path(wsconfig.database) / cppfs::path(wsconfig.deletedPath) /
+                           cppfs::path(fmt::format("{}-{}", id, timestamp));
+
+    if (debugflag)
+        fmt::println(stderr, "Debug  : dbtarget={}", dbtarget.string());
+
+    try {
+        if (debugflag)
+            fmt::println("Debug  : rename({}, {})", dbfilepath, dbtarget.string());
+        cppfs::rename(dbfilepath, dbtarget);
+        dbfilepath = dbtarget.string(); // entry knows now the new name, for remove, but is not persistent
+    } catch (const std::filesystem::filesystem_error& e) {
+        if (debugflag)
+            fmt::println(stderr, "Error  : {}", e.what());
+        throw DatabaseException("Error  : database entry could not be deleted!");
+    }
+}
+
 // remove DB entry
 void DBEntryV1::remove() {
     caps.raise_cap({CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));

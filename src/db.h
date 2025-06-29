@@ -64,6 +64,8 @@ class DBEntry {
     virtual void setExpiration(const time_t timestamp) = 0;
     // change release date (mark as released and not expired) and write updated entry and move entry
     virtual void release(const std::string timestamp) = 0;
+    // set expired (not released) can be called by root only
+    virtual void expire(const std::string timestamp) = 0;
 
     // consume an extension (writes entry back)
     virtual void useExtension(const long expiration, const string mail, const int reminder, const string comment) = 0;
