@@ -71,10 +71,13 @@ int main(int argc, char** argv) {
 
     // define options
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V", "show version")(
-        "filesystem,F", po::value<string>(&filesystem),
-        "filesystem to list workspaces from")("directory,d", po::value<string>(&directory), "target directory")(
-        "configfile,c", po::value<string>(&configfile), "path to configfile");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")("version,V", "show version")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
+        ("directory,d", po::value<string>(&directory), "target directory")
+        ("configfile,c", po::value<string>(&configfile), "path to configfile");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show tracing information");

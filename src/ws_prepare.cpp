@@ -74,8 +74,12 @@ int main(int argc, char** argv) {
 
     // define options
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V", "show version")(
-        "config", po::value<string>(&configfile), "config file");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("version,V", "show version")
+        ("config", po::value<string>(&configfile), "config file");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show tracing information");

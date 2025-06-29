@@ -69,16 +69,19 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     // define all options
 
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V", "show version")(
-        "duration,d", po::value<int>(&duration), "duration in days")(
-        "name,n", po::value<string>(&name), "workspace name")("filesystem,F", po::value<string>(&filesystem),
-                                                              "filesystem name (see ws_list -l for possible values)")(
-        "reminder,r", po::value<int>(&reminder), "reminder to be sent <arg> days before expiration")(
-        "mailaddress,m", po::value<string>(&mailaddress), "mailaddress to send reminder to")(
-        "extension,x", "extend workspace (can change mailaddress, reminder and comment as well)")(
-        "username,u", po::value<string>(&user), "username")("group,g", "group readable workspace")(
-        "groupname,G", po::value<string>(&groupname)->default_value(""), "for group <arg> writable workspace")(
-        "comment,c", po::value<string>(&comment), "comment")("config", po::value<string>(&configfile), "config file");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")("version,V", "show version")
+        ("duration,d", po::value<int>(&duration), "duration in days")
+        ("name,n", po::value<string>(&name), "workspace name")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem name (see ws_list -l for possible values)")
+        ("reminder,r", po::value<int>(&reminder), "reminder to be sent <arg> days before expiration")
+        ("mailaddress,m", po::value<string>(&mailaddress), "mailaddress to send reminder to")
+        ("extension,x", "extend workspace (can change mailaddress, reminder and comment as well)")
+        ("username,u", po::value<string>(&user), "username")("group,g", "group readable workspace")
+        ("groupname,G", po::value<string>(&groupname)->default_value(""), "for group <arg> writable workspace")
+        ("comment,c", po::value<string>(&comment), "comment")("config", po::value<string>(&configfile), "config file");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show calling information");

@@ -64,14 +64,19 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
     // define all options
 
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V",
-                                                                "show version")("list,l", "list restorable workspaces")(
-        "brief,b", "do not show unavailability date in list")("name,n", po::value<string>(&name), "workspace name")(
-        "target,t", po::value<string>(&target),
-        "existing target workspace name")("filesystem,F", po::value<string>(&filesystem),
-                                          "filesystem")("config,c", po::value<string>(&configfile), "config file")(
-        "username,u", po::value<string>(&username), "username")("delete-data",
-                                                                "delete all data, workspace can NOT BE RECOVERED!");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("version,V", "show version")
+        ("list,l", "list restorable workspaces")
+        ("brief,b", "do not show unavailability date in list")
+        ("name,n", po::value<string>(&name), "workspace name")
+        ("target,t", po::value<string>(&target), "existing target workspace name")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem")
+        ("config,c", po::value<string>(&configfile), "config file")
+        ("username,u", po::value<string>(&username), "username")
+        ("delete-data", "delete all data, workspace can NOT BE RECOVERED!");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show calling information");

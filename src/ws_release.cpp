@@ -69,13 +69,17 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
     // define all options
 
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V", "show version")(
-        "name,n", po::value<string>(&name), "workspace name")("filesystem,F", po::value<string>(&filesystem),
-                                                              "filesystem")("username,u", po::value<string>(&user),
-                                                                            "username")(
-        "groupname,G", po::value<string>(&groupname)->default_value(""),
-        "groupname")("config,c", po::value<string>(&configfile),
-                     "config file")("delete-data", "delete all data, workspace can NOT BE RECOVERED!");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("version,V", "show version")
+        ("name,n", po::value<string>(&name), "workspace name")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem")
+        ("username,u", po::value<string>(&user), "username")
+        ("groupname,G", po::value<string>(&groupname)->default_value(""), "groupname")
+        ("config,c", po::value<string>(&configfile), "config file")
+        ("delete-data", "delete all data, workspace can NOT BE RECOVERED!");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show calling information");
