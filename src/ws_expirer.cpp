@@ -32,6 +32,7 @@
 #include <filesystem>
 #include <iostream> // for program_options  FIXME:
 #include <vector>
+#include <algorithm>
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -56,6 +57,8 @@ using namespace std;
 
 bool debugflag = false;
 bool traceflag = false;
+
+bool cleanermode = false;
 
 struct expire_result_t {
     long expired_ws;
@@ -129,79 +132,83 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
     }
 
     fmt::println("  {} workspaces expired, {} kept.", result.expired_ws, result.kept_ws);
-/*
+
     fmt::println("Checking deleted DB for workspaces to be deleted for {}", fs);
 
     // search in DB for expired/released workspaces for those over keeptime to delete them
-    for(auto const &id: db.matchPattern("*", "*", {}, true, false)) {
-        DBEntry dbentry;
+    for(auto const &id: db->matchPattern("*", "*", {}, true, false)) {
+        std::unique_ptr<DBEntry> dbentry;
         try {
-            dbentry = db.readEntry(fs, id, true);
-        } catch (Exception e) {
-            stderr.writeln("  ERROR, skiping db entry ", id);
+            dbentry = std::unique_ptr<DBEntry>(db->readEntry(id, true));
+            if (!dbentry) {
+                fmt::println(stderr, "Error   : skipping db entry {}", id);
+                continue;
+            }
+        } catch (DatabaseException& e) {
+            fmt::println(e.what());
+            fmt::println(stderr, "Error   : skipping db entry {}", id);
             continue;
         }
 
-        auto expiration = dbentry.getExpiration;
-        auto releasetime = dbentry.getReleasetime;
-        auto keeptime = config.keeptime(fs);
+        auto expiration = dbentry->getExpiration();
+        auto releasetime = dbentry->getReleaseTime();
+        auto keeptime = config.getFsConfig(fs).keeptime;
 
         // get released time from name = id
         try {
-            releasetime = to!int(id.split("-")[2]);
-        } catch (core.exception.ArrayIndexError) {
-            stderr.writeln("  ERROR, skiping unparsable name DB entry ", id);
+            releasetime = std::stol(utils::splitString(id, '-').at(std::count(id.begin(), id.end(), '-'))); // count from back, for usernames with "-"
+        } catch (const out_of_range& e) {
+            fmt::println(stderr, "Error    : skipping DB entry with unparsable name {}", id);
             continue;
         }
 
-        auto released = dbentry.getReleasetime; // check if it was released by user
-        if (released > 1_000_000_000) { // released after 2001? if not ignore it
+        auto released = dbentry->getReleaseTime(); // check if it was released by user
+        if (released > 1000000000L) { // released after 2001? if not ignore it
             releasetime = released;
         } else {
-            releasetime = 3_000_000_000;    // date in future, 2065
-            stderr.writeln("  IGNORING released ",releasetime, " for ", id);
+            releasetime = 3000000000L;    // date in future, 2065
+            fmt::println(stderr, "  IGNORING released {} for {}", releasetime, id);
         }
 
-        if (  (time(cast(long *)0L) > (expiration + keeptime*24*3600))
-                        || (time(cast(long *)0L) > releasetime + 3600)  ) {
+        if ( (time((long *)0L) > (expiration + keeptime*24*3600))
+                        || (time((long *)0L) > releasetime + 3600)  ) {
 
             result.deleted_ws++;
 
-            if (time(cast(long *)0L) > releasetime + 3600) {
-                stdout.writeln(" deleting DB entry", id, ", was released ", fromStringz(ctime(&releasetime))[1..$-1]);
+            if (time((long *)0L) > releasetime + 3600) {
+                fmt::println(" deleting DB entry {}, was released ", id, ctime(&releasetime));
             } else {
-                stdout.writeln(" deleting DB entry", id, ", expired ", fromStringz(ctime(&expiration))[1..$-1]);
+                fmt::println(" deleting DB entry {}, expired ", id, ctime(&expiration));
             }
-            if(!dryrun) {
-                db.deleteEntry(fs, id);
+            if(cleanermode) {
+                db->deleteEntry(id, true);
             }
 
-            auto wspath = buildPath( dirName(dbentry.getWSPath()), config.deletedPath(fs), id);
-            stdout.writeln(" deleting directory: ",wspath);
-            if(!dryrun) {
+            auto wspath = cppfs::path(dbentry->getWSPath()) / config.getFsConfig(fs).deletedPath / id;
+            fmt::println(" deleting directory: {}", wspath.string());
+            if(cleanermode) {
                 try {
-                    std.file.rmdirRecurse(wspath);
-                } catch (FileException e) {
-                    stderr.writeln("  failed to remove: ", wspath, " (",e.msg,")");
+                    utils::rmtree(wspath.string());
+                } catch (cppfs::filesystem_error &e) {
+                    fmt::println(stderr, "  failed to remove: {} ({})", wspath.string(), e.what());
                 }
             }
         } else {
-            stdout.writeln(" (keeping restorable ", id,")"); // TODO: add expiration + keeptime
+            fmt::println(" (keeping restorable {})", id); // TODO: add expiration + keeptime
         }
 
     }
 
-    stdout.writefln("  %d workspaces deleted.", result.deleted_ws);
-    */
-    return result;
+    fmt::println("  {} workspaces deleted.", result.deleted_ws);
 
+    return result;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
 
     // options and flags
     string filesystem;
-    bool cleanermode = false;
     string configfile;
 
     po::variables_map opts;
