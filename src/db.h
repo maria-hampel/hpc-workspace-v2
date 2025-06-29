@@ -82,6 +82,7 @@ class DBEntry {
     virtual string getMailaddress() const = 0;
     virtual string getComment() const = 0;
     virtual long getExpiration() const = 0;
+    virtual long getReleaseTime() const = 0;
     virtual string getFilesystem() const = 0;
 
     // get config of parent DB

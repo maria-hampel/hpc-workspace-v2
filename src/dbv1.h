@@ -104,6 +104,7 @@ class DBEntryV1 : public DBEntry {
     long getCreation() const;
     string getWSPath() const;
     long getExpiration() const;
+    long getReleaseTime() const;
     string getFilesystem() const;
 
     // return config of parent DB

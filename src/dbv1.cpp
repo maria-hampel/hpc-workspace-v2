@@ -540,6 +540,8 @@ string DBEntryV1::getComment() const { return comment; }
 
 long DBEntryV1::getExpiration() const { return expiration; }
 
+long DBEntryV1::getReleaseTime() const { return released; }
+
 string DBEntryV1::getFilesystem() const { return filesystem; }
 
 // change expiration time
