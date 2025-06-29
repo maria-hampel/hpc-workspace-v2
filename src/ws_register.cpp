@@ -1,0 +1,186 @@
+/*
+ *  hpc-workspace-v2
+ *
+ *  ws_register
+ *
+ *  - tool to maintain links to workspaces workspaces
+ *    changes to workspace++:
+ *      - c++ implementation (not python anymore)
+ *
+ *  c++ version of workspace utility
+ *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
+ *
+ *  (c) Holger Berger 2021,2023,2024,2025
+ *
+ *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
+ *
+ *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  hpc-workspace-v2 is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with workspace-ng  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <iostream> // for program_options  FIXME:
+#include <memory>
+#include <vector>
+#include <filesystem>
+
+#include "config.h"
+#include <boost/program_options.hpp>
+
+#include "build_info.h"
+#include "db.h"
+#include "fmt/base.h"
+#include "fmt/ranges.h" // IWYU pragma: keep
+#include "user.h"
+
+#include "caps.h"
+#include "utils.h"
+#include "ws.h"
+
+// init caps here, when euid!=uid
+Cap caps{};
+
+namespace po = boost::program_options;
+namespace cppfs = std::filesystem;
+
+using namespace std;
+
+bool debugflag = false;
+bool traceflag = false;
+
+int main(int argc, char** argv) {
+
+    //options and flags
+    string filesystem;
+    string directory;
+    string configfile;
+    bool verbose;
+
+    po::variables_map opts;
+
+    // locals settings to prevent strange effects
+    utils::setCLocal();
+
+    // define options
+    po::options_description cmd_options("\nOptions");
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("version,V", "show version")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
+        ("directory,d", po::value<string>(&directory), "target directory")
+        ("configfile,c", po::value<string>(&configfile), "path to configfile")
+        ("verbose,v","verbose output");
+
+    po::options_description secret_options("Secret");
+    secret_options.add_options()("debug", "show debugging information")("trace", "show tracing information");
+
+    // define options without names
+    po::positional_options_description p;
+    p.add("directory", 1);
+
+    po::options_description all_options;
+    all_options.add(cmd_options).add(secret_options);
+
+    // parse commandline
+    try {
+        po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opts);
+        po::notify(opts);
+    } catch (...) {
+        fmt::print("Usage: {} [options] DIRECTORY\n", argv[0]);
+        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        exit(1);
+    }
+
+    // get flags
+
+    verbose = opts.count("verbose");
+
+#ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
+    if (user::isRoot()) {
+#else
+    {
+#endif
+        debugflag = opts.count("debug");
+        traceflag = opts.count("trace");
+    }
+
+
+    // handle options exiting here
+
+    if (opts.count("help") || opts.count("directory")==0 )
+    {
+        fmt::print("Usage: {} [options] DIRECTORY\n", argv[0]);
+        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        exit(0);
+    }
+
+    // read config
+    //   user can change this if no setuid installation OR if root
+    auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d", "/etc/ws.conf"};
+    if (configfile != "") {
+        if (user::isRoot() || caps.isUserMode()) {
+            configfilestoread = {configfile};
+        } else {
+            fmt::print(stderr, "Warning: ignored config file options!\n");
+        }
+    }
+
+    auto config = Config(configfilestoread);
+    if (!config.isValid()) {
+        fmt::println(stderr, "Error  : No valid config file found!");
+        exit(-2);
+    }
+
+    // main logic from here
+
+    if (!cppfs::exists(cppfs::path(directory))) {
+        cppfs::create_directories(cppfs::path(directory));
+    }
+
+    // get user and groups
+    string username = user::getUsername(); // used for rights checks
+    auto grouplist = user::getGrouplist();
+
+    for(auto const &fs: config.validFilesystems(username, grouplist, ws::LIST)) {
+        std::vector<string> keeplist;
+        if (!cppfs::exists(cppfs::path(directory)/fs)) {
+            cppfs::create_directories(cppfs::path(directory)/fs);
+        }
+
+        // create links
+        std::unique_ptr<Database> db(config.openDB(fs));
+        for (auto const& id : db->matchPattern("*", username, grouplist, false, false)) {
+            auto wsname = db->readEntry(id, false)->getWSPath();
+            auto linkpath = cppfs::path(directory) / fs / cppfs::path(wsname).filename();
+            keeplist.push_back(linkpath);
+            if (!cppfs::exists(linkpath) && !cppfs::is_symlink(linkpath)) {
+                cppfs::create_symlink(wsname, linkpath);
+            }
+        }
+
+        // delete links not beeing workspaces anymore
+        for(auto const &f: utils::dirEntries(cppfs::path(directory)/fs, username + "-*")) {
+            fmt::println(f);
+            auto fullpath = cppfs::path(directory)/fs/f;
+            if (cppfs::is_symlink(fullpath)) {
+                if (canFind(keeplist, fullpath)) {
+                    fmt::println("keeping link {}", fullpath.string());
+                } else {
+                    fmt::println("removing link {}", fullpath.string());
+                    cppfs::remove(fullpath);
+                }
+            }
+        }
+    }
+
+}

@@ -109,7 +109,7 @@ std::vector<string> dirEntries(const string path, const string pattern) {
         return fl;
     }
     for (const auto& entry : fs::directory_iterator(path)) {
-        if (entry.is_regular_file())
+        if (entry.is_regular_file() || entry.is_symlink())
             if (glob_match(pattern.c_str(), entry.path().filename().string().c_str())) {
                 fl.push_back(entry.path().filename().string());
             }

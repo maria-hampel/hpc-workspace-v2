@@ -84,3 +84,13 @@ target_link_libraries(ws_prepare
         ${Boost_LIBRARIES}
         fmt::fmt
 )
+
+add_executable(ws_register
+    ws_register.cpp
+)
+target_link_libraries(ws_register
+    PRIVATE
+        ws_common
+        ${Boost_LIBRARIES}
+        fmt::fmt
+)
