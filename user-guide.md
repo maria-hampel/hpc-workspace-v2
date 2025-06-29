@@ -82,6 +82,9 @@ The real deletion will probably take place during the nighttime.
 In case the data is limiting you, delete the data before releasing the workspace, or if already
 released, restore it using ```ws_restore```, delete it and release the workspace again.
 
+There is an option ```ws_restore --delete-data``` which wipes the data and releases the workspace,
+**use with care**, data can not be restored.
+
 ## extending workspaces
 
 As each workspace has an expiration date, its lifetime is limited.
