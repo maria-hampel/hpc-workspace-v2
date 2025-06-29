@@ -31,7 +31,6 @@
 
 #include <filesystem>
 #include <iostream> // for program_options  FIXME:
-#include <memory>
 #include <vector>
 
 #include "config.h"
