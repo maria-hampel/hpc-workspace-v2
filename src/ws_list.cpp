@@ -83,17 +83,26 @@ int main(int argc, char** argv) {
 
     // define options
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V", "show version")(
-        "filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")(
-        "group,g", "enable listing of group workspaces")("listfilesystems,l", "list available filesystems")(
-        "listfilesystemdetails,L", "list available filesystems with details")("short,s",
-                                                                              "short listing, only workspace names")(
-        "user,u", po::value<string>(&user),
-        "only show workspaces for selected user")("expired,e", "show expired workspaces")("name,N", "sort by name")(
-        "creation,C", "sort by creation date")("remaining,R", "sort by remaining time")("reverted,r", "revert sort")(
-        "terse,t", "terse listing")("config", po::value<string>(&configfile), "config file")(
-        "pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")("verbose,v",
-                                                                                         "verbose listing");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("version,V", "show version")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
+        ("group,g", "enable listing of group workspaces")
+        ("listfilesystems,l", "list available filesystems")
+        ("listfilesystemdetails,L", "list available filesystems with details")
+        ("short,s", "short listing, only workspace names")
+        ("user,u", po::value<string>(&user), "only show workspaces for selected user")
+        ("expired,e", "show expired workspaces")
+        ("name,N", "sort by name")
+        ("creation,C", "sort by creation date")
+        ("remaining,R", "sort by remaining time")
+        ("reverted,r", "revert sort")
+        ("terse,t", "terse listing")
+        ("config", po::value<string>(&configfile), "config file")
+        ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
+        ("verbose,v", "verbose listing");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show tracing information");
