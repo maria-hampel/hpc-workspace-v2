@@ -84,3 +84,13 @@ target_link_libraries(ws_prepare
         ${Boost_LIBRARIES}
         fmt::fmt
 )
+
+add_executable(ws_send_ical
+    ws_send_ical.cpp
+)
+target_link_libraries(ws_send_ical
+    PRIVATE
+        ws_common
+        ${Boost_LIBRARIES}
+        fmt::fmt
+)
