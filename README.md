@@ -164,6 +164,11 @@ cmake -S . -B build
 cmake --build build --target clang-format
 ```
 
+or with presets
+```
+cmake --build build --preset debug --target clang-format 
+```
+
 Using the dry-run option, you can check the compliance of a source code file without applying the style configuration.
 This is particularly useful before committing changes.
 
