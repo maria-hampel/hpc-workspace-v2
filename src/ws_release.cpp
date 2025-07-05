@@ -28,8 +28,8 @@
  */
 
 #include "fmt/base.h"
+#include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
-#include <iostream>
 #include <string>
 
 #include <regex> // buggy in redhat 7
@@ -59,6 +59,9 @@ bool traceflag = false;
 
 // init caps here, when euid!=uid
 Cap caps{};
+
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
 /*
  *  parse the commandline and see if all required arguments are passed, and check the workspace name for
@@ -96,16 +99,16 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        fmt::print("Usage: {} [options] workspace_name duration\n", argv[0]);
-        cout << cmd_options << "\n";
+        fmt::println(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
     // see whats up
 
     if (opt.count("help")) {
-        fmt::print("Usage: {} [options] workspace_name duration\n", argv[0]);
-        cout << cmd_options << "\n";
+        fmt::println(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(0);
     }
 
@@ -128,8 +131,8 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
     if (opt.count("name")) {
         // cout << " name: " << name << "\n";
     } else {
-        fmt::print("{}: [options] workspace_name duration\n", argv[0]);
-        cout << cmd_options << "\n"; // FIXME: iostream usage
+        fmt::println(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 

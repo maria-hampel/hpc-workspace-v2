@@ -32,7 +32,6 @@
  *
  */
 
-#include <iostream>
 #include <memory>
 
 #include "config.h"
@@ -41,6 +40,7 @@
 #include "build_info.h"
 #include "db.h"
 #include "fmt/base.h"
+#include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include "user.h"
 // #include "fmt/ostream.h"
@@ -56,6 +56,9 @@ using namespace std;
 
 bool debugflag = false;
 bool traceflag = false;
+
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
 int main(int argc, char** argv) {
 
@@ -100,7 +103,7 @@ int main(int argc, char** argv) {
         po::notify(opts);
     } catch (...) {
         fmt::print("Usage: {} [options] name\n", argv[0]);
-        cout << cmd_options << endl;
+        fmt::println("{}", cmd_options);
         exit(1);
     }
 
@@ -121,7 +124,7 @@ int main(int argc, char** argv) {
 
     if (opts.count("help")) {
         fmt::print("Usage: {} [options] name\n", argv[0]);
-        cout << cmd_options << endl;
+        fmt::println("{}", cmd_options);
         exit(0);
     }
 

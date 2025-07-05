@@ -30,7 +30,6 @@
  */
 
 #include <filesystem>
-#include <iostream> // for program_options  FIXME:
 #include <memory>
 
 #include "config.h"
@@ -38,8 +37,9 @@
 
 #include "build_info.h"
 #include "db.h"
-#include "fmt/format.h" // IWYU pragma: keep
-#include "fmt/ranges.h" // IWYU pragma: keep
+#include "fmt/format.h"  // IWYU pragma: keep
+#include "fmt/ostream.h" // IWYU pragma: keep
+#include "fmt/ranges.h"  // IWYU pragma: keep
 
 #include "user.h"
 
@@ -151,6 +151,9 @@ struct stat_result stat_workspace(string wspath) {
     return result;
 }
 
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
+
 int main(int argc, char** argv) {
 
     // options and flags
@@ -207,7 +210,7 @@ int main(int argc, char** argv) {
         po::notify(opts);
     } catch (...) {
         fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        fmt::println("{}", cmd_options);
         exit(1);
     }
 
@@ -233,7 +236,7 @@ int main(int argc, char** argv) {
 
     if (opts.count("help")) {
         fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        fmt::println("{}", cmd_options);
         exit(0);
     }
 

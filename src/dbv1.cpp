@@ -68,7 +68,6 @@
 #include <syslog.h>
 
 #include <fstream>
-#include <iostream>
 
 #include "caps.h"
 

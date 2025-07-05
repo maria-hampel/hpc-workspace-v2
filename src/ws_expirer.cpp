@@ -31,7 +31,6 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <iostream> // for program_options  FIXME:
 #include <vector>
 
 #include "config.h"
@@ -40,6 +39,7 @@
 #include "build_info.h"
 #include "db.h"
 #include "fmt/base.h"
+#include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include "user.h"
 
@@ -52,6 +52,9 @@ Cap caps{};
 
 namespace po = boost::program_options;
 namespace cppfs = std::filesystem;
+
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
 using namespace std;
 
@@ -237,8 +240,8 @@ int main(int argc, char** argv) {
         po::store(po::command_line_parser(argc, argv).options(all_options).run(), opts);
         po::notify(opts);
     } catch (...) {
-        fmt::print("Usage: {} [options]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        fmt::println(stderr, "Usage: {} [options]\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
@@ -254,8 +257,8 @@ int main(int argc, char** argv) {
     // handle options exiting here
 
     if (opts.count("help")) {
-        fmt::print("Usage: {} [options]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        fmt::println(stderr, "Usage: {} [options]\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(0);
     }
 

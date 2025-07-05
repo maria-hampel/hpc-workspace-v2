@@ -28,8 +28,8 @@
  */
 
 #include "fmt/base.h"
+#include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
-#include <iostream>
 #include <regex>
 #include <string>
 
@@ -58,6 +58,9 @@ bool traceflag = false;
 
 // init caps here, when euid!=uid
 Cap caps{};
+
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
 void commandline(po::variables_map& opt, string& name, string& target, string& filesystem, bool& listflag, bool& terse,
                  string& username, int argc, char** argv, std::string& configfile) {
@@ -94,27 +97,28 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        cerr << "Usage:" << argv[0] << ": [options] workspace_name target_name | -l" << endl;
-        cerr << cmd_options << "\n";
+        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
     // see whats up
 
     if (opt.count("help")) {
-        cerr << "Usage:" << argv[0] << ": [options] workspace_name target_name | -l" << endl;
-        cerr << cmd_options << "\n";
-        cerr << "attention: the workspace_name argument is as printed by " << argv[0]
-             << " -l not as printed by ws_list!" << endl;
+        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
+        fmt::println(stderr,
+                     "attention: the workspace_name argument is as printed by {}"
+                     " -l not as printed by ws_list!",
+                     argv[0]);
         exit(0);
     }
 
     if (opt.count("version")) {
 #ifdef IS_GIT_REPOSITORY
-        cout << "workspace build from git commit hash " << GIT_COMMIT_HASH << " on top of release " << WS_VERSION
-             << endl;
+        fmt::println("workspace build from git commit hash {} on top of release {}", GIT_COMMIT_HASH, WS_VERSION);
 #else
-        cout << "workspace version " << WS_VERSION << endl;
+        fmt::println("workspace version {}", WS_VERSION);
 #endif
         exit(0);
     }
@@ -139,7 +143,7 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
         if (!opt.count("target") && !opt.count("delete-data")) {
             fmt::println(stderr, "Error  : no target given.");
             fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
-            cerr << cmd_options << "\n";
+            fmt::println("{}", cmd_options);
             exit(1);
         }
         // validate workspace name against nasty characters
@@ -155,9 +159,9 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
             exit(1);
         }
     } else if (!opt.count("list")) {
-        cerr << "Error  : neither workspace nor -l specified." << endl;
-        cerr << argv[0] << ": [options] workspace_name target_name | -l" << endl;
-        cerr << cmd_options << "\n";
+        fmt::println(stderr, "Error  : neither workspace nor -l specified.");
+        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 }
@@ -308,7 +312,7 @@ void restore(const string name, const string target, const string username, cons
         if (caps.isSetuid()) {
             // get db user to be able to unlink db entry from root_squash filesystems
             if (setegid(config.dbgid()) || seteuid(config.dbuid())) {
-                cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
+                fmt::println(stderr, "Error   : can not seteuid or setgid. Bad installation?");
                 exit(-1);
             }
         }
@@ -368,7 +372,7 @@ void restore(const string name, const string target, const string username, cons
         if (caps.isSetuid()) {
             // get db user to be able to unlink db entry from root_squash filesystems
             if (setegid(config.dbgid()) || seteuid(config.dbuid())) {
-                cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
+                fmt::println(stderr, "Error   : can not seteuid or setgid. Bad installation?");
                 exit(-1);
             }
         }
@@ -386,13 +390,14 @@ void restore(const string name, const string target, const string username, cons
         } else {
             syslog(LOG_INFO, "restore for user <%s> from <%s> to <%s> failed, kept DB entry <%s>.", username.c_str(),
                    wssourcename.c_str(), targetpathname.c_str(), name.c_str());
-            cerr << "Error  : moving data failed, database entry kept! " << ret << endl;
+            fmt::println(stderr, "Error  : moving data failed, database entry kept! {}", ret);
+            ;
         }
 
         // get user again
         if (caps.isSetuid()) {
             if (seteuid(0) || setegid(0)) {
-                cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
+                fmt::println(stderr, "Error   : can not seteuid or setgid. Bad installation?");
                 exit(-1);
             }
         }
@@ -513,7 +518,7 @@ int main(int argc, char** argv) {
             username = real_username;
         } else if (real_username != username) {
             if (real_username != "root") {
-                cerr << "Error: only root can do that. 2" << endl;
+                fmt::println(stderr, "Error: only root can do that. 2");
                 username = real_username;
                 exit(-1);
             }
