@@ -5,6 +5,8 @@
  *
  *  - tool to get statistics about workspaces
  *
+ *  this tool contains hardcoded lustre ABI information, as lustre headers do not compile properly with C++
+ *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
@@ -36,9 +38,9 @@
 
 #include "build_info.h"
 #include "db.h"
-#include "fmt/base.h"
+#include "fmt/format.h" // IWYU pragma: keep
 #include "fmt/ranges.h" // IWYU pragma: keep
-#include "fmt/format.h"
+
 #include "user.h"
 
 #include "caps.h"
@@ -155,6 +157,10 @@ int main(int argc, char** argv) {
     string pattern;
     bool listgroups = false;
     bool verbose = false;
+    bool sortbyname = false;
+    bool sortbycreation = false;
+    bool sortbyremaining = false;
+    bool sortreverted = false;
 
     po::variables_map opts;
 
@@ -168,9 +174,14 @@ int main(int argc, char** argv) {
         ("help,h", "produce help message")
         ("version,V", "show version")
         ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
+        ("user,u", po::value<string>(&user), "only show workspaces for selected user")
         ("group,g", "enable listing of group workspaces")
         ("config", po::value<string>(&configfile), "config file")
         ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
+        ("name,N", "sort by name")
+        ("creation,C", "sort by creation date")
+        ("remaining,R", "sort by remaining time")
+        ("reverted,r", "revert sort")
         ("verbose,v", "verbose listing");
     // clang-format on
 
@@ -200,6 +211,10 @@ int main(int argc, char** argv) {
 
     listgroups = opts.count("group");
     verbose = opts.count("verbose");
+    sortbyname = opts.count("name");
+    sortbycreation = opts.count("creation");
+    sortbyremaining = opts.count("remaining");
+    sortreverted = opts.count("reverted");
 
 #ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
@@ -270,9 +285,9 @@ int main(int argc, char** argv) {
     vector<string> validfs = config.validFilesystems(username, grouplist, ws::LIST);
     if (filesystem != "") {
         if (canFind(validfs, filesystem)) {
-        fslist.push_back(filesystem);
+            fslist.push_back(filesystem);
         } else {
-        fmt::println(stderr, "Error  : invalid filesystem given.");
+            fmt::println(stderr, "Error  : invalid filesystem given.");
         }
     } else {
         fslist = validfs;
@@ -280,27 +295,22 @@ int main(int argc, char** argv) {
 
     vector<std::unique_ptr<DBEntry>> entrylist;
 
-    // FIXME make it parallel as in ws_list and reuse all the sorting code,
-    // and move the stat_workspace call in the output loop
-
-    // iterate over filesystems 
+    // iterate over filesystems
     for (auto const& fs : fslist) {
         if (debugflag)
         fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
 
+#pragma omp parallel for schedule(dynamic)
         for (auto const& id : db->matchPattern(pattern, userpattern, grouplist, false, listgroups)) {
             try {
                 std::unique_ptr<DBEntry> entry(db->readEntry(id, false));
                 // if entry is valid
                 if (entry) {
-                        fmt::println("Id: {}", entry->getId());
-                        fmt::println("   workspace directory : {} ", entry->getWSPath());
-                        auto result = stat_workspace(entry->getWSPath());
-                        fmt::println("   files               : {}\n"
-                                     "   softlinks           : {}\n"
-                                     "   directories         : {}\n"
-                                     "   bytes               : {:L}", result.files, result.softlinks, result.directories, result.bytes);
+#pragma omp critical
+                    {
+                        entrylist.push_back(std::move(entry));
+                    }
                 }
             } catch (DatabaseException& e) {
                 fmt::println(e.what());
@@ -308,5 +318,32 @@ int main(int argc, char** argv) {
         }
 
     } // loop over fs
+
+    if (sortbyremaining)
+        std::sort(entrylist.begin(), entrylist.end(),
+                  [](const auto& x, const auto& y) { return (x->getRemaining() < y->getRemaining()); });
+    if (sortbycreation)
+        std::sort(entrylist.begin(), entrylist.end(),
+                  [](const auto& x, const auto& y) { return (x->getCreation() < y->getCreation()); });
+    if (sortbyname)
+        std::sort(entrylist.begin(), entrylist.end(),
+                  [](const auto& x, const auto& y) { return (x->getId() < y->getId()); });
+
+    if (sortreverted) {
+        std::reverse(entrylist.begin(), entrylist.end());
+    }
+
+    std::locale::global(std::locale("en_US.UTF-8"));
+
+    for (auto const &entry: entrylist) {
+        fmt::println("Id: {}", entry->getId());
+        fmt::println("    workspace directory : {} ", entry->getWSPath());
+        auto result = stat_workspace(entry->getWSPath());
+        fmt::println("    files               : {}\n"
+                     "    softlinks           : {}\n"
+                     "    directories         : {}\n"
+                     "    bytes               : {:L}",
+                     result.files, result.softlinks, result.directories, result.bytes);
+    }
 
 }
