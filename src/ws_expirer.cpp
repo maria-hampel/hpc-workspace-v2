@@ -29,10 +29,10 @@
  *
  */
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream> // for program_options  FIXME:
 #include <vector>
-#include <algorithm>
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -79,7 +79,7 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
     fmt::println("Checking DB for workspaces to be expired for ", fs);
 
     // search expired active workspaces in DB
-    for(auto const &id: db->matchPattern("*", "*", {}, false, false)) {
+    for (auto const& id : db->matchPattern("*", "*", {}, false, false)) {
         std::unique_ptr<DBEntry> dbentry;
         // error logic first, we skip all loop body in case of bad entry
         try {
@@ -104,8 +104,8 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
         }
 
         // do we have to expire?
-        if (time((long *)0L) > expiration) {
-            auto timestamp = to_string(time((long *)0L));
+        if (time((long*)0L) > expiration) {
+            auto timestamp = to_string(time((long*)0L));
             fmt::println(" expiring {} (expired {})", id, ctime(&expiration));
             result.expired_ws++;
             if (!dryrun) {
@@ -115,17 +115,18 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
                 // workspace second
                 auto wspath = dbentry->getWSPath();
                 try {
-                    auto tgt = cppfs::path(wspath) / config.deletedPath(fs) / (cppfs::path(wspath).filename().string() + "-" + timestamp);
+                    auto tgt = cppfs::path(wspath) / config.deletedPath(fs) /
+                               (cppfs::path(wspath).filename().string() + "-" + timestamp);
                     if (debugflag) {
                         fmt::println("Debug    : mv ", wspath, " -> ", tgt.string());
                     }
                     cppfs::rename(wspath, tgt);
-                } catch (cppfs::filesystem_error &e) {
+                } catch (cppfs::filesystem_error& e) {
                     fmt::println(stderr, "Error    : failed to move workspace: {} ({})", wspath, e.what());
                 }
             }
         } else {
-            fmt::println(" keeping {}",id); // TODO: add expiration time
+            fmt::println(" keeping {}", id); // TODO: add expiration time
             result.kept_ws++;
             // TODO: reminder mails
         }
@@ -136,7 +137,7 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
     fmt::println("Checking deleted DB for workspaces to be deleted for {}", fs);
 
     // search in DB for expired/released workspaces for those over keeptime to delete them
-    for(auto const &id: db->matchPattern("*", "*", {}, true, false)) {
+    for (auto const& id : db->matchPattern("*", "*", {}, true, false)) {
         std::unique_ptr<DBEntry> dbentry;
         try {
             dbentry = std::unique_ptr<DBEntry>(db->readEntry(id, true));
@@ -156,47 +157,46 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
 
         // get released time from name = id
         try {
-            releasetime = std::stol(utils::splitString(id, '-').at(std::count(id.begin(), id.end(), '-'))); // count from back, for usernames with "-"
+            releasetime = std::stol(utils::splitString(id, '-').at(
+                std::count(id.begin(), id.end(), '-'))); // count from back, for usernames with "-"
         } catch (const out_of_range& e) {
             fmt::println(stderr, "Error    : skipping DB entry with unparsable name {}", id);
             continue;
         }
 
         auto released = dbentry->getReleaseTime(); // check if it was released by user
-        if (released > 1000000000L) { // released after 2001? if not ignore it
+        if (released > 1000000000L) {              // released after 2001? if not ignore it
             releasetime = released;
         } else {
-            releasetime = 3000000000L;    // date in future, 2065
+            releasetime = 3000000000L; // date in future, 2065
             fmt::println(stderr, "  IGNORING released {} for {}", releasetime, id);
         }
 
-        if ( (time((long *)0L) > (expiration + keeptime*24*3600))
-                        || (time((long *)0L) > releasetime + 3600)  ) {
+        if ((time((long*)0L) > (expiration + keeptime * 24 * 3600)) || (time((long*)0L) > releasetime + 3600)) {
 
             result.deleted_ws++;
 
-            if (time((long *)0L) > releasetime + 3600) {
+            if (time((long*)0L) > releasetime + 3600) {
                 fmt::println(" deleting DB entry {}, was released ", id, ctime(&releasetime));
             } else {
                 fmt::println(" deleting DB entry {}, expired ", id, ctime(&expiration));
             }
-            if(cleanermode) {
+            if (cleanermode) {
                 db->deleteEntry(id, true);
             }
 
             auto wspath = cppfs::path(dbentry->getWSPath()) / config.getFsConfig(fs).deletedPath / id;
             fmt::println(" deleting directory: {}", wspath.string());
-            if(cleanermode) {
+            if (cleanermode) {
                 try {
                     utils::rmtree(wspath.string());
-                } catch (cppfs::filesystem_error &e) {
+                } catch (cppfs::filesystem_error& e) {
                     fmt::println(stderr, "  failed to remove: {} ({})", wspath.string(), e.what());
                 }
             }
         } else {
             fmt::println(" (keeping restorable {})", id); // TODO: add expiration + keeptime
         }
-
     }
 
     fmt::println("  {} workspaces deleted.", result.deleted_ws);
@@ -204,8 +204,7 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
     return result;
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
 
     // options and flags
     string filesystem;
@@ -260,7 +259,8 @@ int main(int argc, char** argv)
         exit(0);
     }
 
-    if (opts.count("cleaner")) cleanermode = true;
+    if (opts.count("cleaner"))
+        cleanermode = true;
 
     // read config
     //   user can change this if no setuid installation OR if root
@@ -280,6 +280,4 @@ int main(int argc, char** argv)
     }
 
     // main logic from here
-
-
 }

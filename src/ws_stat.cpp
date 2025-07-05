@@ -29,9 +29,9 @@
  *
  */
 
+#include <filesystem>
 #include <iostream> // for program_options  FIXME:
 #include <memory>
-#include <filesystem>
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -54,23 +54,23 @@
 // as this files only compiles with -fpermissive
 // lustre ABI
 enum lustre_som_flags {
-        /* Unknow or no SoM data, must get size from OSTs. */
-        SOM_FL_UNKNOWN  = 0x0000,
-        /* Known strictly correct, FLR or DoM file (SoM guaranteed). */
-        SOM_FL_STRICT   = 0x0001,
-        /* Known stale - was right at some point in the past, but it is
-         * known (or likely) to be incorrect now (e.g. opened for write). */
-        SOM_FL_STALE    = 0x0002,
-        /* Approximate, may never have been strictly correct,
-         * need to sync SOM data to achieve eventual consistency. */
-        SOM_FL_LAZY     = 0x0004,
+    /* Unknow or no SoM data, must get size from OSTs. */
+    SOM_FL_UNKNOWN = 0x0000,
+    /* Known strictly correct, FLR or DoM file (SoM guaranteed). */
+    SOM_FL_STRICT = 0x0001,
+    /* Known stale - was right at some point in the past, but it is
+     * known (or likely) to be incorrect now (e.g. opened for write). */
+    SOM_FL_STALE = 0x0002,
+    /* Approximate, may never have been strictly correct,
+     * need to sync SOM data to achieve eventual consistency. */
+    SOM_FL_LAZY = 0x0004,
 };
 
 struct lustre_som_attrs {
-        __u16   lsa_valid;
-        __u16   lsa_reserved[3];
-        __u64   lsa_size;
-        __u64   lsa_blocks;
+    __u16 lsa_valid;
+    __u16 lsa_reserved[3];
+    __u64 lsa_size;
+    __u64 lsa_blocks;
 };
 // end lustre ABI
 
@@ -93,34 +93,33 @@ struct stat_result {
     uint64_t bytes;
 };
 
-
 // do recursive stat, with LSOM usage for lustre for better performance
 // count bytes, files, symlinks, directories
-void generic_stat(struct stat_result &result, string path, bool lustre) {
+void generic_stat(struct stat_result& result, string path, bool lustre) {
     std::vector<cppfs::path> dirs;
 
     for (const auto& entry : cppfs::directory_iterator(path)) {
         if (entry.is_regular_file()) {
             result.files++;
 
-	    // for lustre, use lsom from mdt, get it from xatttr, this needs privileges
-	    // TODO: find out if we can try statx first and see if that works, and fail back to getxattr?
-	    // but would it fail or just be slow?
-	    if (lustre) {
-		struct lustre_som_attrs attr;
-		auto ret = lgetxattr(entry.path().c_str(), "trusted.som", &attr, sizeof(attr));
-		if (ret != -1) {
-			if (attr.lsa_valid == SOM_FL_UNKNOWN) {
-            			result.bytes += cppfs::file_size(entry);
-			} else {
-            			result.bytes += attr.lsa_size;
-			}
-		} else {
-            		result.bytes += cppfs::file_size(entry);
-		}
-	    } else {
-            	result.bytes += cppfs::file_size(entry);
-	    }
+            // for lustre, use lsom from mdt, get it from xatttr, this needs privileges
+            // TODO: find out if we can try statx first and see if that works, and fail back to getxattr?
+            // but would it fail or just be slow?
+            if (lustre) {
+                struct lustre_som_attrs attr;
+                auto ret = lgetxattr(entry.path().c_str(), "trusted.som", &attr, sizeof(attr));
+                if (ret != -1) {
+                    if (attr.lsa_valid == SOM_FL_UNKNOWN) {
+                        result.bytes += cppfs::file_size(entry);
+                    } else {
+                        result.bytes += attr.lsa_size;
+                    }
+                } else {
+                    result.bytes += cppfs::file_size(entry);
+                }
+            } else {
+                result.bytes += cppfs::file_size(entry);
+            }
 
         } else if (entry.is_symlink()) {
             result.softlinks++;
@@ -151,7 +150,6 @@ struct stat_result stat_workspace(string wspath) {
     }
     return result;
 }
-
 
 int main(int argc, char** argv) {
 
@@ -304,7 +302,7 @@ int main(int argc, char** argv) {
     // iterate over filesystems
     for (auto const& fs : fslist) {
         if (debugflag)
-        fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+            fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
 
 #pragma omp parallel for schedule(dynamic)
@@ -341,7 +339,7 @@ int main(int argc, char** argv) {
 
     std::locale::global(std::locale("en_US.UTF-8"));
 
-    for (auto const &entry: entrylist) {
+    for (auto const& entry : entrylist) {
         fmt::println("Id: {}", entry->getId());
         fmt::println("    workspace directory : {} ", entry->getWSPath());
         auto result = stat_workspace(entry->getWSPath());
@@ -351,5 +349,4 @@ int main(int argc, char** argv) {
                      "    bytes               : {:L}",
                      result.files, result.softlinks, result.directories, result.bytes);
     }
-
 }
