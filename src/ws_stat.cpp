@@ -142,8 +142,13 @@ struct stat_result stat_workspace(string wspath) {
 
     statfs(wspath.c_str(), &fs);
 
+    if (fs.f_type == 0xbd00bd0) {
+        caps.raise_cap({CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));
+    }
     generic_stat(result, wspath, (fs.f_type == 0xbd00bd0));
-
+    if (fs.f_type == 0xbd00bd0) {
+        caps.lower_cap({CAP_DAC_OVERRIDE}, getpid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+    }
     return result;
 }
 
@@ -163,6 +168,9 @@ int main(int argc, char** argv) {
     bool sortreverted = false;
 
     po::variables_map opts;
+
+    // lower capabilities to user, before interpreting any data from user
+    caps.drop_caps({CAP_DAC_OVERRIDE}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     // locals settings to prevent strange effects
     utils::setCLocal();
@@ -184,8 +192,6 @@ int main(int argc, char** argv) {
         ("reverted,r", "revert sort")
         ("verbose,v", "verbose listing");
     // clang-format on
-
-    // TODO: FIXME: add user option for root
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show tracing information");
