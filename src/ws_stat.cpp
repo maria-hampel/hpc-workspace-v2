@@ -163,7 +163,11 @@ void generic_stat(struct stat_result& result, string path, bool lustre) {
                     result.failed_getxattr += 1;
                 }
             } else { // not lustre
-                result.bytes += getfilesize(entry.path().c_str());
+                if (std::getenv("WS_STAT_ALWAYS_STAT")) {
+                    result.bytes += getfilesize_compat(entry.path().c_str());
+                } else {
+                    result.bytes += getfilesize(entry.path().c_str());
+                }
             }
         } else if (entry.is_symlink()) {
             result.softlinks++;
@@ -247,7 +251,7 @@ struct stat_result stat_workspace(string wspath) {
         if (verbose) {
             fmt::println("Info   : workspace on lustre, using SOM");
         }
-        caps.raise_cap({CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.raise_cap({CAP_SYS_ADMIN, CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));
     }
 
     if (std::getenv("WS_STAT_PARALLEL")) { // for testing and benchmarking
@@ -263,7 +267,7 @@ struct stat_result stat_workspace(string wspath) {
     }
 
     if (fs.f_type == 0xbd00bd0) {
-        caps.lower_cap({CAP_DAC_OVERRIDE}, getpid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+        caps.lower_cap({CAP_SYS_ADMIN, CAP_DAC_OVERRIDE}, getpid(), utils::SrcPos(__FILE__, __LINE__, __func__));
     }
     return result;
 }
@@ -288,7 +292,7 @@ int main(int argc, char** argv) {
     po::variables_map opts;
 
     // lower capabilities to user, before interpreting any data from user
-    caps.drop_caps({CAP_DAC_OVERRIDE}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+    caps.drop_caps({CAP_SYS_ADMIN, CAP_DAC_OVERRIDE}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     // locals settings to prevent strange effects
     utils::setCLocal();
