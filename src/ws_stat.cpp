@@ -481,6 +481,7 @@ int main(int argc, char** argv) {
                         if (verbose) {
                             fmt::println("    failed getxattr     : {}\n"
                                         "    no som              : {}", result.failed_getxattr, result.no_som);
+                            fmt::println("    time[sec]           : {}", secs);
                             fmt::println("    KFiles/sec          : {}", result.files/secs);
                         }
                 }
@@ -503,6 +504,7 @@ int main(int argc, char** argv) {
                 if (verbose) {
                     fmt::println("    failed getxattr     : {}\n"
                                 "    no som              : {}", result.failed_getxattr, result.no_som);
+                    fmt::println("    time[sec]           : {}", secs);
                     fmt::println("    KFiles/sec          : {}", result.files/secs);
                 }
             }
