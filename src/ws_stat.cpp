@@ -479,10 +479,10 @@ int main(int argc, char** argv) {
                                     "    bytes               : {:L}",
                                     result.files, result.softlinks, result.directories, result.bytes);
                         if (verbose) {
-                            fmt::println("    failed getxattr     : {}\n"
+                            fmt::println("\n    failed getxattr     : {}\n"
                                         "    no som              : {}", result.failed_getxattr, result.no_som);
-                            fmt::println("    time[sec]           : {}", secs);
-                            fmt::println("    KFiles/sec          : {}", result.files/secs);
+                            fmt::println("    time[msec]          : {}", secs);
+                            fmt::println("    KFiles/sec          : {}", (double)result.files/secs);
                         }
                 }
     } else {
@@ -502,10 +502,10 @@ int main(int argc, char** argv) {
                             "    bytes               : {:L}",
                             result.files, result.softlinks, result.directories, result.bytes);
                 if (verbose) {
-                    fmt::println("    failed getxattr     : {}\n"
+                    fmt::println("\n    failed getxattr     : {}\n"
                                 "    no som              : {}", result.failed_getxattr, result.no_som);
-                    fmt::println("    time[sec]           : {}", secs);
-                    fmt::println("    KFiles/sec          : {}", result.files/secs);
+                    fmt::println("    time[msec]          : {}", secs);
+                    fmt::println("    KFiles/sec          : {}", (double)result.files/secs);
                 }
             }
         }
