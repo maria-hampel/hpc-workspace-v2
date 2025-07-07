@@ -122,8 +122,8 @@ int main(int argc, char** argv) {
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opts);
         po::notify(opts);
     } catch (...) {
-        fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
-        fmt::println("{}", cmd_options);
+        fmt::print(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
@@ -153,8 +153,8 @@ int main(int argc, char** argv) {
     // handle options exiting here
 
     if (opts.count("help")) {
-        fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
-        fmt::println("{}", cmd_options);
+        fmt::print(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(0);
     }
 

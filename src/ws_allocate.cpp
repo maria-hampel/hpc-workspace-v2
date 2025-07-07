@@ -101,16 +101,16 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        fmt::print("Usage: {} [options] workspace_name duration\n", argv[0]);
-        fmt::println("{}", cmd_options);
+        fmt::print(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
     // see whats up
 
     if (opt.count("help")) {
-        fmt::print("Usage: {} [options] workspace_name duration\n", argv[0]);
-        fmt::println("{}", cmd_options);
+        fmt::print(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(0);
     }
 
@@ -139,8 +139,8 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     if (opt.count("name")) {
         // cout << " name: " << name << "\n";
     } else {
-        fmt::print("Usage: {}: [options] workspace_name duration\n", argv[0]);
-        fmt::println("{}", cmd_options);
+        fmt::print(stderr, "Usage: {}: [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
