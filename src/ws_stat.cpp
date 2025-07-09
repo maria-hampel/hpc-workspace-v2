@@ -30,10 +30,8 @@
  */
 
 #include <chrono>
-#include <cinttypes>
 #include <cstdint>
 #include <filesystem>
-#include <future>
 #include <memory>
 
 #include "config.h"
