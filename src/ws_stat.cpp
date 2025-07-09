@@ -29,10 +29,11 @@
  *
  */
 
+#include <chrono>
+#include <cinttypes>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
-#include <chrono>
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -48,14 +49,12 @@
 #include "caps.h"
 #include "ws.h"
 
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/types.h>
 #include <sys/xattr.h>
-#include <sys/stat.h>
 #include <unistd.h>
-#include <fcntl.h>
-
-
 
 // this is a copy of some declarations from linux/lustre/lustre_user.h
 // as this files only compiles with -fpermissive
@@ -104,7 +103,6 @@ struct stat_result {
     uint32_t no_som;
 };
 
-
 // return filesize using statx(), this works only from redhat >= 8
 uint64_t getfilesize(const char* path) {
     struct statx statxbuf;
@@ -136,52 +134,54 @@ uint64_t getfilesize_compat(const char* path) {
     }
 }
 
-
 // do recursive BFS directory traversal and stat, with LSOM usage for lustre for better performance
 // count bytes, files, symlinks, directories
 void generic_stat(struct stat_result& result, string path, bool lustre) {
     std::vector<cppfs::path> dirs;
     dirs.reserve(128);
 
-    for (const auto& entry : cppfs::directory_iterator(path)) {
-        if (entry.is_regular_file()) {
-            result.files++;
-            // for lustre, use lsom from mdt, get it from xatttr, this needs privileges
-            // otherwise use statx(), breaks RH7
-            if (lustre) {
-                struct lustre_som_attrs attr;
-                auto ret = lgetxattr(entry.path().c_str(), "trusted.som", &attr, sizeof(attr));
-                if (ret != -1) {
-                    if (attr.lsa_valid == SOM_FL_UNKNOWN) {
+    if (cppfs::is_directory(path)) {
+        for (const auto& entry : cppfs::directory_iterator(path)) {
+            if (entry.is_regular_file()) {
+                result.files++;
+                // for lustre, use lsom from mdt, get it from xatttr, this needs privileges
+                // otherwise use statx(), breaks RH7
+                if (lustre) {
+                    struct lustre_som_attrs attr;
+                    auto ret = lgetxattr(entry.path().c_str(), "trusted.som", &attr, sizeof(attr));
+                    if (ret != -1) {
+                        if (attr.lsa_valid == SOM_FL_UNKNOWN) {
+                            result.bytes += getfilesize(entry.path().c_str());
+                            result.no_som += 1;
+                        } else {
+                            result.bytes += attr.lsa_size;
+                        }
+                    } else { // lgetxattr failed
                         result.bytes += getfilesize(entry.path().c_str());
-                        result.no_som += 1;
-                    } else {
-                       result.bytes += attr.lsa_size;
+                        result.failed_getxattr += 1;
                     }
-                } else { // lgetxattr failed
-                    result.bytes += getfilesize(entry.path().c_str());
-                    result.failed_getxattr += 1;
+                } else { // not lustre
+                    if (std::getenv("WS_STAT_ALWAYS_STAT")) {
+                        result.bytes += getfilesize_compat(entry.path().c_str());
+                    } else {
+                        result.bytes += getfilesize(entry.path().c_str());
+                    }
                 }
-            } else { // not lustre
-                if (std::getenv("WS_STAT_ALWAYS_STAT")) {
-                    result.bytes += getfilesize_compat(entry.path().c_str());
-                } else {
-                    result.bytes += getfilesize(entry.path().c_str());
-                }
+            } else if (entry.is_symlink()) {
+                result.softlinks++;
+            } else if (entry.is_directory()) {
+                result.directories++;
+                dirs.push_back(entry);
             }
-        } else if (entry.is_symlink()) {
-            result.softlinks++;
-        } else if (entry.is_directory()) {
-            result.directories++;
-            dirs.push_back(entry);
         }
+    } else {
+        fmt::println(stderr, "Error    : workspace <{}> does not exist!", path);
     }
 
     for (const auto& dir : dirs) {
         generic_stat(result, dir, lustre);
     }
 }
-
 
 // do recursive BFS directory traversal and stat, with LSOM usage for lustre for better performance
 // count bytes, files, symlinks, directories
@@ -194,21 +194,25 @@ void parallel_stat(struct stat_result& result, string path, bool lustre) {
     std::vector<cppfs::path> files;
     files.reserve(1024);
 
-    for (const auto& entry : cppfs::directory_iterator(path)) {
-        if (entry.is_regular_file()) {
-            result.files++;
-            files.push_back(entry);
-        } else if (entry.is_symlink()) {
-            result.softlinks++;
-        } else if (entry.is_directory()) {
-            result.directories++;
-            dirs.push_back(entry);
+    if (cppfs::is_directory(path)) {
+        for (const auto& entry : cppfs::directory_iterator(path)) {
+            if (entry.is_regular_file()) {
+                result.files++;
+                files.push_back(entry);
+            } else if (entry.is_symlink()) {
+                result.softlinks++;
+            } else if (entry.is_directory()) {
+                result.directories++;
+                dirs.push_back(entry);
+            }
         }
+    } else {
+        fmt::println(stderr, "Error    : workspace <{}> does not exist!", path);
     }
 
     uint64_t bytes = 0;
-#pragma omp parallel reduction( + : bytes )
-    for (const auto& entry: files) {
+#pragma omp parallel reduction(+ : bytes)
+    for (const auto& entry : files) {
         // for lustre, use lsom from mdt, get it from xatttr, this needs privileges
         // otherwise use statx(), breaks RH7
         if (lustre) {
@@ -238,8 +242,6 @@ void parallel_stat(struct stat_result& result, string path, bool lustre) {
     }
 }
 
-
-
 // decide which routine to use, lustre or others
 struct stat_result stat_workspace(string wspath) {
     struct statfs fs;
@@ -247,7 +249,7 @@ struct stat_result stat_workspace(string wspath) {
 
     statfs(wspath.c_str(), &fs);
 
-    if (fs.f_type == 0xbd00bd0) {
+    if ((fs.f_type == 0xbd00bd0) && !std::getenv("WS_STAT_NOLUSTRE")) {
         if (verbose) {
             fmt::println("Info   : workspace on lustre, using SOM");
         }
@@ -258,12 +260,12 @@ struct stat_result stat_workspace(string wspath) {
         if (verbose) {
             fmt::println("Info   : using parallel stat");
         }
-        parallel_stat(result, wspath, (fs.f_type == 0xbd00bd0) && !std::getenv("WC_STAT_NOLUSTRE"));
+        parallel_stat(result, wspath, (fs.f_type == 0xbd00bd0) && !std::getenv("WS_STAT_NOLUSTRE"));
     } else {
         if (verbose) {
             fmt::println("Info   : using serial stat");
         }
-        generic_stat(result, wspath, (fs.f_type == 0xbd00bd0) && !std::getenv("WC_STAT_NOLUSTRE"));
+        generic_stat(result, wspath, (fs.f_type == 0xbd00bd0) && !std::getenv("WS_STAT_NOLUSTRE"));
     }
 
     if (fs.f_type == 0xbd00bd0) {
@@ -466,25 +468,26 @@ int main(int argc, char** argv) {
     std::locale::global(std::locale("en_US.UTF-8"));
 
     if (sort) {
-                for (auto const& entry : entrylist) {
-                        fmt::println("Id: {}", entry->getId());
-                        fmt::println("    workspace directory : {} ", entry->getWSPath());
-                        auto begin = std::chrono::steady_clock::now();
-                        auto result = stat_workspace(entry->getWSPath());
-                        auto end = std::chrono::steady_clock::now();
-                        auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-                        fmt::println("    files               : {}\n"
-                                    "    softlinks           : {}\n"
-                                    "    directories         : {}\n"
-                                    "    bytes               : {:L}",
-                                    result.files, result.softlinks, result.directories, result.bytes);
-                        if (verbose) {
-                            fmt::println("\n    failed getxattr     : {}\n"
-                                        "    no som              : {}", result.failed_getxattr, result.no_som);
-                            fmt::println("    time[msec]          : {}", secs);
-                            fmt::println("    KFiles/sec          : {}", (double)result.files/secs);
-                        }
-                }
+        for (auto const& entry : entrylist) {
+            fmt::println("Id: {}", entry->getId());
+            fmt::println("    workspace directory : {} ", entry->getWSPath());
+            auto begin = std::chrono::steady_clock::now();
+            auto result = stat_workspace(entry->getWSPath());
+            auto end = std::chrono::steady_clock::now();
+            auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+            fmt::println("    files               : {}\n"
+                         "    softlinks           : {}\n"
+                         "    directories         : {}\n"
+                         "    bytes               : {:L}",
+                         result.files, result.softlinks, result.directories, result.bytes);
+            if (verbose) {
+                fmt::println("\n    failed getxattr     : {}\n"
+                             "    no som              : {}",
+                             result.failed_getxattr, result.no_som);
+                fmt::println("    time[msec]          : {}", secs);
+                fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
+            }
+        }
     } else {
 #pragma omp parallel for schedule(dynamic)
         for (auto const& entry : entrylist) {
@@ -497,15 +500,16 @@ int main(int argc, char** argv) {
                 fmt::println("Id: {}", entry->getId());
                 fmt::println("    workspace directory : {} ", entry->getWSPath());
                 fmt::println("    files               : {}\n"
-                            "    softlinks           : {}\n"
-                            "    directories         : {}\n"
-                            "    bytes               : {:L}",
-                            result.files, result.softlinks, result.directories, result.bytes);
+                             "    softlinks           : {}\n"
+                             "    directories         : {}\n"
+                             "    bytes               : {:L}",
+                             result.files, result.softlinks, result.directories, result.bytes);
                 if (verbose) {
                     fmt::println("\n    failed getxattr     : {}\n"
-                                "    no som              : {}", result.failed_getxattr, result.no_som);
+                                 "    no som              : {}",
+                                 result.failed_getxattr, result.no_som);
                     fmt::println("    time[msec]          : {}", secs);
-                    fmt::println("    KFiles/sec          : {}", (double)result.files/secs);
+                    fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
                 }
             }
         }
