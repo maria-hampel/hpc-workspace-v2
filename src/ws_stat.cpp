@@ -33,6 +33,7 @@
 #include <cinttypes>
 #include <cstdint>
 #include <filesystem>
+#include <future>
 #include <memory>
 
 #include "config.h"
@@ -56,30 +57,6 @@
 #include <sys/xattr.h>
 #include <unistd.h>
 
-// this is a copy of some declarations from linux/lustre/lustre_user.h
-// as this files only compiles with -fpermissive
-// lustre ABI
-enum lustre_som_flags {
-    /* Unknow or no SoM data, must get size from OSTs. */
-    SOM_FL_UNKNOWN = 0x0000,
-    /* Known strictly correct, FLR or DoM file (SoM guaranteed). */
-    SOM_FL_STRICT = 0x0001,
-    /* Known stale - was right at some point in the past, but it is
-     * known (or likely) to be incorrect now (e.g. opened for write). */
-    SOM_FL_STALE = 0x0002,
-    /* Approximate, may never have been strictly correct,
-     * need to sync SOM data to achieve eventual consistency. */
-    SOM_FL_LAZY = 0x0004,
-};
-
-struct lustre_som_attrs {
-    __u16 lsa_valid;
-    __u16 lsa_reserved[3];
-    __u64 lsa_size;
-    __u64 lsa_blocks;
-};
-// end lustre ABI
-
 // init caps here, when euid!=uid
 Cap caps{};
 
@@ -98,24 +75,23 @@ struct stat_result {
     uint64_t softlinks;
     uint64_t directories;
     uint64_t bytes;
-    // addition info for debugging
-    uint32_t failed_getxattr;
-    uint32_t no_som;
 };
 
 // return filesize using statx(), this works only from redhat >= 8
 uint64_t getfilesize(const char* path) {
     struct statx statxbuf;
-    static bool analyzed = false;
+    // static bool analyzed = false;
 
     int mask = STATX_SIZE;
     int flags = AT_STATX_DONT_SYNC;
 
     int ret = statx(0, path, flags, mask, &statxbuf);
-    if (!analyzed) {
-        analyzed = true;
-        fmt::println(stderr, "statx({}) -> {:b}", path, mask);
-    }
+    /*
+        if (!analyzed) {
+            analyzed = true;
+            fmt::println(stderr, "statx({}) -> {:b}", path, mask);
+        }
+    */
     if (ret == 0) {
         return statxbuf.stx_size;
     } else {
@@ -134,75 +110,29 @@ uint64_t getfilesize_compat(const char* path) {
     }
 }
 
-// do recursive BFS directory traversal and stat, with LSOM usage for lustre for better performance
+// do recursive BFS directory traversal and statx
 // count bytes, files, symlinks, directories
-void generic_stat(struct stat_result& result, string path, bool lustre) {
-    std::vector<cppfs::path> dirs;
-    dirs.reserve(128);
-
-    if (cppfs::is_directory(path)) {
-        for (const auto& entry : cppfs::directory_iterator(path)) {
-            if (entry.is_regular_file()) {
-                result.files++;
-                // for lustre, use lsom from mdt, get it from xatttr, this needs privileges
-                // otherwise use statx(), breaks RH7
-                if (lustre) {
-                    struct lustre_som_attrs attr;
-                    auto ret = lgetxattr(entry.path().c_str(), "trusted.som", &attr, sizeof(attr));
-                    if (ret != -1) {
-                        if (attr.lsa_valid == SOM_FL_UNKNOWN) {
-                            result.bytes += getfilesize(entry.path().c_str());
-                            result.no_som += 1;
-                        } else {
-                            result.bytes += attr.lsa_size;
-                        }
-                    } else { // lgetxattr failed
-                        result.bytes += getfilesize(entry.path().c_str());
-                        result.failed_getxattr += 1;
-                    }
-                } else { // not lustre
-                    if (std::getenv("WS_STAT_ALWAYS_STAT")) {
-                        result.bytes += getfilesize_compat(entry.path().c_str());
-                    } else {
-                        result.bytes += getfilesize(entry.path().c_str());
-                    }
-                }
-            } else if (entry.is_symlink()) {
-                result.softlinks++;
-            } else if (entry.is_directory()) {
-                result.directories++;
-                dirs.push_back(entry);
-            }
-        }
-    } else {
-        fmt::println(stderr, "Error    : workspace <{}> does not exist!", path);
-    }
-
-    for (const auto& dir : dirs) {
-        generic_stat(result, dir, lustre);
-    }
-}
-
-// do recursive BFS directory traversal and stat, with LSOM usage for lustre for better performance
-// count bytes, files, symlinks, directories
-// simple parallel version, only effective for many files in one directory
-// preferable might be a threadpool to process several directories
-// TODO: benchmarking needed on different filesystems
-void parallel_stat(struct stat_result& result, string path, bool lustre) {
+void parallel_stat(struct stat_result& result, string path) {
     std::vector<cppfs::path> dirs;
     dirs.reserve(128);
     std::vector<cppfs::path> files;
     files.reserve(1024);
 
+    // thread local variables
+    uint64_t bytes = 0;
+    uint64_t nrfiles = 0;
+    uint64_t softlinks = 0;
+    uint64_t directories = 0;
+
     if (cppfs::is_directory(path)) {
         for (const auto& entry : cppfs::directory_iterator(path)) {
             if (entry.is_regular_file()) {
-                result.files++;
+                nrfiles++;
                 files.push_back(entry);
             } else if (entry.is_symlink()) {
-                result.softlinks++;
+                softlinks++;
             } else if (entry.is_directory()) {
-                result.directories++;
+                directories++;
                 dirs.push_back(entry);
             }
         }
@@ -210,66 +140,36 @@ void parallel_stat(struct stat_result& result, string path, bool lustre) {
         fmt::println(stderr, "Error    : workspace <{}> does not exist!", path);
     }
 
-    uint64_t bytes = 0;
+    // do the statx here, parallel
 #pragma omp parallel reduction(+ : bytes)
     for (const auto& entry : files) {
-        // for lustre, use lsom from mdt, get it from xatttr, this needs privileges
-        // otherwise use statx(), breaks RH7
-        if (lustre) {
-            struct lustre_som_attrs attr;
-            auto ret = lgetxattr(entry.c_str(), "trusted.som", &attr, sizeof(attr));
-            if (ret != -1) {
-                if (attr.lsa_valid == SOM_FL_UNKNOWN) {
-                    bytes += getfilesize(entry.c_str());
-#pragma omp critical
-                    result.no_som += 1;
-                } else {
-                    bytes += attr.lsa_size;
-                }
-            } else { // lgetxattr failed
-                bytes += getfilesize(entry.c_str());
-#pragma omp critical
-                result.failed_getxattr += 1;
-            }
-        } else { // not lustre
-            bytes += getfilesize(entry.c_str());
-        }
+        bytes += getfilesize(entry.c_str());
     }
-    result.bytes += bytes;
 
+    // update shared result
+#pragma omp critical
+    {
+        result.bytes += bytes;
+        result.files += nrfiles;
+        result.softlinks += softlinks;
+        result.directories += directories;
+    }
+
+    // recurse into directories, parallel
     for (const auto& dir : dirs) {
-        generic_stat(result, dir, lustre);
+#pragma omp task shared(result)
+        parallel_stat(result, dir);
     }
 }
 
-// decide which routine to use, lustre or others
+// dive into parallel decent
 struct stat_result stat_workspace(string wspath) {
-    struct statfs fs;
-    struct stat_result result = {0L, 0L, 0L, 0L, 0, 0};
+    struct stat_result result = {0L, 0L, 0L, 0L};
 
-    statfs(wspath.c_str(), &fs);
-
-    if ((fs.f_type == 0xbd00bd0) && !std::getenv("WS_STAT_NOLUSTRE")) {
-        if (verbose) {
-            fmt::println("Info   : workspace on lustre, using SOM");
-        }
-        caps.raise_cap({CAP_SYS_ADMIN, CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));
-    }
-
-    if (std::getenv("WS_STAT_PARALLEL")) { // for testing and benchmarking
-        if (verbose) {
-            fmt::println("Info   : using parallel stat");
-        }
-        parallel_stat(result, wspath, (fs.f_type == 0xbd00bd0) && !std::getenv("WS_STAT_NOLUSTRE"));
-    } else {
-        if (verbose) {
-            fmt::println("Info   : using serial stat");
-        }
-        generic_stat(result, wspath, (fs.f_type == 0xbd00bd0) && !std::getenv("WS_STAT_NOLUSTRE"));
-    }
-
-    if (fs.f_type == 0xbd00bd0) {
-        caps.lower_cap({CAP_SYS_ADMIN, CAP_DAC_OVERRIDE}, getpid(), utils::SrcPos(__FILE__, __LINE__, __func__));
+#pragma omp parallel shared(result)
+    {
+#pragma omp single
+        parallel_stat(result, wspath);
     }
     return result;
 }
@@ -292,9 +192,6 @@ int main(int argc, char** argv) {
     bool sortreverted = false;
 
     po::variables_map opts;
-
-    // lower capabilities to user, before interpreting any data from user
-    caps.drop_caps({CAP_SYS_ADMIN, CAP_DAC_OVERRIDE}, getuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
     // locals settings to prevent strange effects
     utils::setCLocal();
@@ -481,9 +378,6 @@ int main(int argc, char** argv) {
                          "    bytes               : {:L}",
                          result.files, result.softlinks, result.directories, result.bytes);
             if (verbose) {
-                fmt::println("\n    failed getxattr     : {}\n"
-                             "    no som              : {}",
-                             result.failed_getxattr, result.no_som);
                 fmt::println("    time[msec]          : {}", secs);
                 fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
             }
@@ -505,9 +399,6 @@ int main(int argc, char** argv) {
                              "    bytes               : {:L}",
                              result.files, result.softlinks, result.directories, result.bytes);
                 if (verbose) {
-                    fmt::println("\n    failed getxattr     : {}\n"
-                                 "    no som              : {}",
-                                 result.failed_getxattr, result.no_som);
                     fmt::println("    time[msec]          : {}", secs);
                     fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
                 }
