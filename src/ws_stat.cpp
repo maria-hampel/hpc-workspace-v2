@@ -86,7 +86,7 @@ struct stat_return getfilesize(const char* path) {
     struct statx statxbuf;
 
     int mask = STATX_SIZE | STATX_BLOCKS;
-    int flags = AT_STATX_DONT_SYNC;
+    int flags = AT_STATX_DONT_SYNC | AT_SYMLINK_NOFOLLOW;
 
     int ret = statx(0, path, flags, mask, &statxbuf);
 
