@@ -139,7 +139,7 @@ void parallel_stat(struct stat_result& result, string path) {
     }
 
     // do the statx here, parallel
-#pragma omp parallel reduction(+ : bytes)
+#pragma omp parallel for reduction(+ : bytes) if(files.size()>1024)
     for (const auto& entry : files) {
         bytes += getfilesize(entry.c_str());
     }
