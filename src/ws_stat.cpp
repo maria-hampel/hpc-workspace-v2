@@ -5,7 +5,7 @@
  *
  *  - tool to get statistics about workspaces
  *
- *  this tool contains hardcoded lustre ABI information, as lustre headers do not compile properly with C++
+ *  relies on statx(), not available in RH7 and older.
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
@@ -50,10 +50,8 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <sys/statfs.h>
 #include <sys/types.h>
 #include <sys/xattr.h>
-#include <unistd.h>
 
 // init caps here, when euid!=uid
 Cap caps{};
@@ -67,33 +65,48 @@ bool debugflag = false;
 bool traceflag = false;
 bool verbose = false;
 
-// return type for stat collection
+// result type for stat collection
 struct stat_result {
     uint64_t files;
     uint64_t softlinks;
     uint64_t directories;
     uint64_t bytes;
+    uint64_t blocks;
 };
 
-// return filesize using statx(), this works only from redhat >= 8
-uint64_t getfilesize(const char* path) {
-    struct statx statxbuf;
-    // static bool analyzed = false;
+// return type for stat collection
+struct stat_return {
+    uint64_t bytes;
+    uint64_t blocks;
+};
 
-    int mask = STATX_SIZE;
+// pretty print a size in bytes
+string prettyBytes(const uint64_t size) {
+    string postfixes[] = {"B", "KB", "MB", "GB", "TB", "PB", "EP", "ZB", "YB", "RB", "QB"};
+    double fsize = size;
+
+    int index = 0;
+    while (fsize > 1000) {
+        fsize /= 1000.0;
+        index++;
+    }
+
+    return fmt::format("{:.3} {}", fsize, postfixes[index]);
+}
+
+// return filesize using statx(), this works only from redhat >= 8
+struct stat_return getfilesize(const char* path) {
+    struct statx statxbuf;
+
+    int mask = STATX_SIZE | STATX_BLOCKS;
     int flags = AT_STATX_DONT_SYNC;
 
     int ret = statx(0, path, flags, mask, &statxbuf);
-    /*
-        if (!analyzed) {
-            analyzed = true;
-            fmt::println(stderr, "statx({}) -> {:b}", path, mask);
-        }
-    */
+
     if (ret == 0) {
-        return statxbuf.stx_size;
+        return {statxbuf.stx_size, statxbuf.stx_blocks};
     } else {
-        return 0;
+        return {0, 0};
     }
 }
 
@@ -118,6 +131,7 @@ void parallel_stat(struct stat_result& result, string path) {
 
     // thread local variables
     uint64_t bytes = 0;
+    uint64_t blocks = 0;
     uint64_t nrfiles = 0;
     uint64_t softlinks = 0;
     uint64_t directories = 0;
@@ -139,15 +153,18 @@ void parallel_stat(struct stat_result& result, string path) {
     }
 
     // do the statx here, parallel
-#pragma omp parallel for reduction(+ : bytes) if(files.size()>1024)
+#pragma omp parallel for reduction(+ : bytes) if (files.size() > 1024)
     for (const auto& entry : files) {
-        bytes += getfilesize(entry.c_str());
+        auto ret = getfilesize(entry.c_str());
+        bytes += ret.bytes;
+        blocks += ret.blocks;
     }
 
     // update shared result
 #pragma omp critical
     {
         result.bytes += bytes;
+        result.blocks += blocks;
         result.files += nrfiles;
         result.softlinks += softlinks;
         result.directories += directories;
@@ -160,9 +177,9 @@ void parallel_stat(struct stat_result& result, string path) {
     }
 }
 
-// dive into parallel decent
+// dive into parallel decent, create parallel region
 struct stat_result stat_workspace(string wspath) {
-    struct stat_result result = {0L, 0L, 0L, 0L};
+    struct stat_result result = {0L, 0L, 0L, 0L, 0L};
 
 #pragma omp parallel shared(result)
     {
@@ -175,6 +192,9 @@ struct stat_result stat_workspace(string wspath) {
 // helper for fmt::
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
+//
+// main logic here
+//
 int main(int argc, char** argv) {
 
     // options and flags
@@ -362,44 +382,26 @@ int main(int argc, char** argv) {
 
     std::locale::global(std::locale("en_US.UTF-8"));
 
-    if (sort) {
-        for (auto const& entry : entrylist) {
+#pragma omp parallel for schedule(dynamic) if (!sort && entrylist.size() > 1)
+    for (auto const& entry : entrylist) {
+        auto begin = std::chrono::steady_clock::now();
+        auto result = stat_workspace(entry->getWSPath());
+        auto end = std::chrono::steady_clock::now();
+        auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+#pragma omp critical
+        {
             fmt::println("Id: {}", entry->getId());
             fmt::println("    workspace directory : {} ", entry->getWSPath());
-            auto begin = std::chrono::steady_clock::now();
-            auto result = stat_workspace(entry->getWSPath());
-            auto end = std::chrono::steady_clock::now();
-            auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
             fmt::println("    files               : {}\n"
                          "    softlinks           : {}\n"
                          "    directories         : {}\n"
-                         "    bytes               : {:L}",
-                         result.files, result.softlinks, result.directories, result.bytes);
+                         "    bytes               : {:L} ({})\n"
+                         "    blocks              : {:L}",
+                         result.files, result.softlinks, result.directories, result.bytes, prettyBytes(result.bytes),
+                         result.blocks);
             if (verbose) {
-                fmt::println("    time[msec]          : {}", secs);
+                fmt::println("\n    time[msec]          : {}", secs);
                 fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
-            }
-        }
-    } else {
-#pragma omp parallel for schedule(dynamic)
-        for (auto const& entry : entrylist) {
-            auto begin = std::chrono::steady_clock::now();
-            auto result = stat_workspace(entry->getWSPath());
-            auto end = std::chrono::steady_clock::now();
-            auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-#pragma omp critical
-            {
-                fmt::println("Id: {}", entry->getId());
-                fmt::println("    workspace directory : {} ", entry->getWSPath());
-                fmt::println("    files               : {}\n"
-                             "    softlinks           : {}\n"
-                             "    directories         : {}\n"
-                             "    bytes               : {:L}",
-                             result.files, result.softlinks, result.directories, result.bytes);
-                if (verbose) {
-                    fmt::println("    time[msec]          : {}", secs);
-                    fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
-                }
             }
         }
     }
