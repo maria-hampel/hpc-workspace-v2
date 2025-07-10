@@ -44,6 +44,7 @@
 #include "fmt/ranges.h"  // IWYU pragma: keep
 
 #include "user.h"
+#include "utils.h"
 
 #include "caps.h"
 #include "ws.h"
@@ -79,20 +80,6 @@ struct stat_return {
     uint64_t bytes;
     uint64_t blocks;
 };
-
-// pretty print a size in bytes
-string prettyBytes(const uint64_t size) {
-    string postfixes[] = {"B", "KB", "MB", "GB", "TB", "PB", "EP", "ZB", "YB", "RB", "QB"};
-    double fsize = size;
-
-    int index = 0;
-    while (fsize > 1000) {
-        fsize /= 1000.0;
-        index++;
-    }
-
-    return fmt::format("{:.3} {}", fsize, postfixes[index]);
-}
 
 // return filesize using statx(), this works only from redhat >= 8
 struct stat_return getfilesize(const char* path) {
@@ -397,8 +384,8 @@ int main(int argc, char** argv) {
                          "    directories         : {}\n"
                          "    bytes               : {:L} ({})\n"
                          "    blocks              : {:L}",
-                         result.files, result.softlinks, result.directories, result.bytes, prettyBytes(result.bytes),
-                         result.blocks);
+                         result.files, result.softlinks, result.directories, result.bytes,
+                         utils::prettyBytes(result.bytes), result.blocks);
             if (verbose) {
                 fmt::println("\n    time[msec]          : {}", secs);
                 fmt::println("    KFiles/sec          : {}", (double)result.files / secs);

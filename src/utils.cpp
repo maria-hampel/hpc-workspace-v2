@@ -467,6 +467,20 @@ void rmtree(std::string path) {
     }
 }
 
+// pretty print a size in bytes
+string prettyBytes(const uint64_t size) {
+    string postfixes[] = {"B", "KB", "MB", "GB", "TB", "PB", "EP", "ZB", "YB", "RB", "QB"};
+    double fsize = size;
+
+    int index = 0;
+    while (fsize >= 1000) {
+        fsize /= 1000.0;
+        index++;
+    }
+
+    return fmt::format("{:.3} {}", fsize, postfixes[index]);
+}
+
 } // namespace utils
 
 // internal recursive functions, based on file handles

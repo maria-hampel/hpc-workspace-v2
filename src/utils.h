@@ -91,6 +91,9 @@ void rmtree(std::string path);
 // split a string at delimiter and return vector
 std::vector<std::string> splitString(const std::string& str, char delimiter);
 
+// pretty print a size into a string with KB/GB etc unit
+std::string prettyBytes(const uint64_t size);
+
 } // namespace utils
 
 #endif

@@ -35,4 +35,11 @@ TEST_CASE("utils", "[utils]")
         utils::rmtree("/tmp/_wsTT");
         REQUIRE(fs::exists("/tmp/_wsTT") == false);
     }
+
+    SECTION("prettySize")
+    {
+        REQUIRE(utils::prettyBytes(100) == "100 B");
+        REQUIRE(utils::prettyBytes(1000) == "1 KB");
+        REQUIRE(utils::prettyBytes(1500000) == "1.5 MB");
+    }
 }
