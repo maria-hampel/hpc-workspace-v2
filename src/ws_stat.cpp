@@ -340,9 +340,7 @@ int main(int argc, char** argv) {
                 // if entry is valid
                 if (entry) {
 #pragma omp critical
-                    {
-                        entrylist.push_back(std::move(entry));
-                    }
+                    { entrylist.push_back(std::move(entry)); }
                 }
             } catch (DatabaseException& e) {
                 fmt::println(e.what());
