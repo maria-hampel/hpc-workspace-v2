@@ -114,3 +114,13 @@ target_link_libraries(ws_stat
         ${Boost_LIBRARIES}
         fmt::fmt
 )
+
+add_executable(ws_editdb
+    ws_editdb.cpp
+)
+target_link_libraries(ws_editdb
+    PRIVATE
+        ws_common
+        ${Boost_LIBRARIES}
+        fmt::fmt
+)
