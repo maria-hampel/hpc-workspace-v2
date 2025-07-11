@@ -46,7 +46,7 @@ class SrcPos {
     std::string func;
 
   public:
-    SrcPos(const char* _file, const int _line, const char* _func) : file(_file), line(_line), func(_func) {};
+    SrcPos(const char* _file, const int _line, const char* _func) : file(_file), line(_line), func(_func){};
     std::string getSrcPos() { return fmt::format("{}:{}[{}]", file, line, func); }
 };
 
