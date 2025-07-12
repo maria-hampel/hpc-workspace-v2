@@ -45,6 +45,8 @@
 #include "utils.h"
 #include "ws.h"
 
+#include "spdlog/spdlog.h"
+
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 using namespace std;
@@ -124,7 +126,7 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
 
     // this allows user to extend foreign workspaces
     if (opt.count("username") && !(opt.count("extension") || getuid() == 0)) {
-        fmt::print(stderr, "Info   : Ignoring username option.\n");
+        spdlog::info("Ignoring username option.");
         user = "";
     }
 
@@ -147,7 +149,7 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
     // TODO: remove regexp dependency
     static const regex e("^[[:alnum:]][[:alnum:]_.-]*$");
     if (!regex_match(name, e)) {
-        fmt::print(stderr, "Error  : Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!");
+        spdlog::error("Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!");
         exit(1);
     }
 }
@@ -169,7 +171,7 @@ bool validateFsAndGroup(const Config& config, const po::variables_map& opt, cons
     // if a group was given, check if a valid group was given
     if (opt["groupname"].as<string>() != "") {
         if (find(groupnames.begin(), groupnames.end(), opt["groupname"].as<string>()) == groupnames.end()) {
-            fmt::print(stderr, "Error  : invalid group specified!\n");
+            spdlog::error("invalid group specified!");
             return false;
         }
     }
@@ -178,7 +180,7 @@ bool validateFsAndGroup(const Config& config, const po::variables_map& opt, cons
     if (opt.count("filesystem")) {
         auto validfs = config.validFilesystems(username, groupnames, ws::RELEASE);
         if (!canFind(validfs, opt["filesystem"].as<string>()) && getuid() != 0) {
-            fmt::print(stderr, "Error  : You are not allowed to use the specified filesystem!\n");
+            spdlog::error("You are not allowed to use the specified filesystem!");
             return false;
         }
     }
@@ -203,13 +205,13 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
     auto valid_filesystems = config.validFilesystems(user::getUsername(), user::getGrouplist(), ws::RELEASE);
 
     if (valid_filesystems.size() == 0) {
-        fmt::print(stderr, "Error: no valid filesystems in configuration, can not allocate\n");
+        spdlog::error("no valid filesystems in configuration, can not allocate");
         exit(-1); // FIXME: bad for testing
     }
 
     // validate filesystem and group given on command line
     if (!validateFsAndGroup(config, opt, user_option)) {
-        fmt::print(stderr, "Error: aborting!\n");
+        spdlog::error("aborting!");
     }
 
     // if no filesystem provided, get valid filesystems from config, ordered: userdefault, groupdefault, globaldefault,
@@ -239,7 +241,7 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
 
     for (std::string cfilesystem : searchlist) {
         if (debugflag) {
-            fmt::print(stderr, "Debug  : searching valid filesystems, currently {}\n", cfilesystem);
+            spdlog::debug("searching valid filesystems, currently {}", cfilesystem);
         }
 
         std::unique_ptr<Database> candidate_db(config.openDB(cfilesystem));
@@ -259,7 +261,7 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
         } catch (DatabaseException& e) {
             // silently ignore non existiong entries
             if (debugflag)
-                fmt::print(stderr, "Debug  :  existence check failed for {}/{}\n", cfilesystem, dbid);
+                spdlog::debug("existence check failed for {}/{}", cfilesystem, dbid);
         }
     } // searchloop
 
@@ -283,7 +285,7 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
         try {
             dbentry->release(timestamp); // timestamp is version information, same as for directory later
         } catch (const DatabaseException& e) {
-            fmt::println(stderr, e.what());
+            spdlog::error(e.what());
             exit(-1); // on error we bail out, workspace will still exist and db most probably as well
         }
         // we exit this as DB user on success
@@ -300,14 +302,14 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
 
         try {
             if (debugflag)
-                fmt::println("Debug  : rename({}, {})", dbentry->getWSPath(), target.string());
+                spdlog::debug("rename({}, {})", dbentry->getWSPath(), target.string());
             cppfs::rename(dbentry->getWSPath(), target);
         } catch (const std::filesystem::filesystem_error& e) {
             caps.lower_cap({CAP_DAC_OVERRIDE}, dbentry->getConfig()->dbuid(),
                            utils::SrcPos(__FILE__, __LINE__, __func__));
             if (debugflag)
-                fmt::println(stderr, "Error  : {}", e.what());
-            fmt::println(stderr, "Error  : database entry could not be deleted!");
+                spdlog::error("{}", e.what());
+            spdlog::error("database entry could not be deleted!");
             exit(-1);
         }
 
@@ -321,41 +323,41 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
         //
 
         if (opt.count("delete-data")) {
-            fmt::println(stderr, "Info   : deleting workspace as --delete-data was given");
-            fmt::println(stderr, "Info   : you have 5 seconds to interrupt with CTRL-C to prevent deletion");
+            spdlog::info("deleting workspace as --delete-data was given");
+            spdlog::info("you have 5 seconds to interrupt with CTRL-C to prevent deletion");
             sleep(5);
 
             caps.raise_cap({CAP_FOWNER}, utils::SrcPos(__FILE__, __LINE__, __func__));
             if (caps.isSetuid()) {
                 // get process owner to be allowed to delete files
                 if (seteuid(getuid())) {
-                    fmt::println(stderr, "Error  : can not setuid, bad installation?");
+                    spdlog::error("can not setuid, bad installation?");
                 }
             }
 
             // remove the directory
             std::error_code ec;
             if (debugflag) {
-                fmt::println("Debug  : remove_all({})", cppfs::path(target).string());
+                spdlog::debug("remove_all({})", cppfs::path(target).string());
             }
             cppfs::remove_all(cppfs::path(target), ec); // we ignore return wert as we expect an error return anyhow
 
             // we expect an error 13 for the topmost directory
             if (ec.value() != 13) {
-                fmt::println(stderr, "Error  : unexpected error {}", ec.message());
+                spdlog::error("unexpected error {}", ec.message());
             }
 
             if (caps.isSetuid()) {
                 // get root so we can drop again
                 if (seteuid(0)) {
-                    fmt::println(stderr, "Error  : can not setuid, bad installation?");
+                    spdlog::error("can not setuid, bad installation?");
                 }
             }
             caps.lower_cap({CAP_FOWNER}, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
             // remove what is left as DB user (could be done by ws_expirer)
             if (debugflag) {
-                fmt::println("Debug  : remove_all({})", cppfs::path(target).string());
+                spdlog::debug("remove_all({})", cppfs::path(target).string());
             }
             cppfs::remove_all(cppfs::path(target), ec);
 
@@ -370,7 +372,7 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
     } else {
         // workspace does not exist and needs to be created
 
-        fmt::print(stderr, "Error  : Non-existent workspace given.\n");
+        spdlog::error("Non-existent workspace given.");
     }
 }
 
@@ -390,6 +392,9 @@ int main(int argc, char** argv) {
     // locals settings to prevent strange effects
     utils::setCLocal();
 
+    // set custom logging format
+    utils::setupLogging();
+
     // check commandline, get flags which are used to create ws object or for workspace release
     commandline(opt, name, filesystem, user_option, groupname, deletedata, argc, argv, configfile);
 
@@ -400,14 +405,14 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file option!\n");
+            spdlog::warn("ignored config file option!");
         }
     }
 
     // read the config
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 
@@ -419,7 +424,7 @@ int main(int argc, char** argv) {
         }
         // FIXME: could be parsed here and passed as object not string
     } else {
-        fmt::print(stderr, "Error  : ~/.ws_user.conf can not be symlink!");
+        spdlog::error("~/.ws_user.conf can not be symlink!");
         exit(-1);
     }
 

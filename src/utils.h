@@ -45,7 +45,7 @@ class SrcPos {
     std::string func;
 
   public:
-    SrcPos(const char* _file, const int _line, const char* _func) : file(_file), line(_line), func(_func){};
+    SrcPos(const char* _file, const int _line, const char* _func) : file(_file), line(_line), func(_func) {};
     std::string getSrcPos() { return fmt::format("{}:{}[{}]", file, line, func); }
 };
 
@@ -92,6 +92,9 @@ std::vector<std::string> splitString(const std::string& str, char delimiter);
 
 // pretty print a size into a string with KB/GB etc unit
 std::string prettyBytes(const uint64_t size);
+
+// setup the logging
+void setupLogging();
 
 } // namespace utils
 

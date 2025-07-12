@@ -54,6 +54,8 @@
 #include <sys/types.h>
 #include <sys/xattr.h>
 
+#include "spdlog/spdlog.h"
+
 // init caps here, when euid!=uid
 Cap caps{};
 
@@ -136,7 +138,7 @@ void parallel_stat(struct stat_result& result, string path) {
             }
         }
     } else {
-        fmt::println(stderr, "Error    : workspace <{}> does not exist!", path);
+        spdlog::error("workspace <{}> does not exist!", path);
     }
 
     // do the statx here, parallel
@@ -200,6 +202,9 @@ int main(int argc, char** argv) {
 
     // locals settings to prevent strange effects
     utils::setCLocal();
+
+    // set custom logging format
+    utils::setupLogging();
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -282,13 +287,13 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file options!\n");
+            spdlog::warn("ignored config file options!");
         }
     }
 
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 
@@ -319,7 +324,7 @@ int main(int argc, char** argv) {
         if (canFind(validfs, filesystem)) {
             fslist.push_back(filesystem);
         } else {
-            fmt::println(stderr, "Error  : invalid filesystem given.");
+            spdlog::error("invalid filesystem given.");
         }
     } else {
         fslist = validfs;
@@ -330,7 +335,7 @@ int main(int argc, char** argv) {
     // iterate over filesystems
     for (auto const& fs : fslist) {
         if (debugflag)
-            fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+            spdlog::debug("loop over fslist {} in {}", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
 
 #pragma omp parallel for schedule(dynamic)
@@ -340,10 +345,12 @@ int main(int argc, char** argv) {
                 // if entry is valid
                 if (entry) {
 #pragma omp critical
-                    { entrylist.push_back(std::move(entry)); }
+                    {
+                        entrylist.push_back(std::move(entry));
+                    }
                 }
             } catch (DatabaseException& e) {
-                fmt::println(e.what());
+                spdlog::error(e.what());
             }
         }
 

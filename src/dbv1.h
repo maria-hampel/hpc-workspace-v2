@@ -69,7 +69,7 @@ class DBEntryV1 : public DBEntry {
 
   public:
     // simple constructor to read from file
-    DBEntryV1(FilesystemDBV1* pdb) : parent_db(pdb){};
+    DBEntryV1(FilesystemDBV1* pdb) : parent_db(pdb) {};
     // constructor to make new entry to write out
     DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation,
               const long _expiration, const long _reminder, const int _extensions, const string _group,
@@ -118,7 +118,7 @@ class FilesystemDBV1 : public Database {
     string fs;
 
   public:
-    FilesystemDBV1(const Config* config_, const string fs_) : config(config_), fs(fs_){};
+    FilesystemDBV1(const Config* config_, const string fs_) : config(config_), fs(fs_) {};
 
     // create new DB entry
     void createEntry(const WsID id, const string workspace, const long creation, const long expiration,

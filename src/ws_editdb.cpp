@@ -28,7 +28,6 @@
  */
 
 #include <memory>
-#include <time.h>
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -41,7 +40,10 @@
 #include "user.h"
 
 #include "caps.h"
+#include "utils.h"
 #include "ws.h"
+
+#include "spdlog/spdlog.h"
 
 // init caps here, when euid!=uid
 Cap caps{};
@@ -74,8 +76,11 @@ int main(int argc, char** argv) {
     // locals settings to prevent strange effects
     utils::setCLocal();
 
+    // set custom logging format
+    utils::setupLogging();
+
     if (!user::isRoot()) {
-        fmt::println("Error   : Sorry, this tool is for root only.");
+        spdlog::error("Sorry, this tool is for root only.");
         exit(0);
     }
 
@@ -120,14 +125,14 @@ int main(int argc, char** argv) {
 
     listexpired = opts.count("expired");
     verbose = opts.count("verbose");
-    if (opts.count("dry-run") && opts.count("no-kidding")) {
-        fmt::println(stderr, "Error    : Use either --dry-run or no-kidding.");
+    if (opts.count("dry-run") && opts.count("not-kidding")) {
+        spdlog::error("Use either --dry-run or no-kidding.");
         exit(0);
     }
 
     if (opts.count("not-kidding")) {
         dryrun = false;
-        fmt::println("Info   : dry-run disabled");
+        spdlog::info("dry-run disabled");
     }
 
 #ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
@@ -164,13 +169,13 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file options!\n");
+            spdlog::warn("ignored config file options!");
         }
     }
 
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 
@@ -198,7 +203,7 @@ int main(int argc, char** argv) {
         if (canFind(validfs, filesystem)) {
             fslist.push_back(filesystem);
         } else {
-            fmt::println(stderr, "Error  : invalid filesystem given.");
+            spdlog::error("invalid filesystem given.");
         }
     } else {
         fslist = validfs;
@@ -209,7 +214,7 @@ int main(int argc, char** argv) {
     // iterate over filesystems and print or create list to be sorted
     for (auto const& fs : fslist) {
         if (debugflag)
-            fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+            spdlog::debug("loop over fslist {} in {}", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
 
 #pragma omp parallel for schedule(dynamic)
@@ -219,10 +224,12 @@ int main(int argc, char** argv) {
                 // if entry is valid
                 if (entry) {
 #pragma omp critical
-                    { entrylist.push_back(std::move(entry)); }
+                    {
+                        entrylist.push_back(std::move(entry));
+                    }
                 }
             } catch (DatabaseException& e) {
-                fmt::println(e.what());
+                spdlog::error(e.what());
             }
         }
 
@@ -242,7 +249,7 @@ int main(int argc, char** argv) {
                          newexpiration);
             if (!dryrun) {
                 if (debugflag) {
-                    fmt::println(stderr, "Debug  : updating entry");
+                    spdlog::debug("updating entry");
                 }
                 entry->setExpiration(newexpiration);
                 entry->writeEntry();

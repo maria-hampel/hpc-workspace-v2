@@ -33,6 +33,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
@@ -62,6 +64,9 @@ namespace fs = std::filesystem;
 #include "db.h"
 #include "utils.h"
 
+#include "spdlog/spdlog.h"
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 using namespace std;
 
 // globals
@@ -81,7 +86,7 @@ static bool glob_match(char const* pat, char const* str);
 std::string getFileContents(const char* filename) {
     std::ifstream in(filename, std::ios::in | std::ios::binary);
     if (!in) {
-        throw DatabaseException(fmt::format("Error  : could not open file {}", filename));
+        throw DatabaseException(fmt::format("could not open file {}", filename));
     }
     std::ostringstream contents;
     contents << in.rdbuf();
@@ -95,7 +100,7 @@ void writeFile(const std::string filename, const std::string content) {
         out << content;
         out.close();
     } else {
-        fmt::println(stderr, "Error   : Can not open file {}!", filename);
+        spdlog::error("Can not open file {}!", filename);
     }
 }
 
@@ -105,7 +110,7 @@ std::vector<string> dirEntries(const string path, const string pattern) {
         fmt::print("Trace  : dirEntries({},{})\n", path, pattern);
     vector<string> fl;
     if (!fs::is_directory(path)) {
-        fmt::println("Error   : Directory {} does not exist.", path);
+        spdlog::error("Directory {} does not exist.", path);
         return fl;
     }
     for (const auto& entry : fs::directory_iterator(path)) {
@@ -430,7 +435,7 @@ auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::
                 if (ws::intentnames.count(p) > 0) {
                     numerical_intents.push_back(ws::intentnames.at(p));
                 } else {
-                    fmt::println(stderr, "Error   : invalid permission <{}> in ACL <{}>, ignoring", p, entry);
+                    spdlog::error("invalid permission <{}> in ACL <{}>, ignoring", p, entry);
                 }
             }
             aclmap[id] = std::pair{modifier, numerical_intents};
@@ -445,7 +450,7 @@ void rmtree(std::string path) {
 
     int r = fstatat(0, path.c_str(), &orig_stat, AT_SYMLINK_NOFOLLOW);
     if (r) {
-        fmt::println(stderr, "Error   : fstatat {} -> {}", path, errno);
+        spdlog::error("fstatat {} -> {}", path, errno);
     }
 
     if (S_ISDIR(orig_stat.st_mode)) {
@@ -459,7 +464,7 @@ void rmtree(std::string path) {
 
             r = unlinkat(0, path.c_str(), AT_REMOVEDIR);
             if (r) {
-                fmt::println(stderr, "Error   : unlinkat {} -> {}", path, errno);
+                spdlog::error("unlinkat {} -> {}", path, errno);
             }
         }
         if (!dirfd_closed)
@@ -481,6 +486,20 @@ string prettyBytes(const uint64_t size) {
     return fmt::format("{:.3} {}", fsize, postfixes[index]);
 }
 
+// setup logging
+//  set format
+//  change to stderr
+void setupLogging() {
+    // spdlog::set_pattern("%^%10l%$ : %v");
+    spdlog::set_pattern("%^%l%$ : %v");
+
+    auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+    auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
+    spdlog::set_default_logger(stderr_logger);
+
+    spdlog::set_pattern("%^%l%$: %v");
+}
+
 } // namespace utils
 
 // internal recursive functions, based on file handles
@@ -495,7 +514,7 @@ static void rmtree_fd(int topfd, std::string path) {
             errno = 0;
             entry = readdir(dir);
             if (entry == nullptr && errno != 0) {
-                fmt::println(stderr, "Error   : errno={}", errno);
+                spdlog::error("errno={}", errno);
             }
         }
 
@@ -507,8 +526,7 @@ static void rmtree_fd(int topfd, std::string path) {
 
                     int r = fstatat(topfd, (const char*)&ent->d_name[0], &orig_stat, AT_SYMLINK_NOFOLLOW);
                     if (r) {
-                        fmt::println(stderr, "Error   : fstatat {} {}/{} -> {}", topfd, path,
-                                     (const char*)&ent->d_name[0], errno);
+                        spdlog::error("fstatat {} {}/{} -> {}", topfd, path, (const char*)&ent->d_name[0], errno);
                         continue;
                     }
 
@@ -523,11 +541,10 @@ static void rmtree_fd(int topfd, std::string path) {
 
                             r = unlinkat(topfd, (const char*)&ent->d_name[0], AT_REMOVEDIR);
                             if (r) {
-                                fmt::println(stderr, "Error   : unlinkat {}/{} -> {}", path,
-                                             (const char*)&ent->d_name[0], errno);
+                                spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], errno);
                             }
                         } else {
-                            fmt::println(stderr, "Error   : rmtree hit a symbolic link!");
+                            spdlog::error("rmtree hit a symbolic link!");
                         }
                         if (!dirfd_closed)
                             close(dirfd);
@@ -536,12 +553,12 @@ static void rmtree_fd(int topfd, std::string path) {
             } else {
                 int r = unlinkat(topfd, (const char*)&ent->d_name[0], 0);
                 if (r) {
-                    fmt::println(stderr, "Error   : unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], errno);
+                    spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], errno);
                 }
             }
         }
         closedir(dir);
     } else {
-        fmt::println(stderr, "Error   : fdopendir {} -> {}", topfd, errno);
+        spdlog::error("fdopendir {} -> {}", topfd, errno);
     }
 }

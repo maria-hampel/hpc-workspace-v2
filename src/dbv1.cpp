@@ -73,6 +73,8 @@
 
 #include <gsl/pointers>
 
+#include "spdlog/spdlog.h"
+
 using namespace std;
 
 // globals
@@ -96,7 +98,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
     if (spaces.size() > 1) {
         auto spaceselection = config->getFsConfig(fs).spaceselection;
         if (debugflag) {
-            fmt::println(stderr, "Debug  : spaceseletion for {} = {}", fs, spaceselection);
+            spdlog::debug("spaceseletion for {} = {}", fs, spaceselection);
         }
         // select space according to spaceselection in config
         if (spaceselection == "random") {
@@ -120,7 +122,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
             }
         }
         if (debugflag) {
-            fmt::println(stderr, "Debug  : spaceid={}", spaceid);
+            spdlog::debug("spaceid={}", spaceid);
         }
     }
 
@@ -151,10 +153,10 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
         auto uid = getuid();
         auto euid = geteuid();
         caps.lower_cap({CAP_DAC_OVERRIDE}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
-        fmt::print(stderr, "Error  : could not create workspace directory <{}>!\n", wsdir);
+        spdlog::error("could not create workspace directory <{}>!", wsdir);
         if (debugflag) {
-            fmt::println(stderr, "Debug  : error = {}", e.what());
-            fmt::println(stderr, "Debug  : uid: {} euid: {}", uid, euid);
+            spdlog::debug("error = {}", e.what());
+            spdlog::debug("uid: {} euid: {}", uid, euid);
         }
         exit(-1); // FIXME: throw
     }
@@ -179,7 +181,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
 
     if (chown(wsdir.c_str(), tuid, tgid)) {
         caps.lower_cap({CAP_CHOWN}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
-        fmt::println(stderr, "Error  : could not change owner of workspace!");
+        spdlog::error("could not change owner of workspace!");
         unlink(wsdir.c_str());
         exit(-1); // FIXME: throw
     }
@@ -198,7 +200,7 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
     }
     if (chmod(wsdir.c_str(), mode)) {
         caps.lower_cap({CAP_FOWNER}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
-        fmt::println(stderr, "Error: could not change permissions of workspace!");
+        spdlog::error("could not change permissions of workspace!");
         unlink(wsdir.c_str());
         exit(-1); // FIXME: throw
     }
@@ -227,7 +229,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
     // list directory, this also reads YAML file in case of groupworkspaces
     auto listdir = [&groupworkspaces, &groups](const string pathname, const string filepattern) -> vector<string> {
         if (debugflag)
-            fmt::println("Debug  : listdir({},{})", pathname, filepattern);
+            spdlog::debug("listdir({},{})", pathname, filepattern);
         try {
             // in case of groupworkspace, read entry
             if (groupworkspaces) {
@@ -239,7 +241,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
                     try {
                         dbentry = YAML::LoadFile((cppfs::path(pathname) / f).string().c_str());
                     } catch (const YAML::BadFile& e) {
-                        fmt::print(stderr, "Error  : Could not read db entry {}: {}", f, e.what());
+                        spdlog::error("Could not read db entry {}: {}", f, e.what());
                     }
 
                     string group = dbentry["group"].as<string>();
@@ -309,7 +311,7 @@ void FilesystemDBV1::deleteEntry(const string wsid, const bool deleted) {
         dbentrypath = cppfs::path(config->getFsConfig(fs).database) / wsid;
     }
     if (debugflag)
-        fmt::println(stderr, "Debug  : deleting DB entry {}", dbentrypath.string());
+        spdlog::debug("deleting DB entry {}", dbentrypath.string());
 
     try {
         cppfs::remove(dbentrypath);
@@ -339,21 +341,20 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
 
     std::string filecontent = utils::getFileContents(filename.c_str());
     if (filecontent == "") {
-        fmt::println(stderr, "Error  : Could not read file <{}>", filename);
+        spdlog::error("Could not read file <{}>", filename);
         throw DatabaseException("could not read file");
     }
 
     try {
         readFromString(filecontent);
     } catch (const std::exception& e) {
-        throw DatabaseException(fmt::format("Error  : while reading file <{}>\n{}", filename, e.what()));
+        throw DatabaseException(fmt::format("while reading file <{}>\n{}", filename, e.what()));
     }
 
     if (debugflag) {
-        fmt::println(stderr,
-                     "Debug  : creation={} released={} expiration={} reminder={} workspace={} extensions={} "
-                     "mailaddress={} comment={} group={}",
-                     creation, released, expiration, reminder, workspace, extensions, mailaddress, comment, group);
+        spdlog::debug("creation={} released={} expiration={} reminder={} workspace={} extensions={} "
+                      "mailaddress={} comment={} group={}",
+                      creation, released, expiration, reminder, workspace, extensions, mailaddress, comment, group);
     }
 }
 
@@ -511,7 +512,7 @@ void DBEntryV1::useExtension(const long _expiration, const string _mailaddress, 
         extensions--;
     }
     if ((extensions < 0) && (getuid() != 0)) {
-        throw DatabaseException("Error  : no more extensions!");
+        throw DatabaseException("no more extensions!");
     }
     if (_expiration != -1) {
         expiration = _expiration;
@@ -562,7 +563,7 @@ void DBEntryV1::release(const std::string timestamp) {
                            cppfs::path(fmt::format("{}-{}", id, timestamp));
 
     if (debugflag)
-        fmt::println(stderr, "Debug  : dbtarget={}", dbtarget.string());
+        spdlog::debug("dbtarget={}", dbtarget.string());
 
     caps.raise_cap({CAP_FOWNER, CAP_DAC_OVERRIDE}, utils::SrcPos(__FILE__, __LINE__, __func__));
 
@@ -571,21 +572,21 @@ void DBEntryV1::release(const std::string timestamp) {
         if (setegid(parent_db->getconfig()->dbgid()) || seteuid(parent_db->getconfig()->dbuid())) {
             caps.lower_cap({CAP_DAC_OVERRIDE, CAP_FOWNER}, parent_db->getconfig()->dbuid(),
                            utils::SrcPos(__FILE__, __LINE__, __func__));
-            throw DatabaseException("Error  : can not seteuid or setgid. Bad installation?");
+            throw DatabaseException("can not seteuid or setgid. Bad installation?");
         }
     }
 
     try {
         if (debugflag)
-            fmt::println("Debug  : rename({}, {})", dbfilepath, dbtarget.string());
+            spdlog::debug("rename({}, {})", dbfilepath, dbtarget.string());
         cppfs::rename(dbfilepath, dbtarget);
         dbfilepath = dbtarget.string(); // entry knows now the new name, for remove, but is not persistent
     } catch (const std::filesystem::filesystem_error& e) {
         caps.lower_cap({CAP_DAC_OVERRIDE, CAP_FOWNER}, parent_db->getconfig()->dbuid(),
                        utils::SrcPos(__FILE__, __LINE__, __func__));
         if (debugflag)
-            fmt::println(stderr, "Error  : {}", e.what());
-        throw DatabaseException("Error  : database entry could not be deleted!");
+            spdlog::error("{}", e.what());
+        throw DatabaseException("database entry could not be deleted!");
     }
 
     caps.lower_cap({CAP_DAC_OVERRIDE, CAP_FOWNER}, parent_db->getconfig()->dbuid(),
@@ -601,17 +602,17 @@ void DBEntryV1::expire(const std::string timestamp) {
                            cppfs::path(fmt::format("{}-{}", id, timestamp));
 
     if (debugflag)
-        fmt::println(stderr, "Debug  : dbtarget={}", dbtarget.string());
+        spdlog::debug("dbtarget={}", dbtarget.string());
 
     try {
         if (debugflag)
-            fmt::println("Debug  : rename({}, {})", dbfilepath, dbtarget.string());
+            spdlog::debug("rename({}, {})", dbfilepath, dbtarget.string());
         cppfs::rename(dbfilepath, dbtarget);
         dbfilepath = dbtarget.string(); // entry knows now the new name, for remove, but is not persistent
     } catch (const std::filesystem::filesystem_error& e) {
         if (debugflag)
-            fmt::println(stderr, "Error  : {}", e.what());
-        throw DatabaseException("Error  : database entry could not be deleted!");
+            spdlog::error("{}", e.what());
+        throw DatabaseException("database entry could not be deleted!");
     }
 }
 
@@ -622,12 +623,12 @@ void DBEntryV1::remove() {
     if (caps.isSetuid()) {
         // for filesystem with root_squash, we need to be DB user here
         if (setegid(getConfig()->dbgid()) || seteuid(getConfig()->dbuid())) {
-            fmt::println(stderr, "Error  : can not setuid, bad installation?");
+            spdlog::error("can not setuid, bad installation?");
         }
     }
 
     if (debugflag)
-        fmt::println(stderr, "Debug  : deleting db entry file {}", dbfilepath);
+        spdlog::debug("deleting db entry file {}", dbfilepath);
 
     cppfs::remove(dbfilepath);
 
@@ -694,23 +695,23 @@ void DBEntryV1::writeEntry() {
         dbgid = parent_db->getconfig()->dbgid();
 
         if (debugflag)
-            fmt::println("Debug  : isSetuid -> dbuid={}, dbgid={}", dbuid, dbgid);
+            spdlog::debug("isSetuid -> dbuid={}, dbgid={}", dbuid, dbgid);
 
         if (setegid(dbgid) || seteuid(dbuid)) {
-            fmt::print(stderr, "Error  : can not seteuid or setgid. Bad installation?\n");
+            spdlog::error("can not seteuid or setgid. Bad installation?");
             exit(-1);
         }
 
         if (debugflag)
-            fmt::println("Debug  : isSetuid -> euid={}, egid={}", geteuid(), getegid());
+            spdlog::debug("isSetuid -> euid={}, egid={}", geteuid(), getegid());
     }
 
     ofstream fout(dbfilepath.c_str());
     if (!(fout << entry)) {
-        fmt::print(stderr, "Error  : could not write DB file! Please check if the outcome is as expected, "
-                           "you might have to make a backup of the workspace to prevent loss of data!\n");
+        spdlog::error("could not write DB file! Please check if the outcome is as expected, "
+                      "you might have to make a backup of the workspace to prevent loss of data!\n");
         if (debugflag)
-            fmt::println("Error  : {}", std::strerror(errno));
+            spdlog::debug("{}", std::strerror(errno));
     }
     fout.close();
 
@@ -723,9 +724,9 @@ void DBEntryV1::writeEntry() {
 
     caps.raise_cap({CAP_FOWNER}, utils::SrcPos(__FILE__, __LINE__, __func__));
     if (chmod(dbfilepath.c_str(), perm) != 0) {
-        fmt::print(stderr, "Error  : could not change permissions of database entry\n");
+        spdlog::error("could not change permissions of database entry");
         if (debugflag)
-            fmt::println("Error  : {}", std::strerror(errno));
+            spdlog::error("{}", std::strerror(errno));
     }
 
     caps.lower_cap({CAP_FOWNER, CAP_DAC_OVERRIDE}, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
@@ -734,7 +735,7 @@ void DBEntryV1::writeEntry() {
         caps.raise_cap({CAP_CHOWN}, utils::SrcPos(__FILE__, __LINE__, __func__));
         if (chown(dbfilepath.c_str(), dbuid, dbgid)) {
             caps.lower_cap({CAP_CHOWN}, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
-            fmt::print(stderr, "Error  : could not change owner of database entry.\n");
+            spdlog::error("could not change owner of database entry.");
         }
         caps.lower_cap({CAP_CHOWN}, dbuid, utils::SrcPos(__FILE__, __LINE__, __func__));
     }

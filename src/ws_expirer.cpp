@@ -47,6 +47,8 @@
 #include "utils.h"
 #include "ws.h"
 
+#include "spdlog/spdlog.h"
+
 // init caps here, when euid!=uid
 Cap caps{};
 
@@ -88,12 +90,12 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
         try {
             dbentry = std::unique_ptr<DBEntry>(db->readEntry(id, false));
             if (!dbentry) {
-                fmt::println(stderr, "Error   : skipping db entry {}", id);
+                spdlog::error("skipping db entry {}", id);
                 continue;
             }
         } catch (DatabaseException& e) {
-            fmt::println(e.what());
-            fmt::println(stderr, "Error   : skipping db entry {}", id);
+            spdlog::error(e.what());
+            spdlog::error("skipping db entry {}", id);
             continue;
         }
 
@@ -102,7 +104,7 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
         auto expiration = dbentry->getExpiration();
 
         if (expiration <= 0) {
-            fmt::println(stderr, "Error   : bad expiration in {}, skipping", id);
+            spdlog::error("bad expiration in {}, skipping", id);
             continue;
         }
 
@@ -121,11 +123,11 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
                     auto tgt = cppfs::path(wspath) / config.deletedPath(fs) /
                                (cppfs::path(wspath).filename().string() + "-" + timestamp);
                     if (debugflag) {
-                        fmt::println("Debug    : mv ", wspath, " -> ", tgt.string());
+                        spdlog::debug("mv ", wspath, " -> ", tgt.string());
                     }
                     cppfs::rename(wspath, tgt);
                 } catch (cppfs::filesystem_error& e) {
-                    fmt::println(stderr, "Error    : failed to move workspace: {} ({})", wspath, e.what());
+                    spdlog::error("failed to move workspace: {} ({})", wspath, e.what());
                 }
             }
         } else {
@@ -145,12 +147,12 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
         try {
             dbentry = std::unique_ptr<DBEntry>(db->readEntry(id, true));
             if (!dbentry) {
-                fmt::println(stderr, "Error   : skipping db entry {}", id);
+                spdlog::error("skipping db entry {}", id);
                 continue;
             }
         } catch (DatabaseException& e) {
-            fmt::println(e.what());
-            fmt::println(stderr, "Error   : skipping db entry {}", id);
+            spdlog::error(e.what());
+            spdlog::error("skipping db entry {}", id);
             continue;
         }
 
@@ -163,7 +165,7 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
             releasetime = std::stol(utils::splitString(id, '-').at(
                 std::count(id.begin(), id.end(), '-'))); // count from back, for usernames with "-"
         } catch (const out_of_range& e) {
-            fmt::println(stderr, "Error    : skipping DB entry with unparsable name {}", id);
+            spdlog::error("skipping DB entry with unparsable name {}", id);
             continue;
         }
 
@@ -217,6 +219,9 @@ int main(int argc, char** argv) {
 
     // locals settings to prevent strange effects
     utils::setCLocal();
+
+    // set custom logging format
+    utils::setupLogging();
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -272,13 +277,13 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file options!\n");
+            spdlog::warn("ignored config file options!");
         }
     }
 
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 

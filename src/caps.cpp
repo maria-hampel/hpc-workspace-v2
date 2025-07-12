@@ -36,6 +36,8 @@
 #include "caps.h"
 #include "user.h"
 
+#include "spdlog/spdlog.h"
+
 extern bool traceflag;
 extern bool debugflag;
 
@@ -49,7 +51,7 @@ Cap::Cap() {
     if (traceflag)
         fmt::println(stderr, "Trace  : Cap::Cap()");
     if (debugflag)
-        fmt::println(stderr, "Debug  : euid={}, uid={}", geteuid(), getuid());
+        spdlog::debug("euid={}, uid={}", geteuid(), getuid());
 
     issetuid = user::isSetuid();
     hascaps = false;
@@ -62,12 +64,12 @@ Cap::Cap() {
 
         caps = cap_get_proc();
         if (NULL == caps) {
-            fmt::println(stderr, "Error: Failed to obtain capabilities.");
+            spdlog::error("Failed to obtain capabilities.");
             exit(1);
         }
         oldcaps = cap_dup(caps);
         if (NULL == oldcaps) {
-            fmt::println(stderr, "Error: Failed copying capabilities.");
+            spdlog::error("Failed copying capabilities.");
             cap_free(caps);
             exit(1);
         }
@@ -75,7 +77,7 @@ Cap::Cap() {
         cap_list[0] = CAP_DAC_OVERRIDE; // this has to be set for all executables using this!
 
         if (cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, CAP_SET) == -1) {
-            fmt::println(stderr, "Error: Failed updating effective capability set.");
+            spdlog::error("Failed updating effective capability set.");
             cap_free(caps);
             cap_free(oldcaps);
             exit(1);
@@ -83,7 +85,7 @@ Cap::Cap() {
 
         if (cap_set_proc(caps) == 0) {
             if (cap_set_proc(oldcaps) != 0) {
-                fmt::println("Error: Failed resetting capabilities.");
+                spdlog::error("Failed resetting capabilities.");
                 cap_free(caps);
                 cap_free(oldcaps);
                 exit(1);
@@ -102,9 +104,9 @@ Cap::Cap() {
 
     if (debugflag) {
 #ifdef WS_CAPA
-        fmt::println(stderr, "Debug  : libcap is linked");
+        spdlog::debug("libcap is linked");
 #endif
-        fmt::println(stderr, "Debug  : issetuid={} hascaps={} isusermode={}", issetuid, hascaps, isusermode);
+        spdlog::debug("issetuid={} hascaps={} isusermode={}", issetuid, hascaps, isusermode);
     }
 }
 
@@ -129,14 +131,14 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 
         // setting caps we should have in PERMITTED set
         if (cap_set_flag(caps, CAP_PERMITTED, cnt, cap_list, CAP_SET) == -1) {
-            fmt::print(stderr, "Error  : problem with permitted capabilities. {}\n", srcpos.getSrcPos());
+            spdlog::error("problem with permitted capabilities. {}", srcpos.getSrcPos());
             if (debugflag)
                 dump();
             exit(1);
         }
 
         if (cap_set_proc(caps) != 0) {
-            fmt::print(stderr, "Error  : problem setting permitted capabilities.\n");
+            spdlog::error("problem setting permitted capabilities.");
             if (debugflag)
                 dump();
             cap_free(caps);
@@ -149,7 +151,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 
     if (issetuid) {
         if (seteuid(uid)) {
-            fmt::print(stderr, "Error  : can not change uid {}.\n", srcpos.getSrcPos());
+            spdlog::error("can not change uid {}.", srcpos.getSrcPos());
             exit(1);
         }
     }
@@ -174,14 +176,14 @@ void Cap::lower_cap(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
         caps = cap_get_proc();
 
         if (cap_set_flag(caps, CAP_EFFECTIVE, cnt, cap_list, CAP_CLEAR) == -1) {
-            fmt::print(stderr, "Error  : problem with effective capabilities {}.\n", srcpos.getSrcPos());
+            spdlog::error("problem with effective capabilities {}.", srcpos.getSrcPos());
             exit(1);
         }
 
         if (cap_set_proc(caps) == -1) {
-            fmt::print(stderr, "Error  : problem lowering effective capabilities {}.\n", srcpos.getSrcPos());
+            spdlog::error("problem lowering effective capabilities {}.", srcpos.getSrcPos());
             cap_t cap = cap_get_proc();
-            fmt::print(stderr, "Info   : running with capabilities: {}\n", cap_to_text(cap, NULL));
+            spdlog::info("running with capabilities: {}", cap_to_text(cap, NULL));
             cap_free(cap);
             exit(1);
         }
@@ -192,7 +194,7 @@ void Cap::lower_cap(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 
     if (issetuid) {
         if (seteuid(uid)) {
-            fmt::print(stderr, "Error  : can not change uid {}.\n", srcpos.getSrcPos());
+            spdlog::error("can not change uid {}.", srcpos.getSrcPos());
             exit(1);
         }
     }
@@ -217,14 +219,14 @@ void Cap::raise_cap(std::vector<cap_value_t> cap_arg, utils::SrcPos srcpos) {
         caps = cap_get_proc();
 
         if (cap_set_flag(caps, CAP_EFFECTIVE, cnt, cap_list, CAP_SET) == -1) {
-            fmt::print(stderr, "Error  : problem with effective capabilities {}.\n", srcpos.getSrcPos());
+            spdlog::error("problem with effective capabilities {}.", srcpos.getSrcPos());
             exit(1);
         }
 
         if (cap_set_proc(caps) == -1) {
-            fmt::print(stderr, "Error  : problem raising effective capabilities. {}\n", srcpos.getSrcPos());
+            spdlog::error("problem raising effective capabilities. {}", srcpos.getSrcPos());
             cap_t cap = cap_get_proc();
-            fmt::print(stderr, "Debug  : Running with capabilities: {}\n", cap_to_text(cap, NULL));
+            spdlog::debug("Running with capabilities: {}", cap_to_text(cap, NULL));
             cap_free(cap);
             exit(1);
         }
@@ -235,7 +237,7 @@ void Cap::raise_cap(std::vector<cap_value_t> cap_arg, utils::SrcPos srcpos) {
 
     if (issetuid) {
         if (seteuid(0)) {
-            fmt::print(stderr, "Error  : can not change uid {}.\n", srcpos.getSrcPos());
+            spdlog::error("can not change uid {}.", srcpos.getSrcPos());
             exit(1);
         }
     }
@@ -246,7 +248,7 @@ void Cap::dump() const {
 #ifdef WS_CAPA
     cap_t cap = cap_get_proc();
     char* cap_text = cap_to_text(cap, NULL);
-    fmt::print(stderr, "Debug  : running with capabilities: {}\n", cap_text);
+    spdlog::debug("running with capabilities: {}", cap_text);
     cap_free(cap_text);
     cap_free(cap);
 #endif

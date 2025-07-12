@@ -97,7 +97,7 @@ setup() {
 @test "ws_allocate with -x, invalid extension, too many extensions, changing comment" {
     run ws_allocate -x DOES_NOT_EXIST 10
     assert_failure
-    assert_output --partial "Error  : workspace does not exist, can not be extended!"
+    assert_output --partial "workspace does not exist, can not be extended!"
 
     run ws_allocate extensiontest 10
     assert_success
@@ -105,7 +105,7 @@ setup() {
 
     run ws_allocate -x extensiontest 20
     assert_success
-    assert_output --partial "Info   : extending workspace"
+    assert_output --partial "extending workspace"
     assert_output --partial "remaining extensions  : 2"
     assert_output --partial "remaining time in days: 20"
 

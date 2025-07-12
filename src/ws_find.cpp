@@ -46,7 +46,10 @@
 // #include "fmt/ostream.h"
 
 #include "caps.h"
+#include "utils.h"
 #include "ws.h"
+
+#include "spdlog/spdlog.h"
 
 // init caps here, when euid!=uid
 Cap caps{};
@@ -73,6 +76,9 @@ int main(int argc, char** argv) {
 
     // locals settings to prevent strange effects
     utils::setCLocal();
+
+    // set custom logging format
+    utils::setupLogging();
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -139,7 +145,7 @@ int main(int argc, char** argv) {
     }
 
     if (name == "") {
-        fmt::println(stderr, "Error  : no workspace name given!");
+        spdlog::error("no workspace name given!");
         exit(-4);
     }
 
@@ -150,13 +156,13 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file options!\n");
+            spdlog::warn("ignored config file options!");
         }
     }
 
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 
@@ -183,7 +189,7 @@ int main(int argc, char** argv) {
         if (canFind(validfs, filesystem)) {
             fslist.push_back(filesystem);
         } else {
-            fmt::println(stderr, "Error  : invalid filesystem given.");
+            spdlog::error("invalid filesystem given.");
             exit(-3);
         }
     } else {
@@ -195,7 +201,7 @@ int main(int argc, char** argv) {
     // iterate over filesystems and print or create list to be sorted
     for (auto const& fs : fslist) {
         if (debugflag)
-            fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+            spdlog::debug("loop over fslist {} in {}", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
 
         // catch DB access errors, if DB directory or DB is accessible
@@ -209,13 +215,13 @@ int main(int argc, char** argv) {
                 }
             }
         } catch (DatabaseException& e) {
-            fmt::println(stderr, "{}", e.what());
+            spdlog::error("{}", e.what());
             exit(-2);
         }
 
     } // loop fslist
 
     // if we get here, we did not find the workspace
-    fmt::println(stderr, "Error  : workspace not found!");
+    spdlog::error("workspace not found!");
     exit(-1);
 }

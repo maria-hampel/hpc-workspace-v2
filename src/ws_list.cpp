@@ -46,7 +46,10 @@
 #include "user.h"
 
 #include "caps.h"
+#include "utils.h"
 #include "ws.h"
+
+#include "spdlog/spdlog.h"
 
 // init caps here, when euid!=uid
 Cap caps{};
@@ -83,6 +86,9 @@ int main(int argc, char** argv) {
 
     // locals settings to prevent strange effects
     utils::setCLocal();
+
+    // setup logging
+    utils::setupLogging();
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -175,13 +181,13 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file options!\n");
+            spdlog::warn("ignored config file options!");
         }
     }
 
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 
@@ -229,7 +235,7 @@ int main(int argc, char** argv) {
             if (canFind(validfs, filesystem)) {
                 fslist.push_back(filesystem);
             } else {
-                fmt::println(stderr, "Error  : invalid filesystem given.");
+                spdlog::error("invalid filesystem given.");
             }
         } else {
             fslist = validfs;
@@ -240,7 +246,7 @@ int main(int argc, char** argv) {
         // iterate over filesystems and print or create list to be sorted
         for (auto const& fs : fslist) {
             if (debugflag)
-                fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+                spdlog::debug("loop over fslist {} in {}", fs, fslist);
             std::unique_ptr<Database> db(config.openDB(fs));
 
 #pragma omp parallel for schedule(dynamic)
@@ -273,8 +279,8 @@ int main(int argc, char** argv) {
         // in case of sorted output, sort and print here
         if (sort) {
             if (debugflag)
-                fmt::println(stderr, "Debug  : sorting remaining={},creation={},name={},reverse={}", sortbyremaining,
-                             sortbycreation, sortbyname, sortreverted);
+                spdlog::debug("sorting remaining={},creation={},name={},reverse={}", sortbyremaining, sortbycreation,
+                              sortbyname, sortreverted);
             if (sortbyremaining)
                 std::sort(entrylist.begin(), entrylist.end(),
                           [](const auto& x, const auto& y) { return (x->getRemaining() < y->getRemaining()); });

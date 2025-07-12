@@ -46,6 +46,8 @@
 #include "utils.h"
 #include "ws.h"
 
+#include "spdlog/spdlog.h"
+
 // init caps here, when euid!=uid
 Cap caps{};
 
@@ -71,6 +73,9 @@ int main(int argc, char** argv) {
 
     // locals settings to prevent strange effects
     utils::setCLocal();
+
+    // set custom logging format
+    utils::setupLogging();
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -126,13 +131,13 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file options!\n");
+            spdlog::warn("ignored config file options!");
         }
     }
 
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 
@@ -168,7 +173,7 @@ int main(int argc, char** argv) {
                     }
                 }
             } catch (DatabaseException& e) {
-                fmt::println(e.what());
+                spdlog::error(e.what());
             }
         }
 

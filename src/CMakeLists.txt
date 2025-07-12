@@ -21,6 +21,7 @@ target_link_libraries(ws_common
         ryml::ryml
         yaml-cpp::yaml-cpp
         ${LIBCAP}
+        spdlog
     PRIVATE
         Microsoft.GSL::GSL
 )
@@ -33,6 +34,7 @@ target_link_libraries(ws_list
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
 
 add_executable(ws_find
@@ -43,6 +45,7 @@ target_link_libraries(ws_find
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
 
 add_executable(ws_allocate
@@ -53,6 +56,7 @@ target_link_libraries(ws_allocate
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
 
 add_executable(ws_release
@@ -63,6 +67,7 @@ target_link_libraries(ws_release
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
 
 add_executable(ws_restore
@@ -73,6 +78,7 @@ target_link_libraries(ws_restore
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
 
 add_executable(ws_prepare
@@ -83,6 +89,7 @@ target_link_libraries(ws_prepare
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
 
 add_executable(ws_register
@@ -93,6 +100,7 @@ target_link_libraries(ws_register
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
 
 add_executable(ws_expirer
@@ -103,6 +111,7 @@ target_link_libraries(ws_expirer
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
 
 add_executable(ws_stat
@@ -113,6 +122,7 @@ target_link_libraries(ws_stat
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
 
 add_executable(ws_editdb
@@ -123,4 +133,5 @@ target_link_libraries(ws_editdb
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        spdlog
 )
