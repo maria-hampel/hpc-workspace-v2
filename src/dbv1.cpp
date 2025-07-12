@@ -709,7 +709,7 @@ void DBEntryV1::writeEntry() {
     ofstream fout(dbfilepath.c_str());
     if (!(fout << entry)) {
         spdlog::error("could not write DB file! Please check if the outcome is as expected, "
-                      "you might have to make a backup of the workspace to prevent loss of data!\n");
+                      "you might have to make a backup of the workspace to prevent loss of data!");
         if (debugflag)
             spdlog::debug("{}", std::strerror(errno));
     }
