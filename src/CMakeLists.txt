@@ -147,5 +147,5 @@ target_link_libraries(ws_send_ical
         ${Boost_LIBRARIES}
         fmt::fmt
         spdlog
-	CURL::libcurl
+        CURL::libcurl
 )
