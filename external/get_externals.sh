@@ -58,3 +58,12 @@ else
 	git pull
 	cd $OPWD
 fi
+echo curl
+if [ ! -d curl ]
+then
+	git clone --filter=tree:0 https://github.com/curl/curl.git
+else 
+	cd curl
+	git pull
+	cd $OPWD
+fi
