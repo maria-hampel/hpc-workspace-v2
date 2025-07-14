@@ -30,7 +30,7 @@
 
 #include "fmt/base.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
-#include "vmime/vmime"
+#include <curl/curl.h>
 #include <iostream>
 #include <regex>
 #include <string>
@@ -55,10 +55,14 @@ using namespace std;
 bool debugflag = false;
 bool traceflag = false;
 
-std::string CRLF="\r\n";
-
 // init caps here, when euid!=uid
 Cap caps{};
+
+
+std::string CRLF="\r\n";
+
+static std::string email_content;
+static size_t email_index = 0;
 
 
 void commandline(po::variables_map& opt, string& filesystem, string& mailaddress, string& name, std::string& userconf, int argc, char** argv) {
@@ -148,7 +152,8 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
 
 }
 
-std::string generateDateFormat(const time_t time) {
+// Generate the Date Format used for ics attachments from time_t
+std::string generateICSDateFormat(const time_t time) {
     char timeString[std::size("yyyymmddThhmmssZ")];
     std::strftime(std::data(timeString), std::size(timeString),
                   "%Y%m%dT%H%M00Z", std::gmtime(&time));
@@ -156,23 +161,44 @@ std::string generateDateFormat(const time_t time) {
     return s;
 }
 
-std::string generateICS (const std::unique_ptr<DBEntry>& entry, time_t createtime) {
-    
-    /**
-     * TODO:
-     * - get time figured out 
-     * - do you want to pass the time to the function or want to get it inside the function. from entry?
-     *      - createtime is he the the ics gets created not the ws 
-     */
-    
+// Generate the Date Format used for Mime Mails from time_t
+std::string generateMailDateFormat(const time_t time) {
+    char timeString[std::size("Mon, 29 Nov 2010 21:54:29 +1100")];
+    std::strftime(std::data(timeString), std::size(timeString),
+                  "%a, %d %h %Y %X %z", std::gmtime(&time));
+    std::string s(timeString);
+    return s;
+}
+
+// Encode an Input for Base64
+std::string base64Encode(const std::string& input) {
+        const std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        std::string result;
+        unsigned int val = 0;
+        int valb = -6;
+        for (unsigned char c : input) {
+            val = (val << 8) + c;
+            valb += 8;
+            while (valb >= 0) {
+                result.push_back(chars[(val >> valb) & 0x3F]);
+                valb -= 6;
+            }
+        }
+        if (valb > -6) result.push_back(chars[((val << 8) >> (valb + 8)) & 0x3F]);
+        while (result.size() % 4) result.push_back('=');
+        return result;
+    }
+
+// Generate the ICS File
+std::string generateICS (const std::unique_ptr<DBEntry>& entry, time_t createtime) {  
     std::string wsname = entry->getId();
     time_t expirationtime = entry->getExpiration();
     std::string resource = entry->getFilesystem();
     time_t starttime = expirationtime - 7200;
 
-    std::string starttimestr = generateDateFormat(starttime);
-    std::string expirationtimestr = generateDateFormat(expirationtime);
-    std::string createtimestr = generateDateFormat(createtime);
+    std::string starttimestr = generateICSDateFormat(starttime);
+    std::string expirationtimestr = generateICSDateFormat(expirationtime);
+    std::string createtimestr = generateICSDateFormat(createtime);
     
     
     std::size_t entryhash = std::hash<std::string>{}(entry->getId());
@@ -226,19 +252,126 @@ std::string generateICS (const std::unique_ptr<DBEntry>& entry, time_t createtim
     return ics.str();
 }
 
-std::string generateMail(std::unique_ptr<DBEntry>& entry){
-    auto ws_name = entry->getId();
-    auto resource = entry->getFilesystem();
-    std::string eml_body = fmt::format("Workspace {} on host {} is going to expire ",ws_name, resource);
-
-    return eml_body;
+// Generate a message ID from current time, PID, and Random component
+std::string generateMessageID(const std::string& domain = "ws_send_ical") {
+    auto now = std::time(nullptr);
+    auto pid = getpid();
+    
+    std::hash<std::string> hasher;
+    std::string unique_string = std::to_string(now) + std::to_string(pid) + std::to_string(rand());
+    auto hash = hasher(unique_string);
+    
+    return fmt::format("{}.{}.{}@{}", now, pid, hash, domain);
 }
 
-/**
- * TODO
- * -generate Mail
- * - send ical
- */
+// Generate the Mail
+std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics, const std::string mail_from, const std::string mail_to, time_t now){
+    std::string wsname = entry->getId();
+    std::string resource = entry->getFilesystem();
+    
+    std::stringstream mail;
+    std::string expirationtimestr = generateMailDateFormat(entry->getExpiration());
+    std::string createtimestr = generateMailDateFormat(now);
+    std::string boundary = "_NextPart_01234567.89ABCDEF";
+    std::string messageID = generateMessageID();
+
+    std::string encodedICS = base64Encode(ics);
+
+    std::string body = "Workspace " + wsname + " on host " + resource + " is going to expire ";
+    
+    mail << "From: " << mail_from << CRLF;
+    mail << "To: " << mail_to << CRLF;
+    mail << "Subject: Workspace expire on " << expirationtimestr << CRLF;
+    mail << "Message-ID: <" << messageID << ">" << CRLF;
+    mail << "Date: " << createtimestr << CRLF;
+    mail << "MIME-Version: 1.0" << CRLF;
+    mail << "Content-Type: multipart/mixed; boundary=" << boundary << CRLF;
+    mail << "" << CRLF;
+
+    mail << "--" << boundary << CRLF;
+    mail << "Content-Type: text/plain; charset=UTF-8" << CRLF;
+    mail << "Content-Transfer-Encoding: 7bit" << CRLF;
+    mail << "" << CRLF;
+    mail << "Workspace " << wsname << " on host " << resource << " is going to expire " << CRLF;
+    mail << "" << CRLF;
+
+    mail << "--" << boundary << CRLF;
+    mail << "Content-Type: text/calendar; charset=UTF-8; method=REQUEST" << CRLF;
+    mail << "Content-Transfer-Encoding: base64" << CRLF;
+    mail << "Content_disposition: attachment; filename=invite.ics" << CRLF;
+    mail << "" << CRLF;
+
+    for (size_t i = 0; i < encodedICS.length(); i+=76){
+        mail << encodedICS.substr(i, 76) << CRLF;
+    }
+
+    mail << "" << CRLF;
+    mail << "--" << boundary << "--" << CRLF;
+    mail << "" << CRLF;
+
+    return mail.str();
+}
+
+// Callback function for curl
+static size_t readEmailCallback(void* ptr, size_t size, size_t nmemb, void* userp) {
+    size_t available = email_content.length() - email_index;
+    if (available == 0) {
+        return 0; // No more data
+    }
+    
+    size_t to_copy = std::min(available, size * nmemb);
+    memcpy(ptr, email_content.c_str() + email_index, to_copy);
+    email_index += to_copy;
+    
+    return to_copy;
+}
+
+// Send the a Mail with curl to the smtpUrl
+bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to, const std::string& completeMail){
+    CURL* curl;
+    CURLcode res = CURLE_OK;
+
+    curl=curl_easy_init();
+    if (!curl) {
+        if (debugflag) fmt::println(stderr, "Debug  : Failed to initialize curl");
+        return false;
+    }
+
+    email_content = completeMail;
+    email_index = 0;
+
+    curl_easy_setopt(curl, CURLOPT_URL, smtpUrl.c_str());
+    
+    struct curl_slist* recipients = nullptr;
+    recipients = curl_slist_append(recipients, mail_to.c_str());
+    curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+
+    curl_easy_setopt(curl, CURLOPT_MAIL_FROM, mail_from.c_str());
+
+    curl_easy_setopt(curl, CURLOPT_READFUNCTION, readEmailCallback);
+    curl_easy_setopt(curl, CURLOPT_READDATA, nullptr);
+    curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+
+    if (debugflag) {
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    }
+    
+    res = curl_easy_perform(curl);
+
+
+    if (debugflag) {
+        if (res == CURLE_OK) {
+            fmt::println(stderr, "Debug  : Email sent successfully");
+        } else {
+            fmt::println(stderr, "Debug  : curl_easy_perform() failed: {}", curl_easy_strerror(res));
+        }
+    }
+
+    curl_slist_free_all(recipients);
+    curl_easy_cleanup(curl);
+    
+    return (res == CURLE_OK);
+}
 
 
 int main(int argc, char** argv) {
@@ -250,8 +383,11 @@ int main(int argc, char** argv) {
     po::variables_map opt;
     std::string userconf;
 
+    srand(time(nullptr));
+
     time_t now = time(nullptr);
 
+    curl_global_init(CURL_GLOBAL_DEFAULT);
 
 
     string user_conf_filename = user::getUserhome() + "/.ws_user.conf";
@@ -296,7 +432,7 @@ int main(int argc, char** argv) {
     }
 
     auto grouplist = user::getGrouplist();
-    bool listgroups = false; //erstmal keine benachrichtigungen für groupworkspaces zulassen 
+    bool listgroups = false; // erstmal keine benachrichtigungen für groupworkspaces zulassen 
 
     vector<string> fslist;
     vector<string> validfs = config.validFilesystems(username, grouplist, ws::USE);
@@ -349,10 +485,36 @@ int main(int argc, char** argv) {
         fmt::println(stderr, "Error  : no workspace found");
         exit(0);
     } else {
+        std::string mail_from = config.mailfrom();
+        std::string smtpUrl = config.smtphost();
+        std::string mail_to = mailaddress;
+
         const auto& entry=entrylist.front();
+
         std::string ics = generateICS(entry, now);
-        // fmt::print(ics);
+        if (debugflag) {
+            fmt::println(stderr, "Debug  : Generated ICS content:");
+            fmt::println(stderr, "{}", ics);
+        }
+        
+        std::string completeMail = generateMail(entry, ics, mail_from, mail_to, now);
+        if (debugflag) {
+            fmt::println(stderr, "Debug  : Generated email content:");
+            fmt::println(stderr, "{}", completeMail);
+        }
+
+        if (sendCurl(config.smtphost(), mail_from, mail_to, completeMail)) {
+            fmt::println("Success: Calendar invitation sent to {}", mailaddress);
+        } else {
+            fmt::println(stderr, "Error  : Failed to send calendar invitation to {}", mailaddress);
+            exit(1);
+        }
+
+    
+
         fmt::print("success; filesystem {}, workspacename {}, mailaddress {}", filesystem, name, mailaddress);
     }
 
+
+    curl_global_cleanup();
 }

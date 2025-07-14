@@ -144,4 +144,5 @@ target_link_libraries(ws_send_ical
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
+        libcurl
 )
