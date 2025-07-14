@@ -67,8 +67,8 @@ std::string CRLF = "\r\n";
 static std::string email_content;
 static size_t email_index = 0;
 
-void commandline(po::variables_map& opt, string& filesystem, string& mailaddress, string& name, std::string& userconf, std::string& configfile,
-                 int argc, char** argv) {
+void commandline(po::variables_map& opt, string& filesystem, string& mailaddress, string& name, std::string& userconf,
+                 std::string& configfile, int argc, char** argv) {
 
     // define all options
     po::options_description cmd_options("\nOptions");
@@ -80,7 +80,7 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
         ("workspace,n", po::value<string>(&name), "name of selected workspace")
         ("config", po::value<string>(&configfile), "config file");
     // clang-format on
-    
+
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show calling information");
 
@@ -408,6 +408,7 @@ int main(int argc, char** argv) {
     // setup curl
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
+    // Get Userconf
     string user_conf_filename = user::getUserhome() + "/.ws_user.conf";
     if (!cppfs::is_symlink(user_conf_filename)) {
         if (cppfs::is_regular_file(user_conf_filename)) {
@@ -422,6 +423,7 @@ int main(int argc, char** argv) {
     // read commandlineoptions
     commandline(opt, filesystem, mailaddress, name, userconf, configfile, argc, argv);
 
+    // Get Configfile
     auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d", "/etc/ws.conf"};
     if (configfile != "") {
         if (user::isRoot() || caps.isUserMode()) {
@@ -452,6 +454,7 @@ int main(int argc, char** argv) {
     auto grouplist = user::getGrouplist();
     bool listgroups = false; // don't allow notifications for Group Workspaces yet
 
+    // Only search in valid Filesystems
     vector<string> fslist;
     vector<string> validfs = config.validFilesystems(username, grouplist, ws::USE);
     if (filesystem != "") {
@@ -487,7 +490,7 @@ int main(int argc, char** argv) {
         }
     } // loop fslist
 
-    // If multiple entries exist force Filesystem option 
+    // If multiple entries exist force Filesystem option
     if (entrylist.size() > 1) {
         spdlog::error("multiple workspaces found, use the -F option to specify Filesystem");
         for (const std::unique_ptr<DBEntry>& entry : entrylist) {
@@ -495,14 +498,17 @@ int main(int argc, char** argv) {
         }
         exit(0);
     } else if (entrylist.empty()) {
-        spdlog::debug("no workspace found");
+        spdlog::warn("no workspace {} found, if you think there should be such a workspace, please check the output "
+                     "of 'ws_restore -l' for removed workspaces which are possible to recover",
+                     name);
         exit(0);
     } else {
         std::string mail_from = config.mailfrom();
-        if (mail_from == "") {
-            spdlog::error("No mail_from option in config.");
-            exit(-2);
-        }
+        if (mail_from == "")
+             {
+                spdlog::warn("no mail_from in global config, please inform system administrator!");
+                exit(-2);
+            }
         std::string smtpUrl = config.smtphost();
         std::string mail_to = mailaddress;
 
