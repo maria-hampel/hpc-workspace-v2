@@ -117,6 +117,9 @@ for testing:
 - [x] test with more compilers and distributions
 - [x] do real live tests
 - [ ] define and implement new DB format
+- [ ] bash completion
+- [ ] installation tool? installation through CMake?
+- [ ] keep externals download? or use package manager like vcpkg or conan? (vcpkg does not support rapidyaml)
 
 ## Input and ideas and contributions needed
 

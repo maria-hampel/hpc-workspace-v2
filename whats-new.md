@@ -1,4 +1,4 @@
-# whats new in v2 vs v1
+# what's new in v2 vs v1
 
 ## new tools
 
@@ -35,4 +35,4 @@
 - more tests
 - CI pipeline
 - no python dependency, more C++ tools with higher speed and consistent behaviour
-- abstraction of the DB, allowing easier tool development and will allow new functionality in DB in a coming version
+- abstraction of the DB, allowing easier tool development and will allow new functionality in DB in a coming version, planned is more privacy through better isolation of users/groups
