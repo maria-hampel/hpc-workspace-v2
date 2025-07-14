@@ -3,7 +3,7 @@
  *
  *  ws_send_ical
  *
- *  - 
+ *  -
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
@@ -27,8 +27,8 @@
  *
  */
 
-
 #include "fmt/base.h"
+#include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include <curl/curl.h>
 #include <iostream>
@@ -47,6 +47,8 @@
 #include "utils.h"
 #include "ws.h"
 
+#include "spdlog/spdlog.h"
+
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 using namespace std;
@@ -58,22 +60,22 @@ bool traceflag = false;
 // init caps here, when euid!=uid
 Cap caps{};
 
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
-std::string CRLF="\r\n";
+std::string CRLF = "\r\n";
 
 static std::string email_content;
 static size_t email_index = 0;
 
-
-void commandline(po::variables_map& opt, string& filesystem, string& mailaddress, string& name, std::string& userconf, int argc, char** argv) {
+void commandline(po::variables_map& opt, string& filesystem, string& mailaddress, string& name, std::string& userconf,
+                 int argc, char** argv) {
 
     // define all options
-
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")
-        ("filesystem,F", po::value<string>(&filesystem), "filesystem where the workspace is located in")
-        ("mail,m", po::value<string>(&mailaddress), "your mail address to send to")
-        ("workspace,n", po::value<string>(&name), "name of selected workspace");
+    cmd_options.add_options()("help,h", "produce help message")("filesystem,F", po::value<string>(&filesystem),
+                                                                "filesystem where the workspace is located in")(
+        "mail,m", po::value<string>(&mailaddress),
+        "your mail address to send to")("workspace,n", po::value<string>(&name), "name of selected workspace");
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show calling information");
@@ -86,12 +88,14 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
     po::options_description all_options;
     all_options.add(cmd_options).add(secret_options);
 
-    //parse commandline 
+    // parse commandline
     try {
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        cerr << "Usage:" << argv[0] << ": [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress" << endl;
+        cerr << "Usage:" << argv[0]
+             << ": [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress"
+             << endl;
         cerr << cmd_options << "\n";
         exit(1);
     }
@@ -99,9 +103,13 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
     UserConfig userconfig(userconf);
 
     if (opt.count("help")) {
-        cerr << "Usage:" << argv[0] << ": [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress" << endl;
+        cerr << "Usage:" << argv[0]
+             << ": [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress"
+             << endl;
         cerr << cmd_options << "\n";
-        cerr << "this command is used to send a calendar invitation by Email to ensure users do not forget\n the expiration date of a workspace" << endl;
+        cerr << "this command is used to send a calendar invitation by Email to ensure users do not forget\n the "
+                "expiration date of a workspace"
+             << endl;
         exit(0);
     }
 
@@ -128,35 +136,37 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
     static const regex e("^[[:alnum:]][[:alnum:]_.-]*$");
     if (opt.count("workspace") && regex_match(name, e)) {
         if (!opt.count("mail")) {
-            mailaddress=userconfig.getMailaddress();
+            mailaddress = userconfig.getMailaddress();
 
-            if(mailaddress.length() > 0 && utils::isValidEmail(mailaddress)) {
-                fmt::println(stderr,"Info   : Took email address <{}> from users config.", mailaddress);
+            if (mailaddress.length() > 0 && utils::isValidEmail(mailaddress)) {
+                spdlog::info("Took email address <{}> from users config.", mailaddress);
             } else {
-                fmt::println(stderr, "Error  : You can't use the ws_send_ical without a mailadress (-m).");
+                spdlog::error("You can't use the ws_send_ical without a mailadress (-m).");
                 exit(1);
             }
         } else {
             if (!utils::isValidEmail(mailaddress)) {
-               fmt::println("Error  : Invalid email address, abort");
-               exit(1);
+                spdlog::error("Invalid email address, abort");
+                exit(1);
             }
         }
     } else {
         cerr << "Error  : Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!" << endl;
-        cerr << "Usage:" << argv[0] << ": [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress" << endl;
+        cerr << "Usage:" << argv[0]
+             << ": [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress"
+             << endl;
         cerr << cmd_options << "\n";
-        cerr << "this command is used to send a calendar invitation by Email to ensure users do not forget\n the expiration date of a workspace" << endl;
+        cerr << "this command is used to send a calendar invitation by Email to ensure users do not forget\n the "
+                "expiration date of a workspace"
+             << endl;
         exit(1);
     }
-
 }
 
 // Generate the Date Format used for ics attachments from time_t
 std::string generateICSDateFormat(const time_t time) {
     char timeString[std::size("yyyymmddThhmmssZ")];
-    std::strftime(std::data(timeString), std::size(timeString),
-                  "%Y%m%dT%H%M00Z", std::gmtime(&time));
+    std::strftime(std::data(timeString), std::size(timeString), "%Y%m%dT%H%M00Z", std::gmtime(&time));
     std::string s(timeString);
     return s;
 }
@@ -164,33 +174,34 @@ std::string generateICSDateFormat(const time_t time) {
 // Generate the Date Format used for Mime Mails from time_t
 std::string generateMailDateFormat(const time_t time) {
     char timeString[std::size("Mon, 29 Nov 2010 21:54:29 +1100")];
-    std::strftime(std::data(timeString), std::size(timeString),
-                  "%a, %d %h %Y %X %z", std::gmtime(&time));
+    std::strftime(std::data(timeString), std::size(timeString), "%a, %d %h %Y %X %z", std::gmtime(&time));
     std::string s(timeString);
     return s;
 }
 
-// Encode an Input for Base64
+// Encode ics input for Base64
 std::string base64Encode(const std::string& input) {
-        const std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        std::string result;
-        unsigned int val = 0;
-        int valb = -6;
-        for (unsigned char c : input) {
-            val = (val << 8) + c;
-            valb += 8;
-            while (valb >= 0) {
-                result.push_back(chars[(val >> valb) & 0x3F]);
-                valb -= 6;
-            }
+    const std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string result;
+    unsigned int val = 0;
+    int valb = -6;
+    for (unsigned char c : input) {
+        val = (val << 8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            result.push_back(chars[(val >> valb) & 0x3F]);
+            valb -= 6;
         }
-        if (valb > -6) result.push_back(chars[((val << 8) >> (valb + 8)) & 0x3F]);
-        while (result.size() % 4) result.push_back('=');
-        return result;
     }
+    if (valb > -6)
+        result.push_back(chars[((val << 8) >> (valb + 8)) & 0x3F]);
+    while (result.size() % 4)
+        result.push_back('=');
+    return result;
+}
 
 // Generate the ICS File
-std::string generateICS (const std::unique_ptr<DBEntry>& entry, time_t createtime) {  
+std::string generateICS(const std::unique_ptr<DBEntry>& entry, time_t createtime) {
     std::string wsname = entry->getId();
     time_t expirationtime = entry->getExpiration();
     std::string resource = entry->getFilesystem();
@@ -199,12 +210,10 @@ std::string generateICS (const std::unique_ptr<DBEntry>& entry, time_t createtim
     std::string starttimestr = generateICSDateFormat(starttime);
     std::string expirationtimestr = generateICSDateFormat(expirationtime);
     std::string createtimestr = generateICSDateFormat(createtime);
-    
-    
+
     std::size_t entryhash = std::hash<std::string>{}(entry->getId());
 
     std::stringstream ics;
-
 
     // HEADER
     ics << "BEGIN:VCALENDAR" << CRLF;
@@ -246,7 +255,6 @@ std::string generateICS (const std::unique_ptr<DBEntry>& entry, time_t createtim
     ics << "X-MICROSOFT-DISALLOW-COUNTER:TRUE" << CRLF;
     ics << "END:VEVENT" << CRLF;
 
-
     ics << "END:VCALENDAR" << CRLF;
 
     return ics.str();
@@ -256,19 +264,20 @@ std::string generateICS (const std::unique_ptr<DBEntry>& entry, time_t createtim
 std::string generateMessageID(const std::string& domain = "ws_send_ical") {
     auto now = std::time(nullptr);
     auto pid = getpid();
-    
+
     std::hash<std::string> hasher;
     std::string unique_string = std::to_string(now) + std::to_string(pid) + std::to_string(rand());
     auto hash = hasher(unique_string);
-    
+
     return fmt::format("{}.{}.{}@{}", now, pid, hash, domain);
 }
 
 // Generate the Mail
-std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics, const std::string mail_from, const std::string mail_to, time_t now){
+std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics, const std::string mail_from,
+                         const std::string mail_to, time_t now) {
     std::string wsname = entry->getId();
     std::string resource = entry->getFilesystem();
-    
+
     std::stringstream mail;
     std::string expirationtimestr = generateMailDateFormat(entry->getExpiration());
     std::string createtimestr = generateMailDateFormat(now);
@@ -278,7 +287,7 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     std::string encodedICS = base64Encode(ics);
 
     std::string body = "Workspace " + wsname + " on host " + resource + " is going to expire ";
-    
+
     mail << "From: " << mail_from << CRLF;
     mail << "To: " << mail_to << CRLF;
     mail << "Subject: Workspace expire on " << expirationtimestr << CRLF;
@@ -301,7 +310,7 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     mail << "Content_disposition: attachment; filename=invite.ics" << CRLF;
     mail << "" << CRLF;
 
-    for (size_t i = 0; i < encodedICS.length(); i+=76){
+    for (size_t i = 0; i < encodedICS.length(); i += 76) {
         mail << encodedICS.substr(i, 76) << CRLF;
     }
 
@@ -318,22 +327,24 @@ static size_t readEmailCallback(void* ptr, size_t size, size_t nmemb, void* user
     if (available == 0) {
         return 0; // No more data
     }
-    
+
     size_t to_copy = std::min(available, size * nmemb);
     memcpy(ptr, email_content.c_str() + email_index, to_copy);
     email_index += to_copy;
-    
+
     return to_copy;
 }
 
 // Send the a Mail with curl to the smtpUrl
-bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to, const std::string& completeMail){
+bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,
+              const std::string& completeMail) {
     CURL* curl;
     CURLcode res = CURLE_OK;
 
-    curl=curl_easy_init();
+    curl = curl_easy_init();
     if (!curl) {
-        if (debugflag) fmt::println(stderr, "Debug  : Failed to initialize curl");
+        if (debugflag)
+            spdlog::debug("Failed to initialize curl");
         return false;
     }
 
@@ -341,7 +352,7 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const st
     email_index = 0;
 
     curl_easy_setopt(curl, CURLOPT_URL, smtpUrl.c_str());
-    
+
     struct curl_slist* recipients = nullptr;
     recipients = curl_slist_append(recipients, mail_to.c_str());
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
@@ -355,24 +366,22 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const st
     if (debugflag) {
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
     }
-    
-    res = curl_easy_perform(curl);
 
+    res = curl_easy_perform(curl);
 
     if (debugflag) {
         if (res == CURLE_OK) {
-            fmt::println(stderr, "Debug  : Email sent successfully");
+            spdlog::debug("Email sent successfully");
         } else {
-            fmt::println(stderr, "Debug  : curl_easy_perform() failed: {}", curl_easy_strerror(res));
+            spdlog::debug("curl_easy_perform() failed: {}", curl_easy_strerror(res));
         }
     }
 
     curl_slist_free_all(recipients);
     curl_easy_cleanup(curl);
-    
+
     return (res == CURLE_OK);
 }
-
 
 int main(int argc, char** argv) {
     string filesystem;
@@ -383,12 +392,18 @@ int main(int argc, char** argv) {
     po::variables_map opt;
     std::string userconf;
 
-    srand(time(nullptr));
+    // locals settings to prevent strange effects
+    utils::setCLocal();
 
+    // set custom logging format
+    utils::setupLogging();
+
+    // initiate time
+    srand(time(nullptr));
     time_t now = time(nullptr);
 
+    // setup curl
     curl_global_init(CURL_GLOBAL_DEFAULT);
-
 
     string user_conf_filename = user::getUserhome() + "/.ws_user.conf";
     if (!cppfs::is_symlink(user_conf_filename)) {
@@ -397,7 +412,7 @@ int main(int argc, char** argv) {
         }
         // FIXME: could be parsed here and passed as object not string
     } else {
-        fmt::print(stderr, "Error  : ~/.ws_user.conf can not be symlink!");
+        spdlog::error("~/.ws_user.conf can not be symlink!");
         exit(-1);
     }
 
@@ -408,16 +423,15 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file option!\n");
+            spdlog::warn("ignored config file option!");
         }
     }
 
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
-
 
     // root and admins can choose usernames
     string userpattern; // used for pattern matching in DB
@@ -432,7 +446,7 @@ int main(int argc, char** argv) {
     }
 
     auto grouplist = user::getGrouplist();
-    bool listgroups = false; // erstmal keine benachrichtigungen für groupworkspaces zulassen 
+    bool listgroups = false; // erstmal keine benachrichtigungen für groupworkspaces zulassen
 
     vector<string> fslist;
     vector<string> validfs = config.validFilesystems(username, grouplist, ws::USE);
@@ -440,7 +454,7 @@ int main(int argc, char** argv) {
         if (canFind(validfs, filesystem)) {
             fslist.push_back(filesystem);
         } else {
-            fmt::println(stderr, "Error  : invalid filesystem given.");
+            spdlog::error("invalid filesystem given.");
             exit(-3);
         }
     } else {
@@ -450,14 +464,14 @@ int main(int argc, char** argv) {
     vector<std::unique_ptr<DBEntry>> entrylist;
     /**
      * PROBLEMO
-     * - hier ist eine exception ganz wichtig: es kann 2 workspaces mit gleichem namen in 
+     * - hier ist eine exception ganz wichtig: es kann 2 workspaces mit gleichem namen in
      * aber in unterschiedlichen Filesystemen geben :((
-     * - heißt wir müssen nachschauen, fall ja: Error und -F flag suggesten 
+     * - heißt wir müssen nachschauen, fall ja: Error und -F flag suggesten
      */
     // iterate over filesystems and print or create list to be sorted
     for (auto const& fs : fslist) {
         if (debugflag)
-            fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+            spdlog::debug("loop over fslist {} in {}\n", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
 
         // catch DB access errors, if DB directory or DB is accessible
@@ -469,52 +483,49 @@ int main(int argc, char** argv) {
                 }
             }
         } catch (DatabaseException& e) {
-            fmt::println(stderr, "{}", e.what());
+            spdlog::error(e.what());
             exit(-2);
         }
     } // loop fslist
 
     // multiple entries exist
     if (entrylist.size() > 1) {
-        fmt::println(stderr, "Error  : multiple workspaces found, use the -F option to specify Filesystem");
+        spdlog::error("multiple workspaces found, use the -F option to specify Filesystem");
         for (const std::unique_ptr<DBEntry>& entry : entrylist) {
             fmt::println(stderr, "Filesystem {}, Path {}", entry->getFilesystem(), entry->getWSPath());
         }
         exit(0);
     } else if (entrylist.empty()) {
-        fmt::println(stderr, "Error  : no workspace found");
+        spdlog::debug("no workspace found");
         exit(0);
     } else {
         std::string mail_from = config.mailfrom();
         std::string smtpUrl = config.smtphost();
         std::string mail_to = mailaddress;
 
-        const auto& entry=entrylist.front();
+        const auto& entry = entrylist.front();
 
         std::string ics = generateICS(entry, now);
         if (debugflag) {
-            fmt::println(stderr, "Debug  : Generated ICS content:");
-            fmt::println(stderr, "{}", ics);
+            spdlog::debug("Generated ICS content:");
+            spdlog::debug("{}", ics);
         }
-        
+
         std::string completeMail = generateMail(entry, ics, mail_from, mail_to, now);
         if (debugflag) {
-            fmt::println(stderr, "Debug  : Generated email content:");
-            fmt::println(stderr, "{}", completeMail);
+            spdlog::debug("Generated email content:");
+            spdlog::debug("{}", completeMail);
         }
 
         if (sendCurl(config.smtphost(), mail_from, mail_to, completeMail)) {
             fmt::println("Success: Calendar invitation sent to {}", mailaddress);
         } else {
-            fmt::println(stderr, "Error  : Failed to send calendar invitation to {}", mailaddress);
+            spdlog::debug("Failed to send calendar invitation to {}", mailaddress);
             exit(1);
         }
 
-    
-
         fmt::print("success; filesystem {}, workspacename {}, mailaddress {}", filesystem, name, mailaddress);
     }
-
 
     curl_global_cleanup();
 }
