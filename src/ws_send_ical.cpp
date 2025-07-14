@@ -504,11 +504,10 @@ int main(int argc, char** argv) {
         exit(0);
     } else {
         std::string mail_from = config.mailfrom();
-        if (mail_from == "")
-             {
-                spdlog::warn("no mail_from in global config, please inform system administrator!");
-                exit(-2);
-            }
+        if (mail_from == "") {
+            spdlog::warn("no mail_from in global config, please inform system administrator!");
+            exit(-2);
+        }
         std::string smtpUrl = config.smtphost();
         std::string mail_to = mailaddress;
 
