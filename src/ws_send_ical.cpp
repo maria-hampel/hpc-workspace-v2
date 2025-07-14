@@ -53,7 +53,7 @@
 namespace po = boost::program_options;
 using namespace std;
 
-// global variablesq
+// global variables
 bool debugflag = false;
 bool traceflag = false;
 
@@ -67,16 +67,20 @@ std::string CRLF = "\r\n";
 static std::string email_content;
 static size_t email_index = 0;
 
-void commandline(po::variables_map& opt, string& filesystem, string& mailaddress, string& name, std::string& userconf,
+void commandline(po::variables_map& opt, string& filesystem, string& mailaddress, string& name, std::string& userconf, std::string& configfile,
                  int argc, char** argv) {
 
     // define all options
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("filesystem,F", po::value<string>(&filesystem),
-                                                                "filesystem where the workspace is located in")(
-        "mail,m", po::value<string>(&mailaddress),
-        "your mail address to send to")("workspace,n", po::value<string>(&name), "name of selected workspace");
-
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem where the workspace is located in")
+        ("mail,m", po::value<string>(&mailaddress), "your mail address to send to")
+        ("workspace,n", po::value<string>(&name), "name of selected workspace")
+        ("config", po::value<string>(&configfile), "config file");
+    // clang-format on
+    
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show calling information");
 
@@ -100,8 +104,7 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
         exit(1);
     }
 
-    UserConfig userconfig(userconf);
-
+    // help section
     if (opt.count("help")) {
         cerr << "Usage:" << argv[0]
              << ": [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress"
@@ -127,14 +130,13 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
     debugflag = opt.count("debug");
     traceflag = opt.count("trace");
 
-    /**
-     * Current behaviour:
-     * - workspace gets evauated first if workspacename is correct
-     * - then mailadress gets evaluated, if incorrect and userconig is present just use that one
-     * - other: error
-     */
+    // userconfig for Mail
+    UserConfig userconfig(userconf);
+
+    // check if Workspace name is correctly formatted
     static const regex e("^[[:alnum:]][[:alnum:]_.-]*$");
     if (opt.count("workspace") && regex_match(name, e)) {
+        // check if mail option is present and evaluate
         if (!opt.count("mail")) {
             mailaddress = userconfig.getMailaddress();
 
@@ -384,13 +386,14 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const st
 }
 
 int main(int argc, char** argv) {
-    string filesystem;
-    string mailaddress("");
-    string name;
-    string configfile;
-    string username;
-    po::variables_map opt;
+    std::string filesystem;
+    std::string mailaddress("");
+    std::string name;
     std::string userconf;
+    std::string configfile;
+
+    std::string username;
+    po::variables_map opt;
 
     // locals settings to prevent strange effects
     utils::setCLocal();
@@ -416,7 +419,8 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
-    commandline(opt, filesystem, mailaddress, name, userconf, argc, argv);
+    // read commandlineoptions
+    commandline(opt, filesystem, mailaddress, name, userconf, configfile, argc, argv);
 
     auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d", "/etc/ws.conf"};
     if (configfile != "") {
@@ -446,7 +450,7 @@ int main(int argc, char** argv) {
     }
 
     auto grouplist = user::getGrouplist();
-    bool listgroups = false; // erstmal keine benachrichtigungen für groupworkspaces zulassen
+    bool listgroups = false; // don't allow notifications for Group Workspaces yet
 
     vector<string> fslist;
     vector<string> validfs = config.validFilesystems(username, grouplist, ws::USE);
@@ -462,12 +466,7 @@ int main(int argc, char** argv) {
     }
 
     vector<std::unique_ptr<DBEntry>> entrylist;
-    /**
-     * PROBLEMO
-     * - hier ist eine exception ganz wichtig: es kann 2 workspaces mit gleichem namen in
-     * aber in unterschiedlichen Filesystemen geben :((
-     * - heißt wir müssen nachschauen, fall ja: Error und -F flag suggesten
-     */
+
     // iterate over filesystems and print or create list to be sorted
     for (auto const& fs : fslist) {
         if (debugflag)
@@ -488,7 +487,7 @@ int main(int argc, char** argv) {
         }
     } // loop fslist
 
-    // multiple entries exist
+    // If multiple entries exist force Filesystem option 
     if (entrylist.size() > 1) {
         spdlog::error("multiple workspaces found, use the -F option to specify Filesystem");
         for (const std::unique_ptr<DBEntry>& entry : entrylist) {
@@ -500,6 +499,10 @@ int main(int argc, char** argv) {
         exit(0);
     } else {
         std::string mail_from = config.mailfrom();
+        if (mail_from == "") {
+            spdlog::error("No mail_from option in config.");
+            exit(-2);
+        }
         std::string smtpUrl = config.smtphost();
         std::string mail_to = mailaddress;
 
@@ -524,7 +527,7 @@ int main(int argc, char** argv) {
             exit(1);
         }
 
-        fmt::print("success; filesystem {}, workspacename {}, mailaddress {}", filesystem, name, mailaddress);
+        // fmt::print("success; filesystem {}, workspacename {}, mailaddress {}", filesystem, name, mailaddress);
     }
 
     curl_global_cleanup();
