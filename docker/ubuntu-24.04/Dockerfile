@@ -17,7 +17,9 @@ RUN apt-get update && apt-get install -y \
     lld \
     wget \
     sudo \
-    lcov
+    lcov \
+    libcurl4t64 \
+    libcurl4-openssl-dev
 
 
 # Installing bats and libraries based on documentation and their Dockerfile

@@ -34,6 +34,7 @@ jobs:
         sudo apt install \
           libboost-system-dev \
           libboost-program-options-dev \
+          libcurl4t64 libcurl4-openssl-dev \
           libcap-dev
 
     - name: Install Bats and its support libraries for testing

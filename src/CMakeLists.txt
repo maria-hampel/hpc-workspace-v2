@@ -1,3 +1,5 @@
+find_package(CURL)
+
 add_library(ws_common
     build_info.h
     caps.cpp
@@ -145,5 +147,5 @@ target_link_libraries(ws_send_ical
         ${Boost_LIBRARIES}
         fmt::fmt
         spdlog
-        libcurl
+	CURL::libcurl
 )

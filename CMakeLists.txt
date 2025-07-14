@@ -104,8 +104,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${workspace_BINARY_DIR}/bin)
 
 add_subdirectory(src)
 
-add_subdirectory(${workspace_SOURCE_DIR}/external/curl)
-
 if(BUILD_TESTS)
     add_subdirectory(${workspace_SOURCE_DIR}/external/Catch2)
 
