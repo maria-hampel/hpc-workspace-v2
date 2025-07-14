@@ -168,7 +168,7 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
 // Generate the Date Format used for ics attachments from time_t
 std::string generateICSDateFormat(const time_t time) {
     char timeString[std::size("yyyymmddThhmmssZ")];
-    std::strftime(std::data(timeString), std::size(timeString), "%Y%m%dT%H%M00Z", std::gmtime(&time));
+    std::strftime(std::data(timeString), std::size(timeString), "%Y%m%dT%H%M00Z", std::localtime(&time));
     std::string s(timeString);
     return s;
 }
@@ -176,7 +176,7 @@ std::string generateICSDateFormat(const time_t time) {
 // Generate the Date Format used for Mime Mails from time_t
 std::string generateMailDateFormat(const time_t time) {
     char timeString[std::size("Mon, 29 Nov 2010 21:54:29 +1100")];
-    std::strftime(std::data(timeString), std::size(timeString), "%a, %d %h %Y %X %z", std::gmtime(&time));
+    std::strftime(std::data(timeString), std::size(timeString), "%a, %d %h %Y %X %z", std::localtime(&time));
     std::string s(timeString);
     return s;
 }
