@@ -99,6 +99,7 @@ add_subdirectory(${workspace_SOURCE_DIR}/external/fmt)
 add_subdirectory(${workspace_SOURCE_DIR}/external/GSL)
 add_subdirectory(${workspace_SOURCE_DIR}/external/spdlog)
 
+find_package(CURL)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${workspace_BINARY_DIR}/bin)
 

@@ -33,7 +33,8 @@ jobs:
     steps:
     - name: Install OS package dependencies
       run: |
-        sudo apt install libboost-all-dev libcap-dev
+        sudo apt install libboost-all-dev libcap-dev libcurl4t64 libcurl4-openssl-dev
+
 
     - name: Checkout repository
       uses: actions/checkout@v4
