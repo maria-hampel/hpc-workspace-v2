@@ -28,11 +28,16 @@
  */
 
 #include <cassert>
+#include <dirent.h>
+#include <fcntl.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <regex>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
 #include <vector>
 
 #include "ws.h"
@@ -59,12 +64,18 @@ namespace fs = std::filesystem;
 #include "db.h"
 #include "utils.h"
 
+#include "spdlog/spdlog.h"
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 using namespace std;
 
 // globals
 extern bool debugflag;
 extern bool traceflag;
 extern Cap caps;
+
+// fwd
+static void rmtree_fd(int topfd, std::string path);
 
 namespace utils {
 
@@ -75,7 +86,7 @@ static bool glob_match(char const* pat, char const* str);
 std::string getFileContents(const char* filename) {
     std::ifstream in(filename, std::ios::in | std::ios::binary);
     if (!in) {
-        throw DatabaseException(fmt::format("Error  : could not open file {}", filename));
+        throw DatabaseException(fmt::format("could not open file {}", filename));
     }
     std::ostringstream contents;
     contents << in.rdbuf();
@@ -89,7 +100,7 @@ void writeFile(const std::string filename, const std::string content) {
         out << content;
         out.close();
     } else {
-        fmt::println(stderr, "Error   : Can not open file {}!", filename);
+        spdlog::error("Can not open file {}!", filename);
     }
 }
 
@@ -99,11 +110,11 @@ std::vector<string> dirEntries(const string path, const string pattern) {
         fmt::print("Trace  : dirEntries({},{})\n", path, pattern);
     vector<string> fl;
     if (!fs::is_directory(path)) {
-        fmt::println("Error   : Directory {} does not exist.", path);
+        spdlog::error("Directory {} does not exist.", path);
         return fl;
     }
     for (const auto& entry : fs::directory_iterator(path)) {
-        if (entry.is_regular_file())
+        if (entry.is_regular_file() || entry.is_symlink())
             if (glob_match(pattern.c_str(), entry.path().filename().string().c_str())) {
                 fl.push_back(entry.path().filename().string());
             }
@@ -424,7 +435,7 @@ auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::
                 if (ws::intentnames.count(p) > 0) {
                     numerical_intents.push_back(ws::intentnames.at(p));
                 } else {
-                    fmt::println(stderr, "Error   : invalid permission <{}> in ACL <{}>, ignoring", p, entry);
+                    spdlog::error("invalid permission <{}> in ACL <{}>, ignoring", p, entry);
                 }
             }
             aclmap[id] = std::pair{modifier, numerical_intents};
@@ -432,4 +443,122 @@ auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::
     }
     return aclmap;
 }
+
+// delete path be deleting contents and deleting path itself
+void rmtree(std::string path) {
+    struct stat orig_stat, new_stat;
+
+    int r = fstatat(0, path.c_str(), &orig_stat, AT_SYMLINK_NOFOLLOW);
+    if (r) {
+        spdlog::error("fstatat {} -> {}", path, errno);
+    }
+
+    if (S_ISDIR(orig_stat.st_mode)) {
+        bool dirfd_closed = false;
+        int dirfd = openat(0, path.c_str(), O_RDONLY | O_CLOEXEC);
+        r = fstatat(dirfd, "", &new_stat, AT_EMPTY_PATH);
+        if (r == 0 && memcmp(&new_stat, &orig_stat, sizeof(struct stat)) == 0) {
+            rmtree_fd(dirfd, path);
+            close(dirfd);
+            dirfd_closed = true;
+
+            r = unlinkat(0, path.c_str(), AT_REMOVEDIR);
+            if (r) {
+                spdlog::error("unlinkat {} -> {}", path, errno);
+            }
+        }
+        if (!dirfd_closed)
+            close(dirfd);
+    }
+}
+
+// pretty print a size in bytes
+string prettyBytes(const uint64_t size) {
+    string postfixes[] = {"B", "KB", "MB", "GB", "TB", "PB", "EP", "ZB", "YB", "RB", "QB"};
+    double fsize = size;
+
+    int index = 0;
+    while (fsize >= 1000) {
+        fsize /= 1000.0;
+        index++;
+    }
+
+    return fmt::format("{:.3} {}", fsize, postfixes[index]);
+}
+
+// setup logging
+//  set format
+//  change to stderr
+void setupLogging() {
+    // spdlog::set_pattern("%^%10l%$ : %v");
+    spdlog::set_pattern("%^%l%$ : %v");
+
+    auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+    auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
+    spdlog::set_default_logger(stderr_logger);
+
+    spdlog::set_pattern("%^%l%$: %v");
+}
+
 } // namespace utils
+
+// internal recursive functions, based on file handles
+static void rmtree_fd(int topfd, std::string path) {
+    auto dir = fdopendir(topfd);
+    if (dir != nullptr) {
+        std::vector<struct dirent*> entries;
+
+        auto entry = readdir(dir);
+        while (entry) {
+            entries.push_back(entry);
+            errno = 0;
+            entry = readdir(dir);
+            if (entry == nullptr && errno != 0) {
+                spdlog::error("errno={}", errno);
+            }
+        }
+
+        for (auto& ent : entries) {
+            if (ent->d_type == DT_DIR) {
+                // ignore . and .. !!!!!!!
+                if (strcmp((const char*)&ent->d_name[0], ".") && strcmp((const char*)&ent->d_name[0], "..")) {
+                    struct stat orig_stat, new_stat;
+
+                    int r = fstatat(topfd, (const char*)&ent->d_name[0], &orig_stat, AT_SYMLINK_NOFOLLOW);
+                    if (r) {
+                        spdlog::error("fstatat {} {}/{} -> {}", topfd, path, (const char*)&ent->d_name[0], errno);
+                        continue;
+                    }
+
+                    if (S_ISDIR(orig_stat.st_mode)) {
+                        int dirfd = openat(topfd, (const char*)&ent->d_name[0], O_RDONLY | O_CLOEXEC);
+                        bool dirfd_closed = false;
+                        r = fstatat(dirfd, "", &new_stat, AT_EMPTY_PATH);
+                        if (r == 0 && memcmp(&new_stat, &orig_stat, sizeof(struct stat)) == 0) {
+                            rmtree_fd(dirfd, fs::path(path) / (const char*)&ent->d_name[0]);
+                            close(dirfd);
+                            dirfd_closed = true;
+
+                            r = unlinkat(topfd, (const char*)&ent->d_name[0], AT_REMOVEDIR);
+                            if (r) {
+                                spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], errno);
+                            }
+                        } else {
+                            spdlog::error("rmtree hit a symbolic link!");
+                        }
+                        if (!dirfd_closed)
+                            close(dirfd);
+                    }
+                }
+            } else {
+                int r = unlinkat(topfd, (const char*)&ent->d_name[0], 0);
+                if (r) {
+                    spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], errno);
+                }
+            }
+        }
+        closedir(dir);
+    } else {
+        spdlog::error("fdopendir {} -> {}", topfd, errno);
+    }
+}

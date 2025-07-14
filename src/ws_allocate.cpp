@@ -28,8 +28,8 @@
  */
 
 #include "fmt/base.h"
+#include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
-#include <iostream>
 #include <string>
 
 #include <regex> // buggy in redhat 7
@@ -43,6 +43,8 @@
 #include "user.h"
 #include "utils.h"
 #include "ws.h"
+
+#include "spdlog/spdlog.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -59,6 +61,9 @@ bool traceflag = false;
 // init caps here, when euid!=uid
 Cap caps{};
 
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
+
 /*
  *  parse the commandline and see if all required arguments are passed, and check the workspace name for
  *  bad characters
@@ -69,16 +74,19 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     // define all options
 
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V", "show version")(
-        "duration,d", po::value<int>(&duration), "duration in days")(
-        "name,n", po::value<string>(&name), "workspace name")("filesystem,F", po::value<string>(&filesystem),
-                                                              "filesystem name (see ws_list -l for possible values)")(
-        "reminder,r", po::value<int>(&reminder), "reminder to be sent <arg> days before expiration")(
-        "mailaddress,m", po::value<string>(&mailaddress), "mailaddress to send reminder to")(
-        "extension,x", "extend workspace (can change mailaddress, reminder and comment as well)")(
-        "username,u", po::value<string>(&user), "username")("group,g", "group readable workspace")(
-        "groupname,G", po::value<string>(&groupname)->default_value(""), "for group <arg> writable workspace")(
-        "comment,c", po::value<string>(&comment), "comment")("config", po::value<string>(&configfile), "config file");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")("version,V", "show version")
+        ("duration,d", po::value<int>(&duration), "duration in days")
+        ("name,n", po::value<string>(&name), "workspace name")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem name (see ws_list -l for possible values)")
+        ("reminder,r", po::value<int>(&reminder), "reminder to be sent <arg> days before expiration")
+        ("mailaddress,m", po::value<string>(&mailaddress), "mailaddress to send reminder to")
+        ("extension,x", "extend workspace (can change mailaddress, reminder and comment as well)")
+        ("username,u", po::value<string>(&user), "username")("group,g", "group readable workspace")
+        ("groupname,G", po::value<string>(&groupname)->default_value(""), "for group <arg> writable workspace")
+        ("comment,c", po::value<string>(&comment), "comment")("config", po::value<string>(&configfile), "config file");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show calling information");
@@ -95,16 +103,16 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        fmt::print("Usage: {} [options] workspace_name duration\n", argv[0]);
-        cout << cmd_options << "\n";
+        fmt::print(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
     // see whats up
 
     if (opt.count("help")) {
-        fmt::print("Usage: {} [options] workspace_name duration\n", argv[0]);
-        cout << cmd_options << "\n";
+        fmt::print(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(0);
     }
 
@@ -120,7 +128,7 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
 
     // this allows user to extend foreign workspaces
     if (opt.count("username") && !(opt.count("extension") || getuid() == 0)) {
-        fmt::print(stderr, "Info   : Ignoring username option.\n");
+        spdlog::info("Ignoring username option.");
         user = "";
     }
 
@@ -133,8 +141,8 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     if (opt.count("name")) {
         // cout << " name: " << name << "\n";
     } else {
-        fmt::print("Usage: {}: [options] workspace_name duration\n", argv[0]);
-        cout << cmd_options << "\n"; // FIXME: iostream usage
+        fmt::print(stderr, "Usage: {}: [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
@@ -157,20 +165,20 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
             mailaddress = userconfig.getMailaddress();
 
             if (mailaddress.length() > 0) {
-                fmt::println(stderr, "Info   : Took email address <{}> from users config.", mailaddress);
+                spdlog::info("Took email address <{}> from users config.", mailaddress);
             } else {
                 mailaddress = user::getUsername();
-                fmt::println(stderr, "Info   : could not read email from users config ~/.ws_user.conf.");
-                fmt::println(stderr, "         reminder email will be sent to local user account");
+                spdlog::info("could not read email from users config ~/.ws_user.conf.");
+                spdlog::info("reminder email will be sent to local user account");
             }
         }
         if (reminder >= duration) {
-            fmt::println(stderr, "Warning: reminder is only sent after workspace expiry!");
+            spdlog::warn("reminder is only sent after workspace expiry!");
         }
     } else {
         // check if mail address was set with -m but not -r
         if (opt.count("mailaddress") && !opt.count("extension")) {
-            fmt::println(stderr, "Error  : You can't use the mailaddress (-m) without the reminder (-r) option.");
+            spdlog::error("You can't use the mailaddress (-m) without the reminder (-r) option.");
             exit(1);
         }
     }
@@ -182,7 +190,7 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
 
     // validate email
     if (mailaddress != "" && !utils::isValidEmail(mailaddress)) {
-        fmt::println(stderr, "Error  : Invalid email address, ignoring and using local user account");
+        spdlog::error("Invalid email address, ignoring and using local user account");
         mailaddress = user::getUsername();
     }
 
@@ -191,8 +199,7 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     // TODO: remove regexp dependency
     static const regex e("^[[:alnum:]][[:alnum:]_.-]*$");
     if (!regex_match(name, e)) {
-        fmt::println(stderr,
-                     "Error  : Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!");
+        spdlog::error("Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!");
         exit(1);
     }
 }
@@ -212,7 +219,7 @@ bool validateFsAndGroup(const Config& config, const po::variables_map& opt, cons
     // if a group was given, check if a valid group was given
     if (opt["groupname"].as<string>() != "") {
         if (find(groupnames.begin(), groupnames.end(), opt["groupname"].as<string>()) == groupnames.end()) {
-            fmt::print(stderr, "Error  : invalid group specified!\n");
+            spdlog::error("invalid group specified!");
             return false;
         }
     }
@@ -221,7 +228,7 @@ bool validateFsAndGroup(const Config& config, const po::variables_map& opt, cons
     if (opt.count("filesystem")) {
         auto validfs = config.validFilesystems(username, groupnames, ws::CREATE);
         if (!canFind(validfs, opt["filesystem"].as<string>()) && getuid() != 0) {
-            fmt::print(stderr, "Error  : You are not allowed to use the specified filesystem!\n");
+            spdlog::error("You are not allowed to use the specified filesystem!");
             return false;
         }
     }
@@ -249,8 +256,8 @@ bool validateDuration(const Config& config, const std::string filesystem, int& d
         }
         if (getuid() != 0 && ((duration > configduration) || (duration < 0))) {
             duration = configduration;
-            fmt::println(stderr, "Error  : Duration longer than allowed for this workspace");
-            fmt::println(stderr, "         setting to allowed maximum of {}", duration);
+            spdlog::error("Duration longer than allowed for this workspace");
+            spdlog::error("  setting to allowed maximum of {}", duration);
         }
     }
 
@@ -279,7 +286,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
     auto valid_filesystems = config.validFilesystems(user::getUsername(), user::getGrouplist(), ws::CREATE);
 
     if (valid_filesystems.size() == 0) {
-        fmt::print(stderr, "Error: no valid filesystems in configuration, can not allocate\n");
+        spdlog::error("no valid filesystems in configuration, can not allocate");
         exit(-1); // FIXME: bad for testing
     }
 
@@ -321,7 +328,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
 
     for (std::string cfilesystem : searchlist) {
         if (debugflag) {
-            fmt::print(stderr, "Debug  : searching valid filesystems, currently {}\n", cfilesystem);
+            spdlog::debug("searching valid filesystems, currently {}", cfilesystem);
         }
 
         // auto db = config.openDB(cfilesystem);
@@ -337,7 +344,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
                 ws_exists = true;
                 break;
             } catch (DatabaseException& e) {
-                fmt::println(stderr, "Error  : workspace does not exist, can not be extended!");
+                spdlog::error("workspace does not exist, can not be extended!");
                 exit(-1); // FIXME: is exit good here?
             }
         } else {
@@ -356,7 +363,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
             } catch (DatabaseException& e) {
                 // silently ignore non existiong entries
                 if (debugflag)
-                    fmt::print(stderr, "Debug  : existence check failed for {}/{}\n", cfilesystem, dbid);
+                    spdlog::debug("existence check failed for {}/{}", cfilesystem, dbid);
             }
         }
     } // searchloop
@@ -372,20 +379,20 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
         if (extensionflag) {
             // extension blocked by admin?
             if (!config.getFsConfig(foundfs).extendable) {
-                fmt::print(stderr, "Error  : workspace can not be extended in this filesystem.\n");
+                spdlog::error("workspace can not be extended in this filesystem.");
                 exit(-1); // FIXME: bad for testing
             }
 
             // we allow a user to specify -u -x together, and to extend a workspace if he has rights on the workspace
             if (user_option.length() > 0 && (user_option != username) && (getuid() != 0)) {
-                fmt::print(stderr, "Info   : you are not owner of the workspace.\n");
+                spdlog::info("you are not owner of the workspace.");
                 if (access(wsdir.c_str(), R_OK | W_OK | X_OK) != 0) {
-                    fmt::print(stderr, "         and you have no permissions to access the workspace, workspace will "
-                                       "not be extended.\n");
+                    spdlog::info("         and you have no permissions to access the workspace, workspace will "
+                                 "not be extended.");
                     exit(-1); // FIXME: bad for testing
                 }
             }
-            fmt::print(stderr, "Info   : extending workspace\n");
+            spdlog::info("extending workspace");
             syslog(LOG_INFO, "extending <%s/%s>", foundfs.c_str(), username.c_str());
 
             // mail address change
@@ -393,19 +400,19 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
             string newmail;
             if (mailaddress != "") {
                 newmail = mailaddress;
-                fmt::print(stderr, "Info   : changed mail address to {}\n", newmail);
+                spdlog::info("changed mail address to {}", newmail);
             } else {
                 if (oldmail != "") {
                     newmail = oldmail;
-                    fmt::print(stderr, "Info   : reused mail address {}\n", newmail);
+                    spdlog::info("reused mail address {}", newmail);
                 }
             }
 
             if (reminder != 0) {
-                fmt::print(stderr, "Info   : changed reminder setting.\n");
+                spdlog::info("changed reminder setting.");
             }
             if (comment != "") {
-                fmt::print(stderr, "Info   : changed comment.\n");
+                spdlog::info("changed comment.");
             }
 
             if (duration != 0) {
@@ -422,8 +429,8 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
                 //}
                 if (getuid() != 0 && ((duration > configduration) || (duration < 0))) {
                     duration = configduration;
-                    fmt::print(stderr, "Error  : Duration longer than allowed for this workspace.");
-                    fmt::print(stderr, "         setting to allowed maximum of {}\n", duration);
+                    spdlog::error("Duration longer than allowed for this workspace.");
+                    spdlog::error("setting to allowed maximum of {}", duration);
                 }
                 exp = time(NULL) + duration * 24 * 3600;
             } else {
@@ -433,7 +440,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
             try {
                 dbentry->useExtension(exp, newmail, reminder, comment);
             } catch (const DatabaseException& e) {
-                fmt::println("{}", e.what());
+                spdlog::error("{}", e.what());
                 exit(-2);
             }
 
@@ -441,7 +448,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
 
             // extensionflag
         } else {
-            fmt::print(stderr, "Info   : reusing workspace\n");
+            spdlog::info("reusing workspace");
             syslog(LOG_INFO, "reusing <%s/%s>.", foundfs.c_str(), dbid.c_str());
         }
 
@@ -460,7 +467,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
         // workspace does not exist and needs to be created
 
         if (extensionflag) {
-            fmt::println(stderr, "Error  : workspace does not exist, can not be extended!");
+            spdlog::error("workspace does not exist, can not be extended!");
             exit(-1);
         }
 
@@ -476,12 +483,12 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
 
         // is that filesystem open for allocations?
         if (!config.getFsConfig(newfilesystem).allocatable) {
-            fmt::print(stderr, "Error  : this workspace can not be used for allocation.\n");
+            spdlog::error("this workspace can not be used for allocation.");
             exit(-2);
         }
 
         // if it does not exist, create it
-        fmt::print(stderr, "Info   : creating workspace.\n");
+        spdlog::info("creating workspace.");
 
         // read the possible spaces for the filesystem
         vector<string> spaces = config.getFsConfig(newfilesystem).spaces;
@@ -538,6 +545,9 @@ int main(int argc, char** argv) {
     // locals settings to prevent strange effects
     utils::setCLocal();
 
+    // set custom logging format
+    utils::setupLogging();
+
     // read user config
     string user_conf_filename = user::getUserhome() + "/.ws_user.conf";
     if (!cppfs::is_symlink(user_conf_filename)) {
@@ -546,7 +556,7 @@ int main(int argc, char** argv) {
         }
         // FIXME: could be parsed here and passed as object not string
     } else {
-        fmt::print(stderr, "Error  : ~/.ws_user.conf can not be symlink!");
+        spdlog::error("~/.ws_user.conf can not be symlink!");
         exit(-1);
     }
 
@@ -561,14 +571,14 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file option!\n");
+            spdlog::warn("ignored config file option!");
         }
     }
 
     // read the config
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 

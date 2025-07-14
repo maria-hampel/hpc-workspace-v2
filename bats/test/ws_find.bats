@@ -34,7 +34,7 @@ setup() {
     ws_allocate --config bats/ws.conf -F ws1 WS1TEST_BAD
     cp /dev/null /tmp/ws/ws1-db/${USER}-WS1TEST_BAD
     run ws_find --config bats/ws.conf -F ws1 WS1TEST_BAD
-    assert_output --partial Error
+    assert_output --partial error
     assert_failure
     rm -f /tmp/ws/ws1-db/${USER}-WS1TEST_BAD
 }
@@ -61,7 +61,7 @@ setup() {
 
 @test "ws_find with bad filesystem" {
     run ws_find --config bats/ws.conf -F DOESNOTEXIST
-    assert_output --partial Error
+    assert_output --partial error
     assert_failure
 }
 
@@ -72,7 +72,7 @@ setup() {
 
 @test "ws_find bad config" {
     run ws_find --config bats/bad_ws.conf WS
-    assert_output  --partial "Error"
+    assert_output  --partial "error"
     assert_failure
 }
 

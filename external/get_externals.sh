@@ -49,3 +49,12 @@ else
 	git pull
 	cd $OPWD
 fi
+echo spdlog
+if [ ! -d spdlog ]
+then
+	git clone --filter=tree:0 https://github.com/gabime/spdlog.git
+else
+	cd spdlog
+	git pull
+	cd $OPWD
+fi

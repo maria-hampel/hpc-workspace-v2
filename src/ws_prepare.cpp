@@ -30,7 +30,6 @@
  */
 
 #include <filesystem>
-#include <iostream> // for program_options  FIXME:
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -38,6 +37,7 @@
 #include "build_info.h"
 #include "db.h"
 #include "fmt/base.h"
+#include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include "user.h"
 
@@ -47,12 +47,18 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#include "spdlog/spdlog.h"
+#include "utils.h"
+
 // init caps here, when euid!=uid
 Cap caps{};
 
 namespace cppfs = std::filesystem;
 namespace po = boost::program_options;
 using namespace std;
+
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
 bool debugflag = false;
 bool traceflag = false;
@@ -63,7 +69,7 @@ int main(int argc, char** argv) {
     string configfile;
 
     if (!user::isRoot()) {
-        fmt::println(stderr, "Error   : you are not root!");
+        spdlog::error("you are not root!");
         exit(1);
     }
 
@@ -72,10 +78,17 @@ int main(int argc, char** argv) {
     // locals settings to prevent strange effects
     utils::setCLocal();
 
+    // set custom logging format
+    utils::setupLogging();
+
     // define options
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V", "show version")(
-        "config", po::value<string>(&configfile), "config file");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("version,V", "show version")
+        ("config", po::value<string>(&configfile), "config file");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show tracing information");
@@ -88,8 +101,8 @@ int main(int argc, char** argv) {
         po::store(po::command_line_parser(argc, argv).options(all_options).run(), opts);
         po::notify(opts);
     } catch (...) {
-        fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        fmt::println(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
@@ -99,8 +112,8 @@ int main(int argc, char** argv) {
     // handle options exiting here
 
     if (opts.count("help")) {
-        fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        fmt::println(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(0);
     }
 
@@ -121,13 +134,13 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file options!\n");
+            spdlog::warn("ignored config file options!");
         }
     }
 
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 
@@ -144,7 +157,7 @@ int main(int argc, char** argv) {
             try {
                 cppfs::create_directories(DBdir);
             } catch (cppfs::filesystem_error const& e) {
-                fmt::println(stderr, e.what());
+                spdlog::error(e.what());
             }
             auto ret = chmod(DBdir.c_str(), 0755);
             if (ret != 0)
@@ -163,7 +176,7 @@ int main(int argc, char** argv) {
             try {
                 cppfs::create_directories(DBdeleted);
             } catch (cppfs::filesystem_error const& e) {
-                fmt::println(stderr, e.what());
+                spdlog::error(e.what());
             }
             auto ret = chmod(DBdeleted.c_str(), 0755);
             if (ret != 0)
@@ -188,7 +201,7 @@ int main(int argc, char** argv) {
                 try {
                     cppfs::create_directories(sp);
                 } catch (cppfs::filesystem_error const& e) {
-                    fmt::println(stderr, e.what());
+                    spdlog::error(e.what());
                 }
                 auto ret = chmod(sp.c_str(), 0755);
                 if (ret != 0)
@@ -206,7 +219,7 @@ int main(int argc, char** argv) {
                 try {
                     cppfs::create_directories(WSdeleted);
                 } catch (cppfs::filesystem_error const& e) {
-                    fmt::println(stderr, e.what());
+                    spdlog::error(e.what());
                 }
                 auto ret = chmod(WSdeleted.c_str(), 0755);
                 if (ret != 0)

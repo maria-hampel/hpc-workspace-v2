@@ -43,6 +43,8 @@
 #include "user.h"
 #include "utils.h"
 
+#include "spdlog/spdlog.h"
+
 #ifdef WS_RAPIDYAML_CONFIG
 
 // TODO: FIXME: check if used correctly in the codebase!
@@ -82,7 +84,7 @@ UserConfig::UserConfig(std::string userconf) {
     }
 
     if (!utils::isValidEmail(mailaddress)) {
-        fmt::println(stderr, "Error  : invalid email address in ~/.ws_user.conf, ignored.");
+        spdlog::error("invalid email address in ~/.ws_user.conf, ignored.");
         mailaddress = "";
     }
 }
@@ -113,7 +115,7 @@ UserConfig::UserConfig(std::string userconf) {
     }
 
     if (mailaddress != "" && !utils::isValidEmail(mailaddress)) {
-        fmt::println(stderr, "Error  : invalid email address in ~/.ws_user.conf, ignored.");
+        spdlog::error("invalid email address in ~/.ws_user.conf, ignored.");
         mailaddress = "";
     }
 }

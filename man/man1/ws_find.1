@@ -1,0 +1,70 @@
+.TH ws_find 1 "June 2025" "USER COMMANDS"
+
+.SH NAME
+ws_find \- give path to a workspace
+
+.SH SYNOPSIS
+.B ws_find
+[\-h] [\-F FILESYSTEM] [\-l] [\-g] [\-u USER] WORKSPACE
+
+.SH DESCRIPTION
+Return path to a
+.B workspaces
+of the calling user.
+The output can be restricted to
+.B workspaces
+in a certain FILESYSTEM.
+
+
+The idea of the
+.B workspace
+is to allow the administrator to keep control of filespace in working filesystems,
+and to avoid the situations that data of past and finished projects/jobs is idling for
+ever on disks. A user can create and dispose arbitrary number of workspaces, they are cheap,
+and can be created e.g. for each job.
+
+From the system side,
+.B workspaces
+will be deleted after beeing expired. A friendly user can release workspaces before the expiration
+date using
+.B ws_release
+which will mark the
+.B workspace
+for future deletion and make the data unavailable.
+
+Deletion is probably a task done once a night and not immediately.
+
+If a
+.B workspace
+was forgotten and expired, it might make sense to contact the administrator,
+as he probaly can restore a workspace for some time, if disk space is not low.
+
+.PP
+
+.SH OPTIONS
+.TP
+\-h
+display usage help text
+.TP
+\-g
+find group readable workspaces as well
+.TP
+\-F
+select the filesystem to list the workspace from.
+.TP
+\-u USER
+restrict search to workspaces belonging USER
+.TP
+\--config configfile
+specify path to config file, root only, or for testing with non-priviledged versions.
+
+.SH EXAMPLES
+.TP
+get a workspace path
+.B ws_find myworkspace
+
+.SH AUTHOR
+Written by Holger Berger
+
+.SH SEE ALSO
+ws_allocate, ws_release, ws_list, ws_restore

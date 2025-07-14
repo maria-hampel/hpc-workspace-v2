@@ -10,7 +10,7 @@ setup() {
 
 @test "ws_prepare user not root" {
     run ws_prepare
-    assert_output --partial "Error"
+    assert_output --partial "error"
 }
 
 @test "ws_prepare print version" {
@@ -28,7 +28,7 @@ setup() {
 @test "ws_prepare no valid config file" {
     sudo rm -fr /tmp/ws
     run sudo env PATH=$PATH ws_prepare --config "bats/bad_ws.conf"
-    assert_output --partial "Error"
+    assert_output --partial "error"
     run ls /tmp/ws
     assert_output --partial "No such file or directory"
 }

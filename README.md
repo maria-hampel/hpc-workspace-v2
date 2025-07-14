@@ -104,12 +104,12 @@ for testing:
 - [x] debug what is there
 - [ ] migrate more tools: migrate ws_expirer, ws_validate_config
 - [ ] add tests for new tools
-- [ ] debug what is there
+- [x] debug what is there
 - [x] get CMake setup in better shape
 - [x] remove tbb dependency
-- [ ] migrate and check/correct/add documentation, guides and man pages
-- [ ] test with more compilers and distributions
-- [ ] do real live tests
+- [x] migrate and check/correct/add documentation, guides and man pages
+- [x] test with more compilers and distributions
+- [x] do real live tests
 - [ ] define and implement new DB format
 
 ## Input and ideas and contributions needed
@@ -162,6 +162,11 @@ We provide a custom CMake target allowing to apply the style configuration to al
 ```
 cmake -S . -B build
 cmake --build build --target clang-format
+```
+
+or with presets
+```
+cmake --build build --preset debug --target clang-format 
 ```
 
 Using the dry-run option, you can check the compliance of a source code file without applying the style configuration.

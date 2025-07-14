@@ -33,6 +33,8 @@
 #include "fmt/base.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 
+#include "spdlog/spdlog.h"
+
 #ifdef WS_RAPIDYAML_CONFIG
     #define RYML_USE_ASSERT 0
     #include "c4/format.hpp"
@@ -75,12 +77,12 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
             filefound = true;
             if (cppfs::is_regular_file(configpath)) {
                 if (debugflag)
-                    fmt::println("Debug  : Reading config file {}", configpath.string());
+                    spdlog::debug("Reading config file {}", configpath.string());
                 string yaml = utils::getFileContents(configpath);
                 readYAML(yaml);
             } else if (cppfs::is_directory(configpath)) {
                 if (debugflag)
-                    fmt::println("Debug  : Reading config directory {}", configpath.string());
+                    spdlog::debug("Reading config directory {}", configpath.string());
 
                 // sort pathes
                 std::vector<std::string> pathesToSort;
@@ -92,13 +94,13 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
                 for (const auto& cfile : pathesToSort) {
                     if (cppfs::is_regular_file(cfile)) {
                         if (debugflag)
-                            fmt::println("Debug  : Reading config file {}", cfile);
+                            spdlog::debug("Reading config file {}", cfile);
                         string yaml = utils::getFileContents(cfile);
                         readYAML(yaml);
                     }
                 }
             } else {
-                fmt::println(stderr, "Info   : Unexpected filetype of {}", configpath.string());
+                spdlog::info("Unexpected filetype of {}", configpath.string());
                 exit(-1); // bail out, someone is messing around
             }
             break; // stop after first file
@@ -107,7 +109,7 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
 
     if (!filefound) {
         isvalid = false;
-        fmt::println(stderr, "Error  : None of the config file exists!");
+        spdlog::error("None of the config file exists!");
     } else {
         validate();
     }
@@ -122,42 +124,42 @@ bool Config::validate() {
     bool valid = true;
     if (global.dbuid == 0) {
         valid = false;
-        fmt::println(stderr, "Error  : No dbuid in config!");
+        spdlog::error("No dbuid in config!");
     }
     if (global.dbgid == 0) {
         valid = false;
-        fmt::println(stderr, "Error  : No dbgid in config!");
+        spdlog::error("No dbgid in config!");
     }
     if (global.clustername.empty()) {
         valid = false;
-        fmt::println(stderr, "Error  : No clustername in config!");
+        spdlog::error("No clustername in config!");
     }
     if (global.adminmail.empty()) {
         valid = false;
-        fmt::println(stderr, "Error  : No adminmail in config!");
+        spdlog::error("No adminmail in config!");
     }
     // SPEC:CHANGE: require default workspace
     if (global.defaultWorkspace.empty()) {
         valid = false;
-        fmt::println(stderr, "Error  : No default filesystem in config!");
+        spdlog::error("No default filesystem in config!");
     }
     if (filesystems.empty()) {
         valid = false;
-        fmt::println(stderr, "Error  : No filesystems in config!");
+        spdlog::error("No filesystems in config!");
     }
 
     for (auto const& [fsname, fsdata] : filesystems) {
         if (fsdata.spaces.empty()) {
             valid = false;
-            fmt::println(stderr, "Error  : No spaces in filesystem <> in config!", fsname);
+            spdlog::error("No spaces in filesystem <> in config!", fsname);
         }
         if (fsdata.database.empty()) {
             valid = false;
-            fmt::println(stderr, "Error  : No database path in filesystem <> in config!", fsname);
+            spdlog::error("No database path in filesystem <> in config!", fsname);
         }
         if (fsdata.deletedPath.empty()) {
             valid = false;
-            fmt::println(stderr, "Error  : No deleted name in filesystem <> in config!", fsname);
+            spdlog::error("No deleted name in filesystem <> in config!", fsname);
         }
     }
     isvalid = valid;
@@ -224,7 +226,7 @@ void Config::readYAML(string yamlstr) {
                     fs.name = {name.str, name.len}; // c4::string -> std::string
 
                     if (debugflag)
-                        fmt::print(stderr, "Debug  : config, reading workspace {}\n", fs.name);
+                        spdlog::debug("config, reading workspace {}", fs.name);
 
                     auto ws = it[fs.name.c_str()];
 
@@ -312,7 +314,7 @@ void Config::readYAML(const string yaml) {
                     Filesystem_config fs;
                     fs.name = it.first.as<string>();
                     if (debugflag)
-                        fmt::print(stderr, "Debug  : config, reading workspace {}\n", fs.name);
+                        spdlog::debug("config, reading workspace {}", fs.name);
                     auto ws = it.second;
                     if (ws["spaces"])
                         fs.spaces = ws["spaces"].as<vector<string>>();
@@ -389,7 +391,7 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
 
     // see if FS is valid
     if (filesystems.count(filesystem) < 1) {
-        fmt::print(stderr, "Error  : invalid filesystem queried for access: {}\n", filesystem);
+        spdlog::error("invalid filesystem queried for access: {}", filesystem);
         return false;
     }
 
@@ -398,11 +400,11 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
         // as soon as any ACL is present access is denied and has to be granted
         ok = false;
         if (debugflag)
-            fmt::print(stderr, "Debug  :  ACLs present\n");
+            spdlog::debug("ACLs present");
 
         if (filesystems.at(filesystem).group_acl.size() > 0) {
             if (debugflag)
-                fmt::print(stderr, "Debug  :    group ACL present,");
+                spdlog::debug("   group ACL present,");
             auto aclmap = utils::parseACL(filesystems.at(filesystem).group_acl);
             for (const auto& group : groups) {
                 if (aclmap.count(group) > 0) {
@@ -417,7 +419,7 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
                         }
                     }
                     if (debugflag)
-                        fmt::print(stderr, "Debug  :    access for {} {}\n", group, ok ? "granted" : "denied");
+                        spdlog::debug("   access for {} {}", group, ok ? "granted" : "denied");
                 }
             }
             /*  old cold old ACL syntax
@@ -425,14 +427,14 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
                 if (canFind(filesystems.at(filesystem).group_acl, group)) ok = true;
                 if (canFind(filesystems.at(filesystem).group_acl, string("+")+group)) ok = true;
                 if (canFind(filesystems.at(filesystem).group_acl, string("-")+group)) ok = false;
-                if (debugflag) fmt::print(stderr, "Debug  :    access for {} {}\n", group, ok?"granted":"denied");
+                if (debugflag) spdlog::debug("   access for {} {}", group, ok?"granted":"denied");
             }
             */
         }
 
         if (filesystems.at(filesystem).user_acl.size() > 0) {
             if (debugflag)
-                fmt::print(stderr, "Debug  :    user ACL present,");
+                spdlog::debug("   user ACL present,");
             auto aclmap = utils::parseACL(filesystems.at(filesystem).user_acl);
             if (aclmap.count(user) > 0) {
                 auto perm = aclmap[user];
@@ -446,14 +448,14 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
                     }
                 }
                 if (debugflag)
-                    fmt::print(stderr, "Debug  :    access for {} {}\n", user, ok ? "granted" : "denied");
+                    spdlog::debug("   access for {} {}", user, ok ? "granted" : "denied");
             }
 
             /* old code for old ACL syntax
             if (canFind(filesystems.at(filesystem).user_acl, user)) ok = true;
             if (canFind(filesystems.at(filesystem).user_acl, string("+")+user)) ok = true;
             if (canFind(filesystems.at(filesystem).user_acl, string("-")+user)) ok = false;
-            if (debugflag) fmt::print(stderr,"Debug  :    access for {} {}\n", user, ok?"granted":"denied");
+            if (debugflag) spdlog::debug("   access for {} {}", user, ok?"granted":"denied");
             */
         }
     }
@@ -461,16 +463,15 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
     // check admins list, admins can see and access all filesystems
     if (global.admins.size() > 0) {
         if (debugflag)
-            fmt::print(stderr, "Debug  :    admin list present, ");
+            spdlog::debug("   admin list present, ");
         if (canFind(global.admins, user))
             ok = true;
         if (debugflag)
-            fmt::print(stderr, "Debug  :    access {}\n", ok ? "granted" : "denied");
+            spdlog::debug("   access {}", ok ? "granted" : "denied");
     }
 
     if (debugflag)
-        fmt::print(stderr, "Debug  : => access to <{}> for user <{}> {}\n", filesystem, user,
-                   ok ? "granted" : "denied");
+        spdlog::debug("=> access to <{}> for user <{}> {}", filesystem, user, ok ? "granted" : "denied");
 
     return ok;
 }
@@ -503,7 +504,7 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
 
     if (debugflag) {
         // avoid vector<> fmt::print for clang <=17 at least
-        fmt::print(stderr, "Debug  : validFilesystems({},{}) over ", user, groups);
+        spdlog::debug("validFilesystems({},{}) over ", user, groups);
         for (const auto& [fs, val] : filesystems)
             fmt::print("{} ", fs);
         fmt::print("\n");
@@ -513,13 +514,13 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
     // SPEC: with users first a workspace with user default is always in front of a groupdefault
     for (auto const& [fs, val] : filesystems) {
         if (debugflag)
-            fmt::print("Debug  : fs={} filesystems.at(fs).userdefault={}\n", fs, filesystems.at(fs).userdefault);
+            spdlog::debug("fs={} filesystems.at(fs).userdefault={}", fs, filesystems.at(fs).userdefault);
         if (canFind(filesystems.at(fs).userdefault, user)) {
             if (debugflag)
-                fmt::print(stderr, "Debug  :  checking if userdefault <{}> already added\n", fs);
+                spdlog::debug(" checking if userdefault <{}> already added", fs);
             if (hasAccess(user, groups, fs, intent) && !canFind(validfs, fs)) {
                 if (debugflag)
-                    fmt::print(stderr, "Debug  :    adding userdefault <{}>\n", fs);
+                    spdlog::debug("   adding userdefault <{}>", fs);
                 validfs.push_back(fs);
                 break;
             }
@@ -530,12 +531,12 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
     for (auto const& [fs, val] : filesystems) {
         for (string group : groups) {
             if (debugflag)
-                fmt::print(stderr, "Debug  :  checking if group <{}> in groupdefault[{}]={}\n", group, fs,
-                           filesystems.at(fs).groupdefault);
+                spdlog::debug("checking if group <{}> in groupdefault[{}]={}", group, fs,
+                              filesystems.at(fs).groupdefault);
             if (canFind(filesystems.at(fs).groupdefault, group)) {
                 if (hasAccess(user, groups, fs, intent) && !canFind(validfs, fs)) {
                     if (debugflag)
-                        fmt::print(stderr, "Debug  :    adding groupdefault <{}>\n", fs);
+                        spdlog::debug("adding groupdefault <{}>", fs);
                     validfs.push_back(fs);
                     goto groupend;
                 }
@@ -546,16 +547,16 @@ groupend:
 
     // global default last
     if (debugflag) {
-        fmt::println(stderr, "Debug  : global.default_workspace={}", global.defaultWorkspace);
-        fmt::println(stderr, "Debug  : hasAccess({}, {}, {})={}", user, groups, global.defaultWorkspace,
-                     hasAccess(user, groups, global.defaultWorkspace, intent));
-        fmt::println(stderr, "Debug  : canFind({}, {})={}", validfs, global.defaultWorkspace,
-                     canFind(validfs, global.defaultWorkspace));
+        spdlog::debug("global.default_workspace={}", global.defaultWorkspace);
+        spdlog::debug("hasAccess({}, {}, {})={}", user, groups, global.defaultWorkspace,
+                      hasAccess(user, groups, global.defaultWorkspace, intent));
+        spdlog::debug("canFind({}, {})={}", validfs, global.defaultWorkspace,
+                      canFind(validfs, global.defaultWorkspace));
     }
     if ((global.defaultWorkspace != "") && hasAccess(user, groups, global.defaultWorkspace, intent) &&
         !canFind(validfs, global.defaultWorkspace)) {
         if (debugflag)
-            fmt::print(stderr, "Debug  :  adding default_workspace <{}>\n", global.defaultWorkspace);
+            spdlog::debug("adding default_workspace <{}>", global.defaultWorkspace);
         validfs.push_back(global.defaultWorkspace);
     }
 
@@ -563,13 +564,13 @@ groupend:
     for (auto const& [fs, val] : filesystems) {
         if (hasAccess(user, groups, fs, intent) && !canFind(validfs, fs)) {
             if (debugflag)
-                fmt::print(stderr, "Debug  :    adding as having access <{}>\n", fs);
+                spdlog::debug("adding as having access <{}>", fs);
             validfs.push_back(fs);
         }
     }
 
     if (debugflag)
-        fmt::print(stderr, "Debug  : => valid filesystems {}\n", validfs);
+        spdlog::debug(" => valid filesystems {}", validfs);
 
     return validfs;
 }
@@ -577,7 +578,7 @@ groupend:
 // get DB type for the fs
 Database* Config::openDB(const string fs) const {
     if (traceflag)
-        fmt::print(stderr, "Trace  : opendb {}\n", fs);
+        fmt::print(stderr, "Trace  : opendb {}", fs);
     // TODO: version check here to determine which DB to open
     return new FilesystemDBV1(this, fs);
 }
@@ -603,11 +604,11 @@ string Config::deletedPath(const string filesystem) const {
 // return config of filesystem throw if invalid
 Filesystem_config Config::getFsConfig(const std::string filesystem) const {
     if (traceflag)
-        fmt::print(stderr, "Trace  : getFsConfig({})\n", filesystem);
+        fmt::print(stderr, "Trace  : getFsConfig({})", filesystem);
     try {
         return filesystems.at(filesystem);
     } catch (const std::out_of_range& e) {
-        fmt::print(stderr, "no valid filesystem ({}) given in getFsConfig(), should not happen\n", filesystem);
+        spdlog::error("no valid filesystem ({}) given in getFsConfig(), should not happen", filesystem);
         exit(-1); // should not be reached
     }
 }

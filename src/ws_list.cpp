@@ -33,7 +33,6 @@
  *
  */
 
-#include <iostream> // for program_options  FIXME:
 #include <memory>
 
 #include "config.h"
@@ -42,11 +41,15 @@
 #include "build_info.h"
 #include "db.h"
 #include "fmt/base.h"
+#include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include "user.h"
 
 #include "caps.h"
+#include "utils.h"
 #include "ws.h"
+
+#include "spdlog/spdlog.h"
 
 // init caps here, when euid!=uid
 Cap caps{};
@@ -56,6 +59,9 @@ using namespace std;
 
 bool debugflag = false;
 bool traceflag = false;
+
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
 int main(int argc, char** argv) {
 
@@ -81,19 +87,31 @@ int main(int argc, char** argv) {
     // locals settings to prevent strange effects
     utils::setCLocal();
 
+    // setup logging
+    utils::setupLogging();
+
     // define options
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V", "show version")(
-        "filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")(
-        "group,g", "enable listing of group workspaces")("listfilesystems,l", "list available filesystems")(
-        "listfilesystemdetails,L", "list available filesystems with details")("short,s",
-                                                                              "short listing, only workspace names")(
-        "user,u", po::value<string>(&user),
-        "only show workspaces for selected user")("expired,e", "show expired workspaces")("name,N", "sort by name")(
-        "creation,C", "sort by creation date")("remaining,R", "sort by remaining time")("reverted,r", "revert sort")(
-        "terse,t", "terse listing")("config", po::value<string>(&configfile), "config file")(
-        "pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")("verbose,v",
-                                                                                         "verbose listing");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("version,V", "show version")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
+        ("group,g", "enable listing of group workspaces")
+        ("listfilesystems,l", "list available filesystems")
+        ("listfilesystemdetails,L", "list available filesystems with details")
+        ("short,s", "short listing, only workspace names")
+        ("user,u", po::value<string>(&user), "only show workspaces for selected user")
+        ("expired,e", "show expired workspaces")
+        ("name,N", "sort by name")
+        ("creation,C", "sort by creation date")
+        ("remaining,R", "sort by remaining time")
+        ("reverted,r", "revert sort")
+        ("terse,t", "terse listing")
+        ("config", po::value<string>(&configfile), "config file")
+        ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
+        ("verbose,v", "verbose listing");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show tracing information");
@@ -110,8 +128,8 @@ int main(int argc, char** argv) {
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opts);
         po::notify(opts);
     } catch (...) {
-        fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        fmt::print(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
@@ -141,8 +159,8 @@ int main(int argc, char** argv) {
     // handle options exiting here
 
     if (opts.count("help")) {
-        fmt::print("Usage: {} [options] [pattern]\n", argv[0]);
-        cout << cmd_options << endl; // FIXME: can not be printed with fmt??
+        fmt::print(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(0);
     }
 
@@ -163,13 +181,13 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file options!\n");
+            spdlog::warn("ignored config file options!");
         }
     }
 
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 
@@ -217,7 +235,7 @@ int main(int argc, char** argv) {
             if (canFind(validfs, filesystem)) {
                 fslist.push_back(filesystem);
             } else {
-                fmt::println(stderr, "Error  : invalid filesystem given.");
+                spdlog::error("invalid filesystem given.");
             }
         } else {
             fslist = validfs;
@@ -228,7 +246,7 @@ int main(int argc, char** argv) {
         // iterate over filesystems and print or create list to be sorted
         for (auto const& fs : fslist) {
             if (debugflag)
-                fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+                spdlog::debug("loop over fslist {} in {}", fs, fslist);
             std::unique_ptr<Database> db(config.openDB(fs));
 
 #pragma omp parallel for schedule(dynamic)
@@ -261,8 +279,8 @@ int main(int argc, char** argv) {
         // in case of sorted output, sort and print here
         if (sort) {
             if (debugflag)
-                fmt::println(stderr, "Debug  : sorting remaining={},creation={},name={},reverse={}", sortbyremaining,
-                             sortbycreation, sortbyname, sortreverted);
+                spdlog::debug("sorting remaining={},creation={},name={},reverse={}", sortbyremaining, sortbycreation,
+                              sortbyname, sortreverted);
             if (sortbyremaining)
                 std::sort(entrylist.begin(), entrylist.end(),
                           [](const auto& x, const auto& y) { return (x->getRemaining() < y->getRemaining()); });

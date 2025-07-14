@@ -152,12 +152,12 @@ EOF7
 @test "ws_list error handling" {
     cp /dev/null /tmp/ws/ws1-db/${USER}-WS1TEST
     run ws_list --config bats/ws.conf -F ws1 
-    assert_output  --partial "Error"
+    assert_output  --partial "error"
 }
 
 @test "ws_list invalid fs" {
     run ws_list --config bats/ws.conf -F ws3
-    assert_output  --partial "Error"
+    assert_output  --partial "error"
 }
 
 @test "ws_list invalid option" {
@@ -189,7 +189,7 @@ EOF8
 
 @test "ws_list bad config" {
     run ws_list --config bats/bad_ws.conf 
-    assert_output  --partial "Error"
+    assert_output  --partial "error"
     assert_failure
 }
 

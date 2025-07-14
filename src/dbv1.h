@@ -86,6 +86,8 @@ class DBEntryV1 : public DBEntry {
     void setExpiration(const time_t timestamp);
     // change release date (mark as released and not expired) and write updated entry and move entry
     void release(const std::string timestamp);
+    // set expired (not released) can be called by root only
+    void expire(const std::string timestamp);
     // write entry to DB after update (read with readEntry) or creation
     void writeEntry();
     // remove entry from DB
@@ -102,6 +104,7 @@ class DBEntryV1 : public DBEntry {
     long getCreation() const;
     string getWSPath() const;
     long getExpiration() const;
+    long getReleaseTime() const;
     string getFilesystem() const;
 
     // return config of parent DB

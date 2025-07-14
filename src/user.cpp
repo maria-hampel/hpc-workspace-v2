@@ -40,6 +40,8 @@
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include <gsl/pointers>
 
+#include "spdlog/spdlog.h"
+
 extern bool traceflag;
 extern bool debugflag;
 
@@ -89,7 +91,7 @@ std::vector<std::string> getGrouplist() {
     int size = getgroups(0, nullptr);
 
     if (size == -1) {
-        fmt::print(stderr, "Error  : error in getgroups()!\n");
+        spdlog::error("error in getgroups()!");
         return grplist;
     }
 
@@ -104,7 +106,7 @@ std::vector<std::string> getGrouplist() {
     delete[] gids;
 
     if (debugflag)
-        fmt::print(stderr, "Debug  : groups={}\n", grplist);
+        spdlog::debug("groups={}", grplist);
 
     return grplist;
 }

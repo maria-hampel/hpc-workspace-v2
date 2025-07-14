@@ -31,7 +31,6 @@
  */
 
 #include <map>
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -84,6 +83,18 @@ bool new_ruh();
 
 // parse a ACL
 auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::pair<std::string, std::vector<int>>>;
+
+// delete a directory and its contents, should be temper safe
+void rmtree(std::string path);
+
+// split a string at delimiter and return vector
+std::vector<std::string> splitString(const std::string& str, char delimiter);
+
+// pretty print a size into a string with KB/GB etc unit
+std::string prettyBytes(const uint64_t size);
+
+// setup the logging
+void setupLogging();
 
 } // namespace utils
 

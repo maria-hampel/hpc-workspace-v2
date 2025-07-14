@@ -1,14 +1,9 @@
 /*
  *  hpc-workspace-v2
  *
- *  ws_find
+ *  ws_editdb
  *
- *  - tool to find workspaces
- *    changes to workspace++:
- *      - c++ implementation (not python anymore)
- *      - search oder is better defined
- *      - fast YAML reader with rapidyaml
- *      - correct handling of group workspaces FIXME: is it broken in V1? looks like
+ *  tool to edit db entries, with patern matching, for admin only
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
@@ -43,7 +38,6 @@
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include "user.h"
-// #include "fmt/ostream.h"
 
 #include "caps.h"
 #include "utils.h"
@@ -63,14 +57,19 @@ bool traceflag = false;
 // helper for fmt::
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
+const long DAYS = 3600 * 24;
+
 int main(int argc, char** argv) {
 
     // options and flags
     string filesystem;
     string user;
     string configfile;
-    string name;
-    bool listgroups = false;
+    string pattern;
+    int addtime = 0;
+    bool listexpired = false;
+    bool dryrun = true;
+    bool verbose = false;
 
     po::variables_map opts;
 
@@ -80,17 +79,26 @@ int main(int argc, char** argv) {
     // set custom logging format
     utils::setupLogging();
 
+    if (!user::isRoot()) {
+        spdlog::error("Sorry, this tool is for root only.");
+        exit(0);
+    }
+
     // define options
     po::options_description cmd_options("\nOptions");
     // clang-format off
     cmd_options.add_options()
         ("help,h", "produce help message")
         ("version,V", "show version")
-        ("filesystem,F", po::value<string>(&filesystem), "filesystem to search workspaces in")
-        ("group,g", "enable search for group workspaces")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
         ("user,u", po::value<string>(&user), "only show workspaces for selected user")
-        ("name,n", po::value<string>(&name), "workspace name to search for")
-        ("config", po::value<string>(&configfile), "config file");
+        ("expired,e", "show expired workspaces")
+        ("config", po::value<string>(&configfile), "config file")
+        ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
+        ("dry-run", "dry-run (default), do nothing, just show what would be done")
+        ("add-time", po::value<int>(&addtime), "add time to selected workspace expiration time, in days")
+        ("not-kidding", "execute the actions")
+        ("verbose,v", "verbose listing");
     // clang-format on
 
     po::options_description secret_options("Secret");
@@ -98,7 +106,7 @@ int main(int argc, char** argv) {
 
     // define options without names
     po::positional_options_description p;
-    p.add("name", 1);
+    p.add("pattern", 1);
 
     po::options_description all_options;
     all_options.add(cmd_options).add(secret_options);
@@ -108,14 +116,24 @@ int main(int argc, char** argv) {
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opts);
         po::notify(opts);
     } catch (...) {
-        fmt::print(stderr, "Usage: {} [options] name\n", argv[0]);
+        fmt::print(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
     // get flags
 
-    listgroups = opts.count("group");
+    listexpired = opts.count("expired");
+    verbose = opts.count("verbose");
+    if (opts.count("dry-run") && opts.count("not-kidding")) {
+        spdlog::error("Use either --dry-run or no-kidding.");
+        exit(0);
+    }
+
+    if (opts.count("not-kidding")) {
+        dryrun = false;
+        spdlog::info("dry-run disabled");
+    }
 
 #ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
@@ -129,7 +147,7 @@ int main(int argc, char** argv) {
     // handle options exiting here
 
     if (opts.count("help")) {
-        fmt::print(stderr, "Usage: {} [options] name\n", argv[0]);
+        fmt::print(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(0);
     }
@@ -142,11 +160,6 @@ int main(int argc, char** argv) {
 #endif
         utils::printBuildFlags();
         exit(0);
-    }
-
-    if (name == "") {
-        spdlog::error("no workspace name given!");
-        exit(-4);
     }
 
     // read config
@@ -179,18 +192,18 @@ int main(int argc, char** argv) {
         userpattern = username;
     }
 
-    // list of groups of this process
-    auto grouplist = user::getGrouplist();
+    // if not pattern, show all entries
+    if (pattern == "")
+        pattern = "*";
 
     // where to list from?
     vector<string> fslist;
-    vector<string> validfs = config.validFilesystems(username, grouplist, ws::USE);
+    vector<string> validfs = config.validFilesystems(username, {}, ws::LIST);
     if (filesystem != "") {
         if (canFind(validfs, filesystem)) {
             fslist.push_back(filesystem);
         } else {
             spdlog::error("invalid filesystem given.");
-            exit(-3);
         }
     } else {
         fslist = validfs;
@@ -204,24 +217,43 @@ int main(int argc, char** argv) {
             spdlog::debug("loop over fslist {} in {}", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
 
-        // catch DB access errors, if DB directory or DB is accessible
-        try {
-            for (auto const& id : db->matchPattern(name, userpattern, grouplist, false, listgroups)) {
-                std::unique_ptr<DBEntry> entry(db->readEntry(id, false));
+#pragma omp parallel for schedule(dynamic)
+        for (auto const& id : db->matchPattern(pattern, userpattern, {}, listexpired, false)) {
+            try {
+                std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
                 // if entry is valid
                 if (entry) {
-                    fmt::print("{}\n", entry->getWSPath());
-                    exit(0);
+#pragma omp critical
+                    {
+                        entrylist.push_back(std::move(entry));
+                    }
                 }
+            } catch (DatabaseException& e) {
+                spdlog::error(e.what());
             }
-        } catch (DatabaseException& e) {
-            spdlog::error("{}", e.what());
-            exit(-2);
         }
 
-    } // loop fslist
+    } // loop over fs
 
-    // if we get here, we did not find the workspace
-    spdlog::error("workspace not found!");
-    exit(-1);
+    if (dryrun)
+        fmt::println("Actions that would be performed on the workspaces selected:");
+
+    for (const auto& entry : entrylist) {
+        fmt::println("Id: {} ({})", entry->getId(), entry->getWSPath());
+        if (addtime != 0) {
+            auto expiration = entry->getExpiration();
+            auto newexpiration = expiration + (addtime * DAYS);
+            auto olddate = string(std::ctime(&expiration));
+            auto newdate = string(std::ctime(&newexpiration));
+            fmt::println("    change expiration: {:.24} ({}) -> {:.24} ({})", olddate, expiration, newdate,
+                         newexpiration);
+            if (!dryrun) {
+                if (debugflag) {
+                    spdlog::debug("updating entry");
+                }
+                entry->setExpiration(newexpiration);
+                entry->writeEntry();
+            }
+        }
+    }
 }

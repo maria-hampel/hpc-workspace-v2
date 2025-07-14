@@ -28,8 +28,8 @@
  */
 
 #include "fmt/base.h"
+#include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
-#include <iostream>
 #include <regex>
 #include <string>
 
@@ -43,6 +43,8 @@
 #include "user.h"
 #include "utils.h"
 #include "ws.h"
+
+#include "spdlog/spdlog.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -59,19 +61,27 @@ bool traceflag = false;
 // init caps here, when euid!=uid
 Cap caps{};
 
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
+
 void commandline(po::variables_map& opt, string& name, string& target, string& filesystem, bool& listflag, bool& terse,
                  string& username, int argc, char** argv, std::string& configfile) {
     // define all options
 
     po::options_description cmd_options("\nOptions");
-    cmd_options.add_options()("help,h", "produce help message")("version,V",
-                                                                "show version")("list,l", "list restorable workspaces")(
-        "brief,b", "do not show unavailability date in list")("name,n", po::value<string>(&name), "workspace name")(
-        "target,t", po::value<string>(&target),
-        "existing target workspace name")("filesystem,F", po::value<string>(&filesystem),
-                                          "filesystem")("config,c", po::value<string>(&configfile), "config file")(
-        "username,u", po::value<string>(&username), "username")("delete-data",
-                                                                "delete all data, workspace can NOT BE RECOVERED!");
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("version,V", "show version")
+        ("list,l", "list restorable workspaces")
+        ("brief,b", "do not show unavailability date in list")
+        ("name,n", po::value<string>(&name), "workspace name")
+        ("target,t", po::value<string>(&target), "existing target workspace name")
+        ("filesystem,F", po::value<string>(&filesystem), "filesystem")
+        ("config,c", po::value<string>(&configfile), "config file")
+        ("username,u", po::value<string>(&username), "username")
+        ("delete-data", "delete all data, workspace can NOT BE RECOVERED!");
+    // clang-format on
 
     po::options_description secret_options("Secret");
     secret_options.add_options()("debug", "show debugging information")("trace", "show calling information");
@@ -89,27 +99,28 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        cerr << "Usage:" << argv[0] << ": [options] workspace_name target_name | -l" << endl;
-        cerr << cmd_options << "\n";
+        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
     // see whats up
 
     if (opt.count("help")) {
-        cerr << "Usage:" << argv[0] << ": [options] workspace_name target_name | -l" << endl;
-        cerr << cmd_options << "\n";
-        cerr << "attention: the workspace_name argument is as printed by " << argv[0]
-             << " -l not as printed by ws_list!" << endl;
+        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
+        fmt::println(stderr,
+                     "attention: the workspace_name argument is as printed by {}"
+                     " -l not as printed by ws_list!",
+                     argv[0]);
         exit(0);
     }
 
     if (opt.count("version")) {
 #ifdef IS_GIT_REPOSITORY
-        cout << "workspace build from git commit hash " << GIT_COMMIT_HASH << " on top of release " << WS_VERSION
-             << endl;
+        fmt::println("workspace build from git commit hash {} on top of release {}", GIT_COMMIT_HASH, WS_VERSION);
 #else
-        cout << "workspace version " << WS_VERSION << endl;
+        fmt::println("workspace version {}", WS_VERSION);
 #endif
         exit(0);
     }
@@ -132,27 +143,27 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
 
     if (opt.count("name")) {
         if (!opt.count("target") && !opt.count("delete-data")) {
-            fmt::println(stderr, "Error  : no target given.");
+            spdlog::error("no target given.");
             fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
-            cerr << cmd_options << "\n";
+            fmt::println("{}", cmd_options);
             exit(1);
         }
         // validate workspace name against nasty characters
         // static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$"); // #77
         static const std::regex e1("^[[:alnum:]][[:alnum:]_.-]*$");
         if (!regex_match(name.substr(0, 2), e1)) {
-            fmt::println(stderr, "Error  : Illegal workspace name, use characters and numbers, -,. and _ only!");
+            spdlog::error("Illegal workspace name, use characters and numbers, -,. and _ only!");
             exit(1);
         }
         static const std::regex e2("[^[:alnum:]_.-]");
         if (regex_search(name, e2)) {
-            fmt::println(stderr, "Error  : Illegal workspace name, use characters and numbers, -,. and _ only!");
+            spdlog::error("Illegal workspace name, use characters and numbers, -,. and _ only!");
             exit(1);
         }
     } else if (!opt.count("list")) {
-        cerr << "Error  : neither workspace nor -l specified." << endl;
-        cerr << argv[0] << ": [options] workspace_name target_name | -l" << endl;
-        cerr << cmd_options << "\n";
+        spdlog::error("neither workspace nor -l specified.");
+        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+        fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 }
@@ -162,14 +173,25 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
  */
 bool check_name(const string name, const string username, const string real_username) {
     // split the name in username, name and timestamp
-    auto pos = name.find("-");
+    // as username can contain -, splitting is not good here
+    //  name has shape:    username-id-timestamp
+    //                             ^ search for this
+    auto lpos = name.rfind("-");
+    if (lpos == string::npos) {
+        spdlog::error("unexpected error in check_name, no - in name");
+        exit(-1);
+    }
+    auto pos = name.rfind("-", lpos - 1);
+    if (pos == string::npos) {
+        spdlog::error("unexpected error in check_name, no second - in name");
+        exit(-1);
+    }
     auto owner = name.substr(0, pos);
 
     // we checked already that only root can use another username with -u, so here
     // we know we are either root or username == real_username
     if ((username != owner) && (real_username != "root")) {
-        fmt::println(stderr, "Error  : only root can do this, or invalid workspace name! username={} owner={}",
-                     username, owner);
+        spdlog::error("only root can do this, or invalid workspace name! username={} owner={}", username, owner);
         return false;
     } else {
         return true;
@@ -192,7 +214,7 @@ void restore(const string name, const string target, const string username, cons
         if (canFind(validfs, filesystem)) {
             fslist.push_back(filesystem);
         } else {
-            fmt::println(stderr, "Error  : invalid filesystem given.");
+            spdlog::error("invalid filesystem given.");
             return;
         }
     } else {
@@ -207,7 +229,7 @@ void restore(const string name, const string target, const string username, cons
     // iterate over filesystems
     for (auto const& fs : fslist) {
         if (debugflag)
-            fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+            spdlog::debug("loop over fslist {} in {}", fs, fslist);
         std::unique_ptr<Database> db(config.openDB(fs));
 
         for (auto const& id : db->matchPattern(id_noowner, username, grouplist, true, false)) {
@@ -219,20 +241,20 @@ void restore(const string name, const string target, const string username, cons
 
     // exit in case not unique (unlikely due to labels with second precision!)
     if (hits.size() > 1) {
-        fmt::println(stderr, "Error  : id {} is not unique, please give filesystem with -F!", name);
+        spdlog::error("id {} is not unique, please give filesystem with -F!", name);
         for (const auto& h : hits) {
             fmt::println(" {} is in {}", h.second, h.first);
         }
         return;
     } else if (hits.size() == 0) {
-        fmt::println(stderr, "Error  : workspace to restore does not exist!");
+        spdlog::error("workspace to restore does not exist!");
         return;
     }
 
     auto source_filesystem = hits[0].first;
 
     if (!config.getFsConfig(source_filesystem).restorable) {
-        fmt::println(stderr, "Error  : it is not possible to restore workspaces in this filesystem.");
+        spdlog::error("it is not possible to restore workspaces in this filesystem.");
         return;
     }
 
@@ -242,7 +264,7 @@ void restore(const string name, const string target, const string username, cons
     try {
         source_entry = source_db->readEntry(name, true);
     } catch (DatabaseException& e) {
-        fmt::println(stderr, "Error  : workspace does not exist!");
+        spdlog::error("workspace does not exist!");
         return;
     }
 
@@ -256,33 +278,33 @@ void restore(const string name, const string target, const string username, cons
         string wssourcename = cppfs::path(wsdir).parent_path().string() + "/" +
                               config.getFsConfig(source_filesystem).deletedPath + "/" + name;
 
-        fmt::println(stderr, "Info   : deleting files as --delete-data was given");
-        fmt::println(stderr, "Info   : you have 5 seconds to interrupt with CTRL-C to prevent deletion");
+        spdlog::info("deleting files as --delete-data was given");
+        spdlog::info("you have 5 seconds to interrupt with CTRL-C to prevent deletion");
         sleep(5);
 
         caps.raise_cap({CAP_FOWNER}, utils::SrcPos(__FILE__, __LINE__, __func__));
         if (caps.isSetuid()) {
             // get process owner to be allowed to delete files
             if (seteuid(getuid())) {
-                fmt::println(stderr, "Error  : can not setuid, bad installation?");
+                spdlog::error("can not setuid, bad installation?");
             }
         }
 
         // remove the directory
         std::error_code ec;
         if (debugflag) {
-            fmt::println("Debug  : remove_all({})", cppfs::path(wssourcename).string());
+            spdlog::debug("remove_all({})", cppfs::path(wssourcename).string());
         }
         cppfs::remove_all(cppfs::path(wssourcename), ec); // we ignore return wert as we expect an error return anyhow
 
         if (ec.value() != 0) {
-            fmt::println(stderr, "Error  : unexpected error {}", ec.message());
+            spdlog::error("unexpected error {}", ec.message());
         }
 
         if (caps.isSetuid()) {
             // get root so we can drop again
             if (seteuid(0)) {
-                fmt::println(stderr, "Error  : can not setuid, bad installation?");
+                spdlog::error("can not setuid, bad installation?");
             }
         }
         caps.lower_cap({CAP_FOWNER}, source_entry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
@@ -291,7 +313,7 @@ void restore(const string name, const string target, const string username, cons
         if (caps.isSetuid()) {
             // get db user to be able to unlink db entry from root_squash filesystems
             if (setegid(config.dbgid()) || seteuid(config.dbuid())) {
-                cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
+                spdlog::error("can not seteuid or setgid. Bad installation?");
                 exit(-1);
             }
         }
@@ -301,9 +323,9 @@ void restore(const string name, const string target, const string username, cons
             source_db->deleteEntry(name, true);
             syslog(LOG_INFO, "delete for user <%s> from <%s> done, removed DB entry <%s>.", username.c_str(),
                    wssourcename.c_str(), name.c_str());
-            fmt::println(stderr, "Info   : delete successful, database entry removed.");
+            spdlog::info("delete successful, database entry removed.");
         } catch (DatabaseException const& ex) {
-            fmt::println(stderr, "Error  : error in DB entry removal, {}", ex.what());
+            spdlog::error("error in DB entry removal, {}", ex.what());
         }
     } else { // don't delete data
 
@@ -313,7 +335,7 @@ void restore(const string name, const string target, const string username, cons
         string targetpath;
         for (auto const& fs : fslist) {
             if (debugflag)
-                fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+                spdlog::debug("loop over fslist {} in {}", fs, fslist);
             std::unique_ptr<Database> candiate_db(config.openDB(fs));
 
             try {
@@ -327,7 +349,7 @@ void restore(const string name, const string target, const string username, cons
         }
 
         if (targetpath == "") {
-            fmt::println(stderr, "Error  : target does not exist!");
+            spdlog::error("target does not exist!");
             return;
         }
 
@@ -351,7 +373,7 @@ void restore(const string name, const string target, const string username, cons
         if (caps.isSetuid()) {
             // get db user to be able to unlink db entry from root_squash filesystems
             if (setegid(config.dbgid()) || seteuid(config.dbuid())) {
-                cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
+                spdlog::error("can not seteuid or setgid. Bad installation?");
                 exit(-1);
             }
         }
@@ -362,20 +384,21 @@ void restore(const string name, const string target, const string username, cons
                 db->deleteEntry(name, true);
                 syslog(LOG_INFO, "restore for user <%s> from <%s> to <%s> done, removed DB entry <%s>.",
                        username.c_str(), wssourcename.c_str(), targetpathname.c_str(), name.c_str());
-                fmt::println(stderr, "Info   : restore successful, database entry removed.");
+                spdlog::info("restore successful, database entry removed.");
             } catch (DatabaseException const& ex) {
-                fmt::println(stderr, "Error  : error in DB entry removal, {}", ex.what());
+                spdlog::error("error in DB entry removal, {}", ex.what());
             }
         } else {
             syslog(LOG_INFO, "restore for user <%s> from <%s> to <%s> failed, kept DB entry <%s>.", username.c_str(),
                    wssourcename.c_str(), targetpathname.c_str(), name.c_str());
-            cerr << "Error  : moving data failed, database entry kept! " << ret << endl;
+            spdlog::error("moving data failed, database entry kept! {}", ret);
+            ;
         }
 
         // get user again
         if (caps.isSetuid()) {
             if (seteuid(0) || setegid(0)) {
-                cerr << "Error: can not seteuid or setgid. Bad installation?" << endl;
+                spdlog::error("can not seteuid or setgid. Bad installation?");
                 exit(-1);
             }
         }
@@ -397,6 +420,9 @@ int main(int argc, char** argv) {
     // locals settings to prevent strange effects
     utils::setCLocal();
 
+    // set custom logging format
+    utils::setupLogging();
+
     // check commandline, get flags which are used to create ws object or for workspace allocation
     commandline(opt, name, target, filesystem, listflag, terse, username, argc, argv, configfile);
 
@@ -407,14 +433,14 @@ int main(int argc, char** argv) {
         if (user::isRoot() || caps.isUserMode()) {
             configfilestoread = {configfile};
         } else {
-            fmt::print(stderr, "Warning: ignored config file option!\n");
+            spdlog::warn("ignored config file option!");
         }
     }
 
     // read the config
     auto config = Config(configfilestoread);
     if (!config.isValid()) {
-        fmt::println(stderr, "Error  : No valid config file found!");
+        spdlog::error("No valid config file found!");
         exit(-2);
     }
 
@@ -426,7 +452,7 @@ int main(int argc, char** argv) {
         }
         // FIXME: could be parsed here and passed as object not string
     } else {
-        fmt::print(stderr, "Error  : ~/.ws_user.conf can not be symlink!");
+        spdlog::error("~/.ws_user.conf can not be symlink!");
         exit(-1);
     }
 
@@ -455,7 +481,7 @@ int main(int argc, char** argv) {
             if (canFind(validfs, filesystem)) {
                 fslist.push_back(filesystem);
             } else {
-                fmt::println(stderr, "Error  : invalid filesystem given.");
+                spdlog::error("invalid filesystem given.");
             }
         } else {
             fslist = validfs;
@@ -470,7 +496,7 @@ int main(int argc, char** argv) {
         // iterate over filesystems
         for (auto const& fs : fslist) {
             if (debugflag)
-                fmt::print("Debug  : loop over fslist {} in {}\n", fs, fslist);
+                spdlog::debug("loop over fslist {} in {}", fs, fslist);
             std::unique_ptr<Database> db(config.openDB(fs));
             try {
                 for (auto const& id : db->matchPattern("*", userpattern, grouplist, true, false)) {
@@ -483,7 +509,7 @@ int main(int argc, char** argv) {
                     }
                 }
             } catch (DatabaseException& e) {
-                fmt::println(stderr, "Error  : DB access error ({})", e.what());
+                spdlog::error("DB access error ({})", e.what());
             }
         } // loop over fs
         caps.lower_cap({CAP_DAC_OVERRIDE, CAP_DAC_READ_SEARCH}, config.dbuid(),
@@ -496,7 +522,7 @@ int main(int argc, char** argv) {
             username = real_username;
         } else if (real_username != username) {
             if (real_username != "root") {
-                cerr << "Error: only root can do that. 2" << endl;
+                spdlog::error("only root can do that. 2");
                 username = real_username;
                 exit(-1);
             }
