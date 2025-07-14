@@ -1,0 +1,38 @@
+# whats new in v2 vs v1
+
+## new tools
+
+- `ws_stat` allow to see how much diskspace a workspace uses
+- `ws_editdb` allows the administrator to change DB entries, currently implemented is mass extension
+
+## new functionality
+
+- `ws_list` is a lot faster due to no python startup and faster listing and reading of DB
+- `/etc/ws.d` is primary location of config, files are read in alphabetical order and merged, if no files there,
+`/etc/ws.conf` is read
+- `ws_release --delete-data` to wipe data from expired workspace (also in v1 since a while)
+- `ws_restore --delete-data` to wipe data from expired workspaces
+- in config file: `filesystems` can be used as alias for `workspaces`, to match `-F` option of tools
+- in config file: `default_workspace` is an alias for `default`
+- in config file: `maxduration` is an alias for `duration`
+- in config file: ACL syntax has `-` and `+`
+- in config file: extended ACL syntax `[+|-]id[:[permission{,permission}]]` with permission in `list,use,create,extend,release,restore`
+  allows to restrict single users or groups e.g. to use old workspaces in a filesystem but not extend them
+- same executable can be used with setuid or capabilities (if capability support is detected at build time)
+- `--version` switch can be used to see if capability or setuid is available and used
+- most tools have `--config` option, which allows using workspace tools without privileges in users own directories and with own config file. This is usefull for testing.
+
+## changed behaviour
+
+- field `adminmail` as a list of email addresses is required in config
+- lua callout is no longer supported
+- user needs access to default workspace (was giving a warning in v1 for some years already)
+- each tool does some checks on config validity
+- new human check in `ws_restore`, avoid dependency on `terminfo` or `ncurses`
+
+## whats new under the hood
+
+- more tests
+- CI pipeline
+- no python dependency, more C++ tools with higher speed and consistent behaviour
+- abstraction of the DB, allowing easier tool development and will allow new functionality in DB in a coming version
