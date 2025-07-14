@@ -2,10 +2,12 @@
 
 This is the construction site of next major version of hpc-workspace++ tool.
 
-**DO NOT USE - it is incomplete**
+**DO NOT USE - unless you know what you do and want to test**
 
-This is very rough and not ment for usage, and I will for the time being also
-not expect or accept contributions, until some things are settled.
+This version now has reached a usable state, it offers some tools
+and features not present in v1.
+please not that some tools are still missing, and that documentation
+is not yet up-to-date or complete.
 
 Please use the discussion tab if you would like to share input.
 
@@ -65,35 +67,38 @@ if not available.
 ## Dependencies
 
 source is fetched and build as part of this tool:
-- {fmt} 
-- yaml-cpp 
+- {fmt}
+- yaml-cpp
 - rapidyaml
 - Guidelines Support Library (GSL)
+- spdlog
 
 library taken from distribution
 - boost program_options + boost system
 - libcap (optional if capability support is wanted instead of setuid)
+- libcurl
 
 for testing:
-- Catch2 
+- Catch2
 - bats
 
 ## Status
 
 - [x] ws_allocate (C++)
-- [ ] ws_extend (will remain a shell wrapper)
+- [x] ws_extend (will remain a shell wrapper)
 - [x] ws_find (new in C++)
 - [x] ws_list (new in C++)
-- [ ] ws_register (might get based on ws_list)
-- [x] ws_release (C++) 
+- [x] ws_register (new in C++)
+- [x] ws_release (C++)
 - [x] ws_restore (C++)
-- [ ] ws_send_ical (might get based on ws_list)
-- [ ] ws_share (will remain a shell script)
-- [ ] ws_expirer (will be migrated to C++) 
+- [x] ws_send_ical (new in C++)
+- [x] ws_editdb (new tool)
+- [x] ws_share (will remain a shell script)
+- [ ] ws_expirer (will be migrated to C++)
 - [ ] ws_validate_config (might be migrated to C++)
 - [x] ws_prepare (new in C++)
 
- 
+
 ## Todo
 
 - [x] move from single file ws.conf to multifile ws.d
@@ -104,6 +109,7 @@ for testing:
 - [x] debug what is there
 - [ ] migrate more tools: migrate ws_expirer, ws_validate_config
 - [ ] add tests for new tools
+- [ ] create tests for ws_expire
 - [x] debug what is there
 - [x] get CMake setup in better shape
 - [x] remove tbb dependency
@@ -126,9 +132,9 @@ cmake --preset debug
 cmake --build --preset debug  -j 12
 ```
 
-for mold users:
+for mold and ninja users:
 ```
-cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
+cmake --preset debug-ninja -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
 cmake --build --preset debug -j 12
 ```
 
@@ -138,12 +144,19 @@ cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
 cmake --build --preset debug -j 12
 ```
 
+to use clang, use
+```
+cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+```
+
 for production
 
 ```
 cmake --preset release
 cmake --build --preset release  -j 12
 ```
+
+or mix and combine all of above examples.
 
 ### Source Code Formatting
 
@@ -166,7 +179,7 @@ cmake --build build --target clang-format
 
 or with presets
 ```
-cmake --build build --preset debug --target clang-format 
+cmake --build build --preset debug --target clang-format
 ```
 
 Using the dry-run option, you can check the compliance of a source code file without applying the style configuration.
@@ -210,7 +223,7 @@ sudo chown -R $USERNAME coverage
 
 note: setcap tests will fail with ASAN error messages if sysctl `fs.suid_dumpable = 2`
 Update: turned out that capability version seems to have restrictions in docker, can only be tested fully in VM
-TODO: remove capabuility tests from docker 
+TODO: remove capabuility tests from docker
 
 ### testing with VM
 
@@ -223,10 +236,16 @@ cd vm/rocky-8
 vagrant up
 ```
 
+or
+```
+cd vm/rocky-9
+vagrant up
+```
+
 turns out that NFS root_squash and Lustre root_sqash do not behave the same way,
 what works on Lustre does not on NFS, so NFS is not suitable for testing.
 
-latest lustre versions also drop capabilites, unless 
+latest lustre versions also drop capabilites, unless
 ```
 lctl set_param -P mdt.<fsname>-*.enable_cap_mask=+cap_dac_read_search,cap_chown,cap_dac_override,cap_fowner
 ```
