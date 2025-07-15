@@ -31,6 +31,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <string>
 #include <vector>
 
 #include "config.h"
@@ -71,6 +72,131 @@ struct expire_result_t {
     long deleted_ws;
 };
 
+struct clean_stray_result_t {
+    long valid_ws;
+    long invalid_ws;
+    long valid_deleted;
+    long invalid_deleted;
+};
+
+// clean_stray_directtories
+//  finds directories that are not in DB and removes them,
+//  returns numbers of valid and invalid directories
+static clean_stray_result_t clean_stray_directories(Config config, const std::string fs, const bool dryrun) {
+
+    clean_stray_result_t result = {0, 0, 0, 0};
+
+    // helper to store space and found dir together
+    struct dir_t {
+        std::string space;
+        std::string dir;
+    };
+
+    std::vector<string> spaces = config.getFsConfig(fs).spaces;
+    std::vector<dir_t> dirs; // list of all directories in all spaces of 'fs'
+
+    //////// stray directories /////////
+    // move directories not having a DB entry to deleted
+
+    fmt::println("Stray directory removal for filesystem {}", fs);
+    fmt::println("  workspaces first...");
+
+    // find directories first, check DB entries later, to prevent data race with workspaces
+    // getting created while this is running
+    for (const auto& space : spaces) {
+        // NOTE: *-* for compatibility with old expirer
+        for (const auto& dir : utils::dirEntries(space, "*-*")) {
+            if (cppfs::is_directory(dir)) {
+                dirs.push_back({space, dir});
+            }
+        }
+    }
+
+    // get all workspace pathes from DB
+    std::unique_ptr<Database> db(config.openDB(fs));
+    auto wsIDs = db->matchPattern("*", "*", {}, false, false);
+    std::vector<std::string> workspacesInDB;
+
+    workspacesInDB.reserve(wsIDs.size());
+    for (auto const& wsid : wsIDs) {
+        // FIXME: this can throw in cases of bad config
+        workspacesInDB.push_back(db->readEntry(wsid, false)->getWSPath());
+    }
+
+    // compare filesystem with DB
+    for (auto const& founddir : dirs) {
+        if (!canFind(workspacesInDB, founddir.dir)) {
+            fmt::println("    stray workspace ", founddir.dir);
+
+            if (!dryrun) {
+                try {
+                    fmt::println("      move {} to {}", founddir.dir,
+                                 (cppfs::path(founddir.space) / config.deletedPath(fs)).string());
+                    cppfs::rename(founddir.dir, cppfs::path(founddir.space) / config.deletedPath(fs));
+                } catch (cppfs::filesystem_error& e) {
+                    spdlog::error("      failed to move to deleted: {} ({})", founddir.dir, e.what());
+                }
+            } else {
+                fmt::println("      would move {} to {}", founddir.dir,
+                             (cppfs::path(founddir.space) / config.deletedPath(fs)).string());
+            }
+            result.invalid_ws++;
+        } else {
+            result.valid_ws++;
+        }
+    }
+
+    fmt::println("    {} valid, {} invalid directories found.", result.valid_ws, result.invalid_ws);
+
+    fmt::println("  ... deleted workspaces second...");
+
+    ///// deleted workspaces /////
+    // delete deleted workspaces that no longer have any DB entry
+    dirs.clear();
+    // directory entries first
+    for (auto const& space : spaces) {
+        // NOTE: *-* for compatibility with old expirer
+        for (const auto& dir : utils::dirEntries(cppfs::path(space) / config.deletedPath(fs), "*-*")) {
+            if (cppfs::is_directory(dir)) {
+                dirs.push_back({space, dir});
+            }
+        }
+    }
+
+    // get all workspace names from DB, this contains the timestamp
+    wsIDs = db->matchPattern("*", "*", {}, true, false);
+    workspacesInDB.clear();
+    for (auto const& wsid : wsIDs) {
+        workspacesInDB.push_back(wsid);
+    }
+
+    // compare filesystem with DB
+    for (auto const& founddir : dirs) {
+        if (!canFind(workspacesInDB, cppfs::path(founddir.dir).filename())) {
+            fmt::println("    stray workspace ", founddir.dir);
+            if (!dryrun) {
+                try {
+                    // FIXME: is that safe against symlink attacks?
+                    // TODO: add timeout
+                    utils::rmtree(cppfs::path(founddir.space) / config.deletedPath(fs));
+                    fmt::println("      remove ", founddir.dir);
+                } catch (cppfs::filesystem_error& e) {
+                    spdlog::error("      failed to remove: {} ({})", founddir.dir, e.what());
+                }
+            } else {
+                fmt::println("      would remove ", founddir.dir);
+            }
+            result.invalid_deleted++;
+        } else {
+            result.valid_deleted++;
+        }
+    }
+
+    fmt::println("    {} valid, {} invalid directories found.", result.valid_deleted, result.invalid_deleted);
+
+    return result;
+}
+
 // expire workspace DB entries and moves the workspace to deleted directory
 // deletes expired workspace in second phase
 static expire_result_t expire_workspaces(Config config, const string fs, const bool dryrun) {
@@ -79,9 +205,9 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
 
     vector<string> spaces = config.getFsConfig(fs).spaces;
 
-    auto db = config.openDB(fs);
+    std::unique_ptr<Database> db(config.openDB(fs));
 
-    fmt::println("Checking DB for workspaces to be expired for ", fs);
+    fmt::println("Checking DB for workspaces to be expired for filesystem {}", fs);
 
     // search expired active workspaces in DB
     for (auto const& id : db->matchPattern("*", "*", {}, false, false)) {
@@ -212,8 +338,9 @@ static expire_result_t expire_workspaces(Config config, const string fs, const b
 int main(int argc, char** argv) {
 
     // options and flags
-    string filesystem;
-    string configfile;
+    std::vector<string> filesystem;
+    std::string configfile;
+    bool dryrun = true;
 
     po::variables_map opts;
 
@@ -229,8 +356,8 @@ int main(int argc, char** argv) {
      cmd_options.add_options()
         ("help,h", "produce help message")
         ("version,V", "show version")
-        ("workspaces,w", po::value<string>(&filesystem), "filesystem/workspace to delete from")
-        ("cleaner,c", "target directory")
+        ("filesystems,F", po::value<vector<string>>(&filesystem), "filesystems/workspaces to delete from")
+        ("cleaner,c", "no dry-run mode")
         ("configfile", po::value<string>(&configfile), "path to configfile");
     // clang-format on
 
@@ -267,8 +394,10 @@ int main(int argc, char** argv) {
         exit(0);
     }
 
-    if (opts.count("cleaner"))
+    if (opts.count("cleaner")) {
         cleanermode = true;
+        dryrun = false;
+    }
 
     // read config
     //   user can change this if no setuid installation OR if root
@@ -288,4 +417,40 @@ int main(int argc, char** argv) {
     }
 
     // main logic from here
+    std::vector<std::string> fslist;
+
+    if (opts.count("filesystem")) {
+        // use only valid filesystems from commmand line
+        for (auto const& fs : filesystem) {
+            if (canFind(config.Filesystems(), fs))
+                fslist.push_back(fs);
+        }
+    } else {
+        fslist = config.Filesystems();
+    }
+
+    if (debugflag)
+        spdlog::debug("fslist: {}", fslist);
+
+    if (cleanermode) {
+        fmt::println("really cleaning!");
+    } else {
+        fmt::println("simulate cleaning - dryrun");
+    }
+
+    // go through filesystem and
+    // stray first, move workspaces without DB entries and
+    // delete deleted ones not in DB
+    for (auto const& fs : fslist) {
+        clean_stray_directories(config, fs, dryrun);
+    }
+
+    // go through database and
+    // expire workspaces beyond expiration age and
+    // delete expired ones which are beyond keep date
+    for (auto const& fs : fslist) {
+        expire_workspaces(config, fs, dryrun);
+    }
+
+    return 0;
 }
