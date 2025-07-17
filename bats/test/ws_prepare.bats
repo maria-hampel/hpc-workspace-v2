@@ -29,8 +29,7 @@ setup() {
     sudo rm -fr /tmp/ws
     run sudo env PATH=$PATH ws_prepare --config "bats/bad_ws.conf"
     assert_output --partial "warning: No adminmail in config!"
-    run ls /tmp/ws
-    assert_output --partial "No such file or directory"
+    assert_file_not_exist /tmp/ws
 }
 
 @test "ws_prepare create directories" {
