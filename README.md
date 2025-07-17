@@ -107,6 +107,7 @@ for testing:
 - [x] add more unit tests to existing code
 - [x] build/select a better test framework for the tools
 - [x] debug what is there
+- [ ] check debug logic and data leaks
 - [ ] migrate more tools: migrate ws_expirer, ws_validate_config
 - [ ] add tests for new tools
 - [ ] create tests for ws_expire
