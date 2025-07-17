@@ -147,8 +147,14 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     }
 
     // globalflags
-    debugflag = opt.count("debug");
-    traceflag = opt.count("trace");
+#ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
+    if (user::isRoot()) {
+#else
+    {
+#endif
+        debugflag = opt.count("debug");
+        traceflag = opt.count("trace");
+    }
 
     // parse user config
     UserConfig userconfig(userconf);
