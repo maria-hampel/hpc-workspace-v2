@@ -189,7 +189,7 @@ EOF8
 
 @test "ws_list bad config" {
     run ws_list --config bats/bad_ws.conf 
-    assert_output  --partial "error"
+    assert_output  --partial "warn"
     assert_failure
 }
 

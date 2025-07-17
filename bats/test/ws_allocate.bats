@@ -28,7 +28,7 @@ setup() {
 
 @test "ws_allocate bad config" {
     run ws_allocate --config bats/bad_ws.conf TEST
-    assert_output  --partial "error"
+    assert_output  --partial "warn"
     assert_failure
 }
 
