@@ -135,8 +135,8 @@ bool Config::validate() {
         spdlog::error("No clustername in config!");
     }
     if (global.adminmail.empty()) {
-        valid = false;
-        spdlog::error("No adminmail in config!");
+        valid = true;
+        spdlog::warn("No adminmail in config!");
     }
     // SPEC:CHANGE: require default workspace
     if (global.defaultWorkspace.empty()) {
