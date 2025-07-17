@@ -122,6 +122,7 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
 #else
         fmt::println("workspace version {}", WS_VERSION);
 #endif
+        utils::printBuildFlags();
         exit(0);
     }
 
