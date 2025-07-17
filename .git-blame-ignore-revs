@@ -1,0 +1,8 @@
+# Run this command to always ignore formatting commits in `git blame`
+# git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# For vscode with the GitLense extension add the following to the settings.json:
+# "gitlens.advanced.blame.customArguments": ["--ignore-revs-file .git-blame-ignore-revs"]
+
+# Ignore code reformating with clang-format
+53dc910a1ae10b8408a25fac422e78c156de9540
