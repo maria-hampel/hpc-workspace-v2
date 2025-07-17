@@ -394,6 +394,16 @@ int main(int argc, char** argv) {
         exit(0);
     }
 
+    if (opt.count("version")) {
+#ifdef IS_GIT_REPOSITORY
+        fmt::println("workspace built from git commit hash {} on top of release {}", GIT_COMMIT_HASH, WS_VERSION);
+#else
+        fmt::println("workspace version {}", WS_VERSION);
+#endif
+        utils::printBuildFlags();
+        exit(0);
+    }
+
     if (opts.count("cleaner")) {
         cleanermode = true;
         dryrun = false;

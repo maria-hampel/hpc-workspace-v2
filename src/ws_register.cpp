@@ -81,7 +81,8 @@ int main(int argc, char** argv) {
     po::options_description cmd_options("\nOptions");
     // clang-format off
     cmd_options.add_options()
-        ("help,h", "produce help message")("version,V", "show version")
+        ("help,h", "produce help message")
+        ("version,V", "show version")
         ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
         ("directory,d", po::value<string>(&directory), "target directory")
         ("configfile,c", po::value<string>(&configfile), "path to configfile");
@@ -121,6 +122,16 @@ int main(int argc, char** argv) {
     if (opts.count("help") || opts.count("directory") == 0) {
         fmt::println(stderr, "Usage: {} [options] DIRECTORY\n", argv[0]);
         fmt::println(stderr, "{}", cmd_options);
+        exit(0);
+    }
+
+    if (opt.count("version")) {
+#ifdef IS_GIT_REPOSITORY
+        fmt::println("workspace built from git commit hash {} on top of release {}", GIT_COMMIT_HASH, WS_VERSION);
+#else
+        fmt::println("workspace version {}", WS_VERSION);
+#endif
+        utils::printBuildFlags();
         exit(0);
     }
 
