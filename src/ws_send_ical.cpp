@@ -127,10 +127,8 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
     }
 
     // globalflags
-    if (user::isRoot()) {
-        debugflag = opt.count("debug");
-        traceflag = opt.count("trace");
-    }
+    debugflag = opt.count("debug");
+    traceflag = opt.count("trace");
 
     // userconfig for Mail
     UserConfig userconfig(userconf);
@@ -401,7 +399,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // set custom logging format
-    utils::setupLogging();
+    utils::setupLogging(string(argv[0]));
 
     // initiate time
     srand(time(nullptr));

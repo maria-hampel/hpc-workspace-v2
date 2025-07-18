@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <vector>
 
+#include "user.h"
 #include "ws.h"
 
 /*
@@ -64,8 +65,9 @@ namespace fs = std::filesystem;
 #include "db.h"
 #include "utils.h"
 
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/syslog_sink.h"
 #include "spdlog/spdlog.h"
-#include <spdlog/sinks/stdout_color_sinks.h>
 
 using namespace std;
 
@@ -489,21 +491,31 @@ string prettyBytes(const uint64_t size) {
 // setup logging
 //  set format
 //  change to stderr
-void setupLogging() {
+void setupLogging(const std::string ident) {
     // spdlog::set_pattern("%^%10l%$ : %v");
 
-    auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
-    auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
-    spdlog::set_default_logger(stderr_logger);
-#ifndef NDEBUG
-    // trace and debug in debug build
-    spdlog::set_level(spdlog::level::trace);
-#else
-    // no trace and debug in release builds
-    spdlog::set_level(spdlog::level::info);
-#endif
+    if (user::isRoot()) {
+        // stderr sink in color and with >= trace
+        auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+        stderr_sink->set_level(spdlog::level::trace);
+        stderr_sink->set_pattern("%^%l%$: %v");
 
-    spdlog::set_pattern("%^%l%$: %v");
+        auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
+        spdlog::set_default_logger(stderr_logger);
+    } else {
+        // stderr sink in color and with >= info
+        auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+        stderr_sink->set_level(spdlog::level::info);
+        stderr_sink->set_pattern("%^%l%$: %v");
+
+        // syslog sink for all levels
+        auto syslog_sink = std::make_shared<spdlog::sinks::syslog_sink_mt>(ident, LOG_PID, LOG_USER, true);
+        syslog_sink->set_level(spdlog::level::trace);
+        syslog_sink->set_pattern("%l: %v");
+
+        spdlog::logger* log = new spdlog::logger("multi_sink", {stderr_sink, syslog_sink});
+        spdlog::set_default_logger(std::shared_ptr<spdlog::logger>(log));
+    }
 }
 
 } // namespace utils

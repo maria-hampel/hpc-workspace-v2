@@ -147,10 +147,8 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     }
 
     // globalflags
-    if (user::isRoot()) {
-        debugflag = opt.count("debug");
-        traceflag = opt.count("trace");
-    }
+    debugflag = opt.count("debug");
+    traceflag = opt.count("trace");
 
     // parse user config
     UserConfig userconfig(userconf);
@@ -277,8 +275,8 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
               const bool extensionflag, const int reminder, const string mailaddress, string user_option,
               const string groupname, const string comment) {
     if (traceflag)
-        spdlog::trace("allocate({}, {}, {}, {}, {}, {}, {}, {}, {})", duration, filesystem, name,
-                   extensionflag, reminder, mailaddress, user_option, groupname, comment);
+        spdlog::trace("allocate({}, {}, {}, {}, {}, {}, {}, {}, {})", duration, filesystem, name, extensionflag,
+                      reminder, mailaddress, user_option, groupname, comment);
 
     long exp;
 
@@ -548,7 +546,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // set custom logging format
-    utils::setupLogging();
+    utils::setupLogging(string(argv[0]));
 
     // read user config
     string user_conf_filename = user::getUserhome() + "/.ws_user.conf";

@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // set custom logging format
-    utils::setupLogging();
+    utils::setupLogging(string(argv[0]));
 
     if (!user::isRoot()) {
         spdlog::error("Sorry, this tool is for root only.");
@@ -135,10 +135,9 @@ int main(int argc, char** argv) {
         spdlog::info("dry-run disabled");
     }
 
-    if (user::isRoot()) {
-        debugflag = opts.count("debug");
-        traceflag = opts.count("trace");
-    }
+    // global flags
+    debugflag = opts.count("debug");
+    traceflag = opts.count("trace");
 
     // handle options exiting here
 

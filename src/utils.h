@@ -94,7 +94,7 @@ std::vector<std::string> splitString(const std::string& str, char delimiter);
 std::string prettyBytes(const uint64_t size);
 
 // setup the logging
-void setupLogging();
+void setupLogging(const std::string ident);
 
 } // namespace utils
 
