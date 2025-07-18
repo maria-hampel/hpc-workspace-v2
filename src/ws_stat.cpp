@@ -53,6 +53,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/xattr.h>
+#include <syslog.h>
 
 #include "spdlog/spdlog.h"
 
@@ -204,7 +205,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // set custom logging format
-    utils::setupLogging();
+    utils::setupLogging(string(argv[0]));
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -253,10 +254,9 @@ int main(int argc, char** argv) {
     sortbyremaining = opts.count("remaining");
     sortreverted = opts.count("reverted");
 
-    if (user::isRoot()) {
-        debugflag = opts.count("debug");
-        traceflag = opts.count("trace");
-    }
+    // global flags
+    debugflag = opts.count("debug");
+    traceflag = opts.count("trace");
 
     // handle options exiting here
 
@@ -378,6 +378,8 @@ int main(int argc, char** argv) {
         auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 #pragma omp critical
         {
+            syslog(LOG_INFO, "stat for user <%s> for workspace <%s> (%ld msec, %ld files)", username.c_str(),
+                   entry->getId().c_str(), secs, result.files);
             fmt::println("Id: {}", entry->getId());
             fmt::println("    workspace directory : {} ", entry->getWSPath());
             fmt::println("    files               : {}\n"

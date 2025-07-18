@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // setup logging
-    utils::setupLogging();
+    utils::setupLogging(string(argv[0]));
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -147,11 +147,9 @@ int main(int argc, char** argv) {
     terselisting = opts.count("terse");
     verbose = opts.count("verbose");
 
-
-    if (user::isRoot()) {
-        debugflag = opts.count("debug");
-        traceflag = opts.count("trace");
-    }
+    // global flags
+    debugflag = opts.count("debug");
+    traceflag = opts.count("trace");
 
     // handle options exiting here
 

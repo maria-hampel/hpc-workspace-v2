@@ -141,10 +141,8 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
     deletedata = opt.count("delete-data"); // FIXME: unused
 
     // globalflags
-    if (user::isRoot()) {
-        debugflag = opt.count("debug");
-        traceflag = opt.count("trace");
-    }
+    debugflag = opt.count("debug");
+    traceflag = opt.count("trace");
 
     // validate workspace name against nasty characters
     //  static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$");  // #77
@@ -198,8 +196,7 @@ bool validateFsAndGroup(const Config& config, const po::variables_map& opt, cons
 void release(const Config& config, const po::variables_map& opt, string filesystem, const string name,
              string user_option, const string groupname, const bool deletedata) {
     if (traceflag)
-        spdlog::trace("releae({}, {}, {}, {}, {})", filesystem, name, user_option, groupname,
-                   deletedata);
+        spdlog::trace("releae({}, {}, {}, {}, {})", filesystem, name, user_option, groupname, deletedata);
 
     std::string username = user::getUsername(); // current user
 
@@ -395,7 +392,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // set custom logging format
-    utils::setupLogging();
+    utils::setupLogging(string(argv[0]));
 
     // check commandline, get flags which are used to create ws object or for workspace release
     commandline(opt, name, filesystem, user_option, groupname, deletedata, argc, argv, configfile);

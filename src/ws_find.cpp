@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // set custom logging format
-    utils::setupLogging();
+    utils::setupLogging(string(argv[0]));
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -117,10 +117,9 @@ int main(int argc, char** argv) {
 
     listgroups = opts.count("group");
 
-    if (user::isRoot()) {
-        debugflag = opts.count("debug");
-        traceflag = opts.count("trace");
-    }
+    // global flags
+    debugflag = opts.count("debug");
+    traceflag = opts.count("trace");
 
     // handle options exiting here
 

@@ -139,10 +139,8 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
     }
 
     // globalflags
-    if (user::isRoot()) {
-        debugflag = opt.count("debug");
-        traceflag = opt.count("trace");
-    }
+    debugflag = opt.count("debug");
+    traceflag = opt.count("trace");
 
     if (opt.count("name")) {
         if (!opt.count("target") && !opt.count("delete-data")) {
@@ -179,7 +177,7 @@ bool check_name(const string name, const string username, const string real_user
     //  name has shape:    username-id-timestamp
     //                             ^ search for this
     // as id can contain - as well, let's compare username with start of name
-    if ((real_username != "root") && (name.rfind(real_username+"-", 0) != 0)) {
+    if ((real_username != "root") && (name.rfind(real_username + "-", 0) != 0)) {
         spdlog::error("only root can do this, or invalid workspace name!");
         return false;
     } else {
@@ -410,7 +408,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // set custom logging format
-    utils::setupLogging();
+    utils::setupLogging(string(argv[0]));
 
     // check commandline, get flags which are used to create ws object or for workspace allocation
     commandline(opt, name, target, filesystem, listflag, terse, username, argc, argv, configfile);

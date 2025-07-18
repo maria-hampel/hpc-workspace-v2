@@ -223,8 +223,8 @@ void FilesystemDBV1::createEntry(const WsID id, const string workspace, const lo
 vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string user, const vector<string> groups,
                                           const bool deleted, const bool groupworkspaces) {
     if (traceflag)
-        spdlog::trace("matchPattern(pattern={},user={},groups={},deleted={},groupworkspace={})",
-                     pattern, user, groups, deleted, groupworkspaces);
+        spdlog::trace("matchPattern(pattern={},user={},groups={},deleted={},groupworkspace={})", pattern, user, groups,
+                      deleted, groupworkspaces);
 
     // list directory, this also reads YAML file in case of groupworkspaces
     auto listdir = [&groupworkspaces, &groups](const string pathname, const string filepattern) -> vector<string> {
