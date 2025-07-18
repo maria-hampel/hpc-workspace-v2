@@ -141,8 +141,14 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
     deletedata = opt.count("delete-data"); // FIXME: unused
 
     // globalflags
-    debugflag = opt.count("debug");
-    traceflag = opt.count("trace");
+#ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
+    if (user::isRoot()) {
+#else
+    {
+#endif
+        debugflag = opt.count("debug");
+        traceflag = opt.count("trace");
+    }
 
     // validate workspace name against nasty characters
     //  static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$");  // #77

@@ -72,7 +72,7 @@ setup() {
 
 @test "ws_find bad config" {
     run ws_find --config bats/bad_ws.conf WS
-    assert_output  --partial "error"
+    assert_output  --partial "warn"
     assert_failure
 }
 

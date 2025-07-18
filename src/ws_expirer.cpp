@@ -394,7 +394,7 @@ int main(int argc, char** argv) {
         exit(0);
     }
 
-    if (opt.count("version")) {
+    if (opts.count("version")) {
 #ifdef IS_GIT_REPOSITORY
         fmt::println("workspace built from git commit hash {} on top of release {}", GIT_COMMIT_HASH, WS_VERSION);
 #else

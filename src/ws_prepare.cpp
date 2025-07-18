@@ -106,8 +106,14 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    debugflag = opts.count("debug");
-    traceflag = opts.count("trace");
+#ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
+    if (user::isRoot()) {
+#else
+    {
+#endif
+        debugflag = opts.count("debug");
+        traceflag = opts.count("trace");
+    }
 
     // handle options exiting here
 
