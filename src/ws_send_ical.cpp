@@ -75,6 +75,7 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
     // clang-format off
     cmd_options.add_options()
         ("help,h", "produce help message")
+        ("version,V", "show version")
         ("filesystem,F", po::value<string>(&filesystem), "filesystem where the workspace is located in")
         ("mail,m", po::value<string>(&mailaddress), "your mail address to send to")
         ("workspace,n", po::value<string>(&name), "name of selected workspace")
