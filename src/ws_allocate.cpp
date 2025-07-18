@@ -217,7 +217,7 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
  */
 bool validateFsAndGroup(const Config& config, const po::variables_map& opt, const std::string username) {
     if (traceflag)
-        fmt::print(stderr, "Trace  : validateFsAndGroup(username={})", username);
+        spdlog::trace("validateFsAndGroup(username={})", username);
 
     // auto groupnames=getgroupnames(username); // FIXME:  use getGrouplist ?
     auto groupnames = user::getGrouplist();
@@ -249,7 +249,7 @@ bool validateFsAndGroup(const Config& config, const po::variables_map& opt, cons
  */
 bool validateDuration(const Config& config, const std::string filesystem, int& duration) {
     if (traceflag)
-        fmt::print(stderr, "Trace  : validateDurationAndExtensions(filesystem={},duration={})", filesystem, duration);
+        spdlog::trace("validateDurationAndExtensions(filesystem={},duration={})", filesystem, duration);
 
     // change duration if limits exceeded and warn
     // FIXME:  TODO: old code checks for user exceptions, not yet implemented
@@ -281,7 +281,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
               const bool extensionflag, const int reminder, const string mailaddress, string user_option,
               const string groupname, const string comment) {
     if (traceflag)
-        fmt::print(stderr, "Trace  : allocate({}, {}, {}, {}, {}, {}, {}, {}, {})\n", duration, filesystem, name,
+        spdlog::trace("allocate({}, {}, {}, {}, {}, {}, {}, {}, {})", duration, filesystem, name,
                    extensionflag, reminder, mailaddress, user_option, groupname, comment);
 
     long exp;

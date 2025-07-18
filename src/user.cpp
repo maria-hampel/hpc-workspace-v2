@@ -84,7 +84,7 @@ std::string getGroupname() {
 // get list of group names of current process
 std::vector<std::string> getGrouplist() {
     if (traceflag)
-        fmt::print(stderr, "Trace  : getGroupList()\n");
+        spdlog::trace("getGroupList()");
     std::vector<std::string> grplist;
 
     // find first size and get list

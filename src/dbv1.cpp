@@ -223,7 +223,7 @@ void FilesystemDBV1::createEntry(const WsID id, const string workspace, const lo
 vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string user, const vector<string> groups,
                                           const bool deleted, const bool groupworkspaces) {
     if (traceflag)
-        fmt::println(stderr, "Trace  : matchPattern(pattern={},user={},groups={},deleted={},groupworkspace={})",
+        spdlog::trace("matchPattern(pattern={},user={},groups={},deleted={},groupworkspace={})",
                      pattern, user, groups, deleted, groupworkspaces);
 
     // list directory, this also reads YAML file in case of groupworkspaces
@@ -289,7 +289,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 //  unittest: yes
 std::unique_ptr<DBEntry> FilesystemDBV1::readEntry(const WsID id, const bool deleted) {
     if (traceflag)
-        fmt::println(stderr, "Trace  : readEntry({},{})", id, deleted);
+        spdlog::trace("readEntry({},{})", id, deleted);
     std::unique_ptr<DBEntry> entry(new DBEntryV1(this));
     string filename;
     if (deleted)
@@ -333,7 +333,7 @@ DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspac
 //  unittest: yes
 void DBEntryV1::readFromFile(const WsID id, const string filesystem, const string filename) {
     if (traceflag)
-        fmt::println(stderr, "Trace  : readFromFile({},{},{})", id, filesystem, filename);
+        spdlog::trace("readFromFile({},{},{})", id, filesystem, filename);
 
     this->id = id;
     this->filesystem = filesystem;
@@ -365,7 +365,7 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
 //  unittest: yes
 void DBEntryV1::readFromString(std::string str) {
     if (traceflag)
-        fmt::println(stderr, "Trace  : readFromString_YAMLCPP");
+        spdlog::trace("readFromString_YAMLCPP");
 
     YAML::Node dbentry;
     try {
@@ -394,7 +394,7 @@ void DBEntryV1::readFromString(std::string str) {
 //  unittest: yes
 void DBEntryV1::readFromString(std::string str) {
     if (traceflag)
-        fmt::println(stderr, "Trace  : readFromString_RAPIDYAML");
+        spdlog::trace("readFromString_RAPIDYAML");
 
     ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(str)); // FIXME: error check?
 
@@ -499,7 +499,7 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
 void DBEntryV1::useExtension(const long _expiration, const string _mailaddress, const int _reminder,
                              const string _comment) {
     if (traceflag)
-        fmt::print(stderr, "Trace  : useExtension(expiration={},mailaddress={},reminder={},comment={})\n");
+        spdlog::trace("useExtension(expiration={},mailaddress={},reminder={},comment={})\n");
     if (_mailaddress != "")
         mailaddress = _mailaddress;
     if (_reminder != 0)
@@ -523,7 +523,7 @@ void DBEntryV1::useExtension(const long _expiration, const string _mailaddress, 
 long DBEntryV1::getRemaining() const { return expiration - time(0L); };
 
 int DBEntryV1::getExtension() const {
-    // if(traceflag) fmt::print(stderr, "Trace  : getExtension()\n");
+    // if(traceflag) spdlog::trace("getExtension()\n");
     // if(debugflag) fmt::print(stderr, "Debug  : extensions={}\n", extensions);
     return extensions;
 }
@@ -641,7 +641,7 @@ void DBEntryV1::remove() {
 //  unittest: yes
 void DBEntryV1::writeEntry() {
     if (traceflag)
-        fmt::print(stderr, "Trace  : writeEntry()\n");
+        spdlog::trace("writeEntry()");
     int perm;
 #ifndef WS_RAPIDYAML_DB
     YAML::Node entry;

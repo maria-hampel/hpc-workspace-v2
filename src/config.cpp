@@ -385,7 +385,7 @@ bool Config::isAdmin(const string user) const {
 bool Config::hasAccess(const string user, const vector<string> groups, const string filesystem,
                        const ws::intent intent) const {
     if (traceflag)
-        fmt::print(stderr, "Trace  : hasAccess(user={},groups={},filesystem={})\n", user, groups, filesystem);
+        spdlog::trace("hasAccess(user={},groups={},filesystem={})", user, groups, filesystem);
 
     bool ok = true;
 
@@ -499,7 +499,7 @@ vector<string> Config::Filesystems() const {
 // unittest: yes
 vector<string> Config::validFilesystems(const string user, const vector<string> groups, const ws::intent intent) const {
     if (traceflag)
-        fmt::print(stderr, "Trace  : validFilesystems(user={},groups={})\n", user, groups);
+        spdlog::trace("validFilesystems(user={},groups={})", user, groups);
     vector<string> validfs;
 
     if (debugflag) {
@@ -577,7 +577,7 @@ groupend:
 // get DB type for the fs
 Database* Config::openDB(const string fs) const {
     if (traceflag)
-        fmt::print(stderr, "Trace  : opendb {}", fs);
+        spdlog::trace("opendb {}", fs);
     // TODO: version check here to determine which DB to open
     return new FilesystemDBV1(this, fs);
 }
@@ -603,7 +603,7 @@ string Config::deletedPath(const string filesystem) const {
 // return config of filesystem throw if invalid
 Filesystem_config Config::getFsConfig(const std::string filesystem) const {
     if (traceflag)
-        fmt::print(stderr, "Trace  : getFsConfig({})", filesystem);
+        spdlog::trace("getFsConfig({})", filesystem);
     try {
         return filesystems.at(filesystem);
     } catch (const std::out_of_range& e) {
