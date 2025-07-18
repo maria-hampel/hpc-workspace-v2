@@ -496,7 +496,11 @@ void setupLogging() {
     auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
     spdlog::set_default_logger(stderr_logger);
 #ifndef NDEBUG
+    // trace and debug in debug build
     spdlog::set_level(spdlog::level::trace);
+#else
+    // no trace and debug in release builds
+    spdlog::set_level(spdlog::level::info);
 #endif
 
     spdlog::set_pattern("%^%l%$: %v");
