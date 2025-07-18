@@ -141,11 +141,7 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
     deletedata = opt.count("delete-data"); // FIXME: unused
 
     // globalflags
-#ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
-#else
-    {
-#endif
         debugflag = opt.count("debug");
         traceflag = opt.count("trace");
     }

@@ -54,12 +54,6 @@ endif()
 
 
 
-option(WS_ALLOW_USER_DEBUG "allow users to enable debugging and tracing" FALSE)
-if(WS_ALLOW_USER_DEBUG)
-    add_definitions("-DWS_ALLOW_USER_DEBUG")
-endif()
-
-
 find_library(LIBCAP NAMES libcap.a libcap.so)
 if(LIBCAP)
     message(STATUS "Found libcap (${LIBCAP}). Building with capability support.")
