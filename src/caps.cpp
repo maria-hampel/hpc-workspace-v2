@@ -49,7 +49,7 @@ Cap::Cap() {
     // debugflag = true;
     // traceflag = true;
     if (traceflag)
-        fmt::println(stderr, "Trace  : Cap::Cap()");
+        spdlog::trace("Cap::Cap()");
     if (debugflag)
         spdlog::debug("euid={}, uid={}", geteuid(), getuid());
 
@@ -113,7 +113,7 @@ Cap::Cap() {
 // drop root/effective capabilities (not necessary), and verify the permitted set
 void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos srcpos) {
     if (traceflag) {
-        fmt::println(stderr, "Trace  : Cap::dropcap( {}, {}, {})", uid, cap_arg, srcpos.getSrcPos());
+        spdlog::trace("Cap::dropcap( {}, {}, {})", uid, cap_arg, srcpos.getSrcPos());
         if (debugflag)
             dump();
     }
@@ -160,7 +160,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 // remove a capability from the effective set
 void Cap::lower_cap(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos srcpos) {
     if (traceflag) {
-        fmt::println(stderr, "Trace  : Cap::lower_cap( {}, {})", uid, srcpos.getSrcPos());
+        spdlog::trace("Cap::lower_cap( {}, {})", uid, srcpos.getSrcPos());
         dump();
     }
 #ifdef WS_CAPA
@@ -203,7 +203,7 @@ void Cap::lower_cap(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 // add a capability to the effective set
 void Cap::raise_cap(std::vector<cap_value_t> cap_arg, utils::SrcPos srcpos) {
     if (traceflag) {
-        fmt::println(stderr, "Trace  : Cap::raise_cap( {}, {})", cap_arg, srcpos.getSrcPos());
+        spdlog::trace("Cap::raise_cap( {}, {})", cap_arg, srcpos.getSrcPos());
         dump();
     }
 #ifdef WS_CAPA

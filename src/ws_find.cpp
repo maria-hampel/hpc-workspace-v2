@@ -117,11 +117,7 @@ int main(int argc, char** argv) {
 
     listgroups = opts.count("group");
 
-#ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
-#else
-    {
-#endif
         debugflag = opts.count("debug");
         traceflag = opts.count("trace");
     }

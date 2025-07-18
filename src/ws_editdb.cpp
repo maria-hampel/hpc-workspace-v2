@@ -135,11 +135,7 @@ int main(int argc, char** argv) {
         spdlog::info("dry-run disabled");
     }
 
-#ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
-#else
-    {
-#endif
         debugflag = opts.count("debug");
         traceflag = opts.count("trace");
     }

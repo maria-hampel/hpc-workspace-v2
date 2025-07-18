@@ -141,11 +141,7 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
     deletedata = opt.count("delete-data"); // FIXME: unused
 
     // globalflags
-#ifndef WS_ALLOW_USER_DEBUG // FIXME: implement this in CMake
     if (user::isRoot()) {
-#else
-    {
-#endif
         debugflag = opt.count("debug");
         traceflag = opt.count("trace");
     }
@@ -169,7 +165,7 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
  */
 bool validateFsAndGroup(const Config& config, const po::variables_map& opt, const std::string username) {
     if (traceflag)
-        fmt::print(stderr, "Trace  : validateFsAndGroup(username={})", username);
+        spdlog::trace("validateFsAndGroup(username={})", username);
 
     // auto groupnames=getgroupnames(username); // FIXME:  use getGrouplist ?
     auto groupnames = user::getGrouplist();
@@ -202,7 +198,7 @@ bool validateFsAndGroup(const Config& config, const po::variables_map& opt, cons
 void release(const Config& config, const po::variables_map& opt, string filesystem, const string name,
              string user_option, const string groupname, const bool deletedata) {
     if (traceflag)
-        fmt::print(stderr, "Trace  : releae({}, {}, {}, {}, {})\n", filesystem, name, user_option, groupname,
+        spdlog::trace("releae({}, {}, {}, {}, {})", filesystem, name, user_option, groupname,
                    deletedata);
 
     std::string username = user::getUsername(); // current user

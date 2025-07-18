@@ -107,7 +107,7 @@ void writeFile(const std::string filename, const std::string content) {
 // get file names matching glob pattern from path, ("/etc", "p*d") -> passwd
 std::vector<string> dirEntries(const string path, const string pattern) {
     if (traceflag)
-        fmt::print("Trace  : dirEntries({},{})\n", path, pattern);
+        spdlog::trace("dirEntries({},{})", path, pattern);
     vector<string> fl;
     if (!fs::is_directory(path)) {
         spdlog::error("Directory {} does not exist.", path);
@@ -126,7 +126,7 @@ std::vector<string> dirEntries(const string path, const string pattern) {
 //   https://github.com/torvalds/linux/blob/master/lib/glob.c
 static bool glob_match(char const* pat, char const* str) {
     if (traceflag)
-        fmt::print("Trace  : glob_match({},{})\n", pat, str);
+        spdlog::trace("glob_match({},{})", pat, str);
 
     /*
      * Backtrack to previous * on mismatch and retry starting one
@@ -221,7 +221,7 @@ void setCLocal() {
 //  TODO: unitest?
 bool isValidEmail(const std::string& email) {
     if (traceflag)
-        fmt::println(stderr, "Trace  : isValidEmail({})", email);
+        spdlog::trace("isValidEmail({})", email);
     // Regular expression for basic email validation (improved)
     const std::regex email_regex(
         R"((?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\]))",
@@ -414,7 +414,7 @@ std::vector<std::string> splitString(const std::string& str, char delimiter) {
 // FIXME: add unit tests
 auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::pair<std::string, std::vector<int>>> {
     if (traceflag)
-        fmt::println(stderr, "Trace  : parseACL({})", acl);
+        spdlog::trace("parseACL({})", acl);
     std::map<std::string, std::pair<std::string, std::vector<int>>> aclmap;
     const std::regex acl_regex(R"(^([-+])?([^:]+)(:(\w+(,\w+)*)?)?$)");
     std::smatch base_match;
@@ -491,11 +491,17 @@ string prettyBytes(const uint64_t size) {
 //  change to stderr
 void setupLogging() {
     // spdlog::set_pattern("%^%10l%$ : %v");
-    spdlog::set_pattern("%^%l%$ : %v");
 
     auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
     auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
     spdlog::set_default_logger(stderr_logger);
+#ifndef NDEBUG
+    // trace and debug in debug build
+    spdlog::set_level(spdlog::level::trace);
+#else
+    // no trace and debug in release builds
+    spdlog::set_level(spdlog::level::info);
+#endif
 
     spdlog::set_pattern("%^%l%$: %v");
 }

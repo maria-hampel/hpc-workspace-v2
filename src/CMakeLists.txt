@@ -83,6 +83,15 @@ target_link_libraries(ws_restore
         spdlog
 )
 
+# create copy with different name for tests
+# this file should not get installed!
+add_custom_command(
+	TARGET ws_restore
+	POST_BUILD
+	COMMAND cp ${CMAKE_BINARY_DIR}/bin/ws_restore ${CMAKE_BINARY_DIR}/bin/ws_restore_notest
+	COMMENT "cp ${CMAKE_BINARY_DIR}/ws_restore ${CMAKE_BINARY_DIR}/ws_restore_notest"
+)
+
 add_executable(ws_prepare
     ws_prepare.cpp
 )
