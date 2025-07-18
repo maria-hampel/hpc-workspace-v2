@@ -53,6 +53,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/xattr.h>
+#include <syslog.h>
 
 #include "spdlog/spdlog.h"
 
@@ -378,6 +379,7 @@ int main(int argc, char** argv) {
         auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 #pragma omp critical
         {
+            syslog(LOG_INFO, "stat for user <%s> for workspace <%s> (%ld msec, %ld files)", username.c_str(), entry->getId().c_str(), secs, result.files);
             fmt::println("Id: {}", entry->getId());
             fmt::println("    workspace directory : {} ", entry->getWSPath());
             fmt::println("    files               : {}\n"
