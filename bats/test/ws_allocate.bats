@@ -26,10 +26,10 @@ setup() {
     assert_dir_exist $wsdir
 }
 
-@test "ws_allocate bad config" {
+@test "ws_allocate warn about missing adminmail in config" {
     run ws_allocate --config bats/bad_ws.conf TEST
-    assert_output  --partial "warn"
-    assert_failure
+    assert_output  --partial "warning: No adminmail in config!"
+    assert_success
 }
 
 @test "ws_allocate bad config, no workspaces" {

@@ -187,10 +187,10 @@ Options:
 EOF8
 }
 
-@test "ws_list bad config" {
+@test "ws_list warn about missing adminmail in config" {
     run ws_list --config bats/bad_ws.conf 
-    assert_output  --partial "warn"
-    assert_failure
+    assert_output  --partial "warning: No adminmail in config!"
+    assert_success
 }
 
 
