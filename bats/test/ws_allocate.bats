@@ -26,6 +26,48 @@ setup() {
     assert_dir_exist $wsdir
 }
 
+@test "ws_allocate rejects dangerous workspace names" {
+    # prevent trying to level up directories
+    run ws_allocate --config bats/ws.conf '../noup'
+    assert_failure
+    run ws_allocate --config bats/ws.conf 'no/../up'
+    assert_failure
+    run ws_allocate --config bats/ws.conf 'noup/..'
+    assert_failure
+
+    # forbid slashes in names, e.g., potential risk for absolute paths
+    run ws_allocate --config bats/ws.conf 'no/slashes'
+    assert_failure
+
+    # forbid snake in names, e.g., potential risk for home path access
+    run ws_allocate --config bats/ws.conf 'no~home'
+    assert_failure
+
+    # prevent any malicious command injections in bash scripts
+    run ws_allocate --config bats/ws.conf 'no;semicolons'
+    assert_failure
+    run ws_allocate --config bats/ws.conf 'no`semicolons'
+    assert_failure
+    run ws_allocate --config bats/ws.conf 'no#comments'
+    assert_failure
+    run ws_allocate --config bats/ws.conf 'no$dollars'
+    assert_failure
+
+    # potentially dangerous as well in bash scripts, e.g., globbing
+    run ws_allocate --config bats/ws.conf 'no?questions'
+    assert_failure
+    run ws_allocate --config bats/ws.conf 'no*stars'
+    assert_failure
+    run ws_allocate --config bats/ws.conf 'no:colons'
+    assert_failure
+    run ws_allocate --config bats/ws.conf 'no,commas'
+    assert_failure
+
+    # other things we do not want in workspace names
+    run ws_allocate --config bats/ws.conf '_StartingWithUnderscoreDisallowed'
+    assert_failure
+}
+
 @test "ws_allocate warn about missing adminmail in config" {
     run ws_allocate --config bats/bad_ws.conf TEST
     assert_output  --partial "warning: No adminmail in config!"
