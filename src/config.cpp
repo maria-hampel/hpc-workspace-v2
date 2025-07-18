@@ -506,8 +506,7 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
         // avoid vector<> fmt::print for clang <=17 at least
         spdlog::debug("validFilesystems({},{}) over ", user, groups);
         for (const auto& [fs, val] : filesystems)
-            fmt::print("{} ", fs);
-        fmt::print("\n");
+            spdlog::debug("{} ", fs);
     }
 
     // check if group or user default, user first

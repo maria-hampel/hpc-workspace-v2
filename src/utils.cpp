@@ -491,11 +491,13 @@ string prettyBytes(const uint64_t size) {
 //  change to stderr
 void setupLogging() {
     // spdlog::set_pattern("%^%10l%$ : %v");
-    spdlog::set_pattern("%^%l%$ : %v");
 
     auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
     auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
     spdlog::set_default_logger(stderr_logger);
+#ifndef NDEBUG
+    spdlog::set_level(spdlog::level::trace);
+#endif
 
     spdlog::set_pattern("%^%l%$: %v");
 }
