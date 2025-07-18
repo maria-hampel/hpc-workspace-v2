@@ -1,6 +1,6 @@
 setup() {
     load 'test_helper/common-setup'
-    ws_name="bats_workspace_test"
+    ws_name="bats-workspace-test"
     _common_setup
 }
 
@@ -29,7 +29,7 @@ setup() {
 }
 
 @test "ws_restore workspace" {
-    ws_name=cap_restore_$RANDOM
+    ws_name=cap-restore-$RANDOM
     wsdir=$(ws_allocate  $ws_name)
     touch $wsdir/TESTFILE
     ws_release  $ws_name
@@ -38,5 +38,3 @@ setup() {
     ws_restore_notest $wsid $ws_name
     assert_file_exists $wsdir/$wsid/TESTFILE
 }
-
-
