@@ -12,7 +12,7 @@ setup() {
 
 @test "ws_release print version" {
     run ws_release --version
-    assert_output --partial "workspace"
+    assert_output --partial "ws_release"
     assert_success
 }
 

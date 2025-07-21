@@ -15,7 +15,7 @@ setup() {
 
 @test "ws_prepare print version" {
     run sudo env PATH=$PATH ws_prepare --version
-    assert_output --partial "workspace"
+    assert_output --partial "ws_prepare"
     assert_success
 }
 

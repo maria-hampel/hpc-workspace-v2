@@ -11,6 +11,7 @@
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024,2025
+ *  (c) Christoph Niethammer 2025
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -119,11 +120,7 @@ int main(int argc, char** argv) {
     }
 
     if (opts.count("version")) {
-#ifdef IS_GIT_REPOSITORY
-        fmt::println("workspace built from git commit hash {} on top of release {}", GIT_COMMIT_HASH, WS_VERSION);
-#else
-        fmt::println("workspace version {}", WS_VERSION);
-#endif
+        utils::printVersion("ws_prepare");
         utils::printBuildFlags();
         exit(0);
     }
