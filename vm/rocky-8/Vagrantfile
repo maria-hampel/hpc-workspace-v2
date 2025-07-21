@@ -90,7 +90,7 @@ Vagrant.configure("2") do |config|
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' | sudo tee -a /etc/sudoers
 
 
-    sudo dnf install -y git cmake libasan libubsan boost-devel ncurses-devel libcap-devel wget which gcc-toolset-14.x86_64 gcc-toolset-14-libasan-devel.x86_64 gcc-toolset-14-libubsan-devel lld libcurl-devel openssl-devel libpsl-devel
+    sudo dnf install -y git cmake libasan libubsan boost-devel ncurses-devel libcap-devel wget which gcc-toolset-14.x86_64 gcc-toolset-14-libasan-devel.x86_64 gcc-toolset-14-libubsan-devel lld libcurl-devel openssl-devel 
 
 
     #sudo mkfs.xfs /dev/sdb
