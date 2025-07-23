@@ -13,28 +13,44 @@ setup() {
     assert_output --partial "error"
 }
 
+# bats test_tags=sudo
 @test "ws_prepare print version" {
-    run sudo env PATH=$PATH ws_prepare --version
+    if [ "$EUID" -ne 0 ]; then
+        skip "Needs to be run as root"
+    fi
+    run ws_prepare --version
     assert_output --partial "ws_prepare"
     assert_success
 }
 
+# bats test_tags=sudo
 @test "ws_prepare print help" {
-    run sudo env PATH=$PATH ws_prepare --help
+    if [ "$EUID" -ne 0 ]; then
+        skip "Needs to be run as root"
+    fi
+    run ws_prepare --help
     assert_output --partial "Usage"
     assert_success
 }
 
+# bats test_tags=sudo
 @test "ws_prepare no valid config file" {
-    sudo rm -fr /tmp/ws
-    run sudo env PATH=$PATH ws_prepare --config "bats/bad_ws.conf"
+    if [ "$EUID" -ne 0 ]; then
+        skip "Needs to be run as root"
+    fi
+    rm -fr /tmp/ws
+    run ws_prepare --config "bats/bad_ws.conf"
     assert_output --partial "warning: No adminmail in config!"
     assert_file_not_exist /tmp/ws
 }
 
+# bats test_tags=sudo
 @test "ws_prepare create directories" {
-    sudo rm -fr /tmp/ws
-    sudo env PATH=$PATH ws_prepare --config "bats/ws.conf"
+    if [ "$EUID" -ne 0 ]; then
+        skip "Needs to be run as root"
+    fi
+    rm -fr /tmp/ws
+    env ws_prepare --config "bats/ws.conf"
     run ls /tmp/ws
     assert_output <<EOF1
     ws1
@@ -45,11 +61,15 @@ EOF1
     run ls -la /tmp/ws/ws1-db
     assert_output --partial ".removed"
     assert_output --partial ".ws_db_magic"
-    sudo rm -fr /tmp/ws 
+    rm -fr /tmp/ws
 }
 
+# bats test_tags=sudo
 @test "ws_prepare check existing directories - no change in permissions" {
-    run sudo env PATH=$PATH ws_prepare --config "bats/ws.conf"
+    if [ "$EUID" -ne 0 ]; then
+        skip "Needs to be run as root"
+    fi
+    run ws_prepare --config "bats/ws.conf"
     assert_output --partial "existed already"
     run rm -fr /tmp/ws
     assert_success
