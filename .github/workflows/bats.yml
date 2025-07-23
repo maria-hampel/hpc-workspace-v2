@@ -67,4 +67,4 @@ jobs:
 
     - name: Run bats sudo tests
       run: |
-        sudo bats --filter-tags sudo  bats/test/
+        sudo PRESET=${{ matrix.cmake_preset }} bats --filter-tags sudo  bats/test/
