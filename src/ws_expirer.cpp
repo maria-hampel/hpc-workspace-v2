@@ -113,9 +113,25 @@ static clean_stray_result_t clean_stray_directories(Config config, const std::st
         }
     }
 
+    // check for magic in DB entry, to avoid that DB is not existing and all workspaces
+    // get wiped by accident, e.g. due to mouting problems if DB is not in same FS as workspaces
+    if (!cppfs::exists(cppfs::path(config.getFsConfig(fs).database) / ".ws_db_magic")) {
+        auto magic = utils::getFirstLine(utils::getFileContents(config.getFsConfig(fs).database + "/.ws_db_magic"));
+        if (magic != fs) {
+            spdlog::error("DB directory {} from fs {} does not contain .ws_db_magic with correct workspace name in it, "
+                          "skipping to avoid data loss!",
+                          config.getFsConfig(fs).database, fs);
+            // FIXME: TODO: senderrormail( /* same error */);
+        }
+    } else {
+        spdlog::error("DB directory {} from fs {} does not contain .ws_db_magic, skipping to avoid data loss!",
+                      config.getFsConfig(fs).database, fs);
+        return result; // early exit, do nothing here
+    }
+
     // get all workspace pathes from DB
     std::unique_ptr<Database> db(config.openDB(fs));
-    auto wsIDs = db->matchPattern("*", "*", {}, false, false);
+    auto wsIDs = db->matchPattern("*", "*", {}, false, false); // (1)
     std::vector<std::string> workspacesInDB;
 
     workspacesInDB.reserve(wsIDs.size());
@@ -125,21 +141,26 @@ static clean_stray_result_t clean_stray_directories(Config config, const std::st
     }
 
     // compare filesystem with DB
-    for (auto const& founddir : dirs) {
+    for (auto const& founddir : dirs) { // (2)
+        // TODO: check if in right space
         if (!canFind(workspacesInDB, founddir.dir)) {
             fmt::println("    stray workspace ", founddir.dir);
 
+            // FIXME: a stray workspace will be moved to deleted here, and will be deleted in
+            // the same run in (3). Is this intended? dangerous with datarace #87
+
+            string timestamp = fmt::format("{}", time(NULL));
             if (!dryrun) {
                 try {
                     fmt::println("      move {} to {}", founddir.dir,
-                                 (cppfs::path(founddir.space) / config.deletedPath(fs)).string());
+                                 (cppfs::path(founddir.space) / config.deletedPath(fs) / timestamp).string());
                     cppfs::rename(founddir.dir, cppfs::path(founddir.space) / config.deletedPath(fs));
                 } catch (cppfs::filesystem_error& e) {
                     spdlog::error("      failed to move to deleted: {} ({})", founddir.dir, e.what());
                 }
             } else {
                 fmt::println("      would move {} to {}", founddir.dir,
-                             (cppfs::path(founddir.space) / config.deletedPath(fs)).string());
+                             (cppfs::path(founddir.space) / config.deletedPath(fs) / timestamp).string());
             }
             result.invalid_ws++;
         } else {
@@ -151,11 +172,13 @@ static clean_stray_result_t clean_stray_directories(Config config, const std::st
 
     fmt::println("  ... deleted workspaces second...");
 
-    ///// deleted workspaces /////
+    ///// deleted workspaces /////  (3)
     // delete deleted workspaces that no longer have any DB entry
+    // ws_release moves DB entry first, workspace second, should be race free
     dirs.clear();
     // directory entries first
     for (auto const& space : spaces) {
+        // TODO: check correct space here
         // NOTE: *-* for compatibility with old expirer
         for (const auto& dir : utils::dirEntries(cppfs::path(space) / config.deletedPath(fs), "*-*")) {
             if (cppfs::is_directory(dir)) {
@@ -173,6 +196,7 @@ static clean_stray_result_t clean_stray_directories(Config config, const std::st
 
     // compare filesystem with DB
     for (auto const& founddir : dirs) {
+        // TODO: check for right space
         if (!canFind(workspacesInDB, cppfs::path(founddir.dir).filename())) {
             fmt::println("    stray workspace ", founddir.dir);
             if (!dryrun) {
@@ -441,15 +465,16 @@ int main(int argc, char** argv) {
     }
 
     // go through filesystem and
-    // stray first, move workspaces without DB entries and
-    // delete deleted ones not in DB
+    // - delete stray directories first (directories with no DB entry)
+    // - delete deleted ones not in DB
+    // this searches over filesystem and checks DB
     for (auto const& fs : fslist) {
         clean_stray_directories(config, fs, dryrun);
     }
 
     // go through database and
-    // expire workspaces beyond expiration age and
-    // delete expired ones which are beyond keep date
+    // - expire workspaces beyond expiration age and
+    // - delete expired ones which are beyond keep date
     for (auto const& fs : fslist) {
         expire_workspaces(config, fs, dryrun);
     }
