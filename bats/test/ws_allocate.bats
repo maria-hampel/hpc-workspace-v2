@@ -11,7 +11,7 @@ setup() {
 
 @test "ws_allocate print version" {
     run ws_allocate --version
-    assert_output --partial "workspace"
+    assert_output --partial "ws_allocate"
     assert_success
 }
 

@@ -12,7 +12,7 @@ setup() {
 # bats test_tags=broken:v1-5-0
 @test "ws_find print version" {
     run ws_find --version
-    assert_output --partial "workspace"
+    assert_output --partial "ws_find"
     assert_success
 }
 
