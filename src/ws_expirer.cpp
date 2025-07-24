@@ -83,7 +83,7 @@ struct clean_stray_result_t {
 // clean_stray_directtories
 //  finds directories that are not in DB and removes them,
 //  returns numbers of valid and invalid directories
-static clean_stray_result_t clean_stray_directories(Config config, const std::string fs, const bool dryrun) {
+static clean_stray_result_t clean_stray_directories(const Config& config, const std::string fs, const bool dryrun) {
 
     clean_stray_result_t result = {0, 0, 0, 0};
 
@@ -224,7 +224,7 @@ static clean_stray_result_t clean_stray_directories(Config config, const std::st
 
 // expire workspace DB entries and moves the workspace to deleted directory
 // deletes expired workspace in second phase
-static expire_result_t expire_workspaces(Config config, const string fs, const bool dryrun) {
+static expire_result_t expire_workspaces(const Config& config, const string fs, const bool dryrun) {
 
     expire_result_t result = {0, 0, 0};
 
