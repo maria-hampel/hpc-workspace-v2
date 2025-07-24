@@ -20,3 +20,19 @@ setup() {
     assert_output --partial "Usage"
     assert_success
 }
+
+@test "ws_register create links" {
+    ws_allocate --config bats/ws.conf REGISTERTEST
+    run ws_register --config bats/ws.conf /tmp/WS-REGISTERTEST
+    assert_output --partial "creating link"
+    assert_success
+    assert_link_exists /tmp/WS-REGISTERTEST/*/*-REGISTERTEST
+}
+
+@test "ws_register remove link" {
+    ws_release --config bats/ws.conf REGISTERTEST
+    run ws_register --config bats/ws.conf /tmp/WS-REGISTERTEST
+    assert_output --partial "removing link"
+    assert_success
+    assert_link_not_exists /tmp/WS-REGISTERTEST/*/*-REGISTERTEST
+}

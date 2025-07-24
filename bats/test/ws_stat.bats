@@ -20,3 +20,14 @@ setup() {
     assert_output --partial "Usage"
     assert_success
 }
+
+@test "ws_stat count files" {
+    run ws_stat --config bats/ws.conf TEST
+    assert_output --partial "files               : 0"
+    assert_success
+    touch $(ws_find --config bats/ws.conf TEST)/TESTFILE
+    run ws_stat --config bats/ws.conf TEST
+    assert_output --partial "files               : 1"
+    assert_success
+    rm -f $(ws_find --config bats/ws.conf TEST)/TESTFILE
+}
