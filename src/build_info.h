@@ -57,9 +57,9 @@ void printBuildFlags() {
  */
 void printVersion(std::string program_name) {
 #ifdef IS_GIT_REPOSITORY
-        fmt::println("{} build from git commit hash {} on top of release {}", program_name, GIT_COMMIT_HASH, WS_VERSION);
+    fmt::println("{} build from git commit hash {} on top of release {}", program_name, GIT_COMMIT_HASH, WS_VERSION);
 #else
-        fmt::println("{} version {}", program_name, WS_VERSION);
+    fmt::println("{} version {}", program_name, WS_VERSION);
 #endif
 }
 
