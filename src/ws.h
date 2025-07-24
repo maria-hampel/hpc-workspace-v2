@@ -33,6 +33,9 @@
 
 namespace ws {
 
+// regex for workspace name check
+const auto workspace_name_regex = R"(^[a-zA-Z0-9][a-zA-Z0-9\._-]*$)";
+
 // intent for ACLs
 enum intent { LIST, USE, CREATE, EXTEND, RELEASE, RESTORE };
 

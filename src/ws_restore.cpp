@@ -148,12 +148,12 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
         }
         // validate workspace name against nasty characters
         // static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$"); // #77
-        static const std::regex e1("^[[:alnum:]][[:alnum:]_.-]*$");
+        static const std::regex e1(ws::workspace_name_regex);
         if (!regex_match(name.substr(0, 2), e1)) {
             spdlog::error("Illegal workspace name, use characters and numbers, -,. and _ only!");
             exit(1);
         }
-        static const std::regex e2("[^[:alnum:]_.-]");
+        static const std::regex e2(R"([^[:alnum:]\._-])");
         if (regex_search(name, e2)) {
             spdlog::error("Illegal workspace name, use characters and numbers, -,. and _ only!");
             exit(1);

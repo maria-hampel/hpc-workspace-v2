@@ -192,9 +192,8 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     }
 
     // validate workspace name against nasty characters
-    //  static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$");  // #77
     // TODO: remove regexp dependency
-    static const regex e("^[[:alnum:]][[:alnum:]_.-]*$");
+    static const regex e(ws::workspace_name_regex);
     if (!regex_match(name, e)) {
         spdlog::error("Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!");
         exit(1);
