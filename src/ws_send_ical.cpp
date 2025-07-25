@@ -9,6 +9,7 @@
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
  *  (c) Holger Berger 2021,2023,2024,2025
+ *  (c) Maria Hampel 2025
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -309,7 +310,7 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     mail << "--" << boundary << CRLF;
     mail << "Content-Type: text/calendar; charset=UTF-8; method=REQUEST" << CRLF;
     mail << "Content-Transfer-Encoding: base64" << CRLF;
-    mail << "Content_disposition: attachment; filename=invite.ics" << CRLF;
+    mail << "Content-Disposition: attachment; filename=invite.ics" << CRLF;
     mail << "" << CRLF;
 
     for (size_t i = 0; i < encodedICS.length(); i += 76) {
@@ -508,7 +509,7 @@ int main(int argc, char** argv) {
             spdlog::warn("no mail_from in global config, please inform system administrator!");
             exit(-2);
         }
-        std::string smtpUrl = config.smtphost();
+        std::string smtpUrl = "smtp://" + config.smtphost();
         std::string mail_to = mailaddress;
 
         const auto& entry = entrylist.front();
@@ -525,7 +526,7 @@ int main(int argc, char** argv) {
             spdlog::debug("{}", completeMail);
         }
 
-        if (sendCurl(config.smtphost(), mail_from, mail_to, completeMail)) {
+        if (sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
             fmt::println("Success: Calendar invitation sent to {}", mailaddress);
         } else {
             spdlog::debug("Failed to send calendar invitation to {}", mailaddress);
