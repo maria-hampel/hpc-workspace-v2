@@ -204,7 +204,7 @@ std::string base64Encode(const std::string& input) {
 }
 
 // Generate the ICS File
-std::string generateICS(const std::unique_ptr<DBEntry>& entry, time_t createtime) {
+std::string generateICS(const std::unique_ptr<DBEntry>& entry, const std::string clustername, time_t createtime) {
     std::string wsname = entry->getId();
     time_t expirationtime = entry->getExpiration();
     std::string resource = entry->getFilesystem();
@@ -246,7 +246,7 @@ std::string generateICS(const std::unique_ptr<DBEntry>& entry, time_t createtime
     ics << "CREATED:" << createtimestr << CRLF;
     ics << "DTSTAMP:" << createtimestr << CRLF;
     ics << "UID:587a1aa6-" << entryhash << CRLF;
-    ics << "DESCRIPTION:Workspace " << wsname << " will be deleted on host " << resource << CRLF;
+    ics << "DESCRIPTION:Workspace " << wsname << " will be deleted on host " << clustername << CRLF;
     ics << "LOCATION:" << resource << CRLF;
     ics << "SUMMARY:Workspace " << wsname << " expires" << CRLF;
     ics << "DTSTART;TZID=Europe/Berlin:" << starttimestr << CRLF;
@@ -274,7 +274,7 @@ std::string generateMessageID(const std::string& domain = "ws_send_ical") {
 
 // Generate the Mail
 std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics, const std::string mail_from,
-                         const std::string mail_to, time_t now) {
+                         const std::string mail_to, const std::string clustername, time_t now) {
     std::string wsname = entry->getId();
     std::string resource = entry->getFilesystem();
 
@@ -285,8 +285,6 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     std::string messageID = generateMessageID();
 
     std::string encodedICS = base64Encode(ics);
-
-    std::string body = "Workspace " + wsname + " on host " + resource + " is going to expire ";
 
     mail << "From: " << mail_from << CRLF;
     mail << "To: " << mail_to << CRLF;
@@ -301,7 +299,7 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     mail << "Content-Type: text/plain; charset=UTF-8" << CRLF;
     mail << "Content-Transfer-Encoding: 7bit" << CRLF;
     mail << "" << CRLF;
-    mail << "Workspace " << wsname << " on host " << resource << " is going to expire " << CRLF;
+    mail << "Workspace " << wsname << " on host " << clustername << " on filesystem " << resource << " is going to expire " << CRLF;
     mail << "" << CRLF;
 
     mail << "--" << boundary << CRLF;
@@ -507,18 +505,19 @@ int main(int argc, char** argv) {
             exit(-2);
         }
         std::string smtpUrl = "smtp://" + config.smtphost();
+        std::string clustername = config.clustername();
         std::string mail_to = mailaddress;
 
         const auto& entry = entrylist.front();
 
-        std::string ics = generateICS(entry, now);
+        std::string ics = generateICS(entry, clustername, now);
         if (debugflag) {
             spdlog::debug("Generated ICS content:");
             spdlog::debug("{}", ics);
         }
-        fmt::println(ics);
+        // fmt::println(ics);
 
-        std::string completeMail = generateMail(entry, ics, mail_from, mail_to, now);
+        std::string completeMail = generateMail(entry, ics, mail_from, mail_to, clustername, now);
         if (debugflag) {
             spdlog::debug("Generated email content:");
             spdlog::debug("{}", completeMail);
