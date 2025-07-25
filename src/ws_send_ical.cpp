@@ -237,10 +237,9 @@ std::string generateICS(const std::unique_ptr<DBEntry>& entry, time_t createtime
     ics << "TZOFFSETTO:+0100" << CRLF;
     ics << "TZNAME:CET" << CRLF;
     ics << "DTSTART:19701025T030000" << CRLF;
-    ics << "RRULE:FREW=YEARLY;BYDAY=-1SU;BYMONTH=10" << CRLF;
+    ics << "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10" << CRLF;
     ics << "END:STANDARD" << CRLF;
     ics << "END:VTIMEZONE" << CRLF;
-    ics << "X-MS-OLK-FORCEINSPECTOROPEN:TRUE" << CRLF;
 
     // EVENT
     ics << "BEGIN:VEVENT\r\n";
@@ -254,8 +253,6 @@ std::string generateICS(const std::unique_ptr<DBEntry>& entry, time_t createtime
     ics << "DTEND;TZID=Europe/Berlin:" << expirationtimestr << CRLF;
     ics << "LAST_MODIFIED:" << createtimestr << CRLF;
     ics << "CLASS:PRIVATE" << CRLF;
-    ics << "X-MICROSOFT-CDO-BUSYSTATUS:BUSY" << CRLF;
-    ics << "X-MICROSOFT-DISALLOW-COUNTER:TRUE" << CRLF;
     ics << "END:VEVENT" << CRLF;
 
     ics << "END:VCALENDAR" << CRLF;
@@ -519,6 +516,7 @@ int main(int argc, char** argv) {
             spdlog::debug("Generated ICS content:");
             spdlog::debug("{}", ics);
         }
+        fmt::println(ics);
 
         std::string completeMail = generateMail(entry, ics, mail_from, mail_to, now);
         if (debugflag) {
