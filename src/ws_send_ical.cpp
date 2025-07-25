@@ -247,7 +247,7 @@ std::string generateICS(const std::unique_ptr<DBEntry>& entry, const std::string
     ics << "DTSTAMP:" << createtimestr << CRLF;
     ics << "UID:587a1aa6-" << entryhash << CRLF;
     ics << "DESCRIPTION:Workspace " << wsname << " will be deleted on host " << clustername << CRLF;
-    ics << "LOCATION:" << resource << CRLF;
+    ics << "LOCATION:" << clustername << ":" << resource << CRLF;
     ics << "SUMMARY:Workspace " << wsname << " expires" << CRLF;
     ics << "DTSTART;TZID=Europe/Berlin:" << starttimestr << CRLF;
     ics << "DTEND;TZID=Europe/Berlin:" << expirationtimestr << CRLF;
