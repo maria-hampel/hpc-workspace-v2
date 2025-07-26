@@ -97,7 +97,9 @@ setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" ws_allocate
 setcap "CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p" ws_release
 setcap "CAP_DAC_OVERRIDE=p CAP_DAC_READ_SEARCH=p" ws_restore
 ```
-if capability livrary was available at compile time.
+*if* capability library was available at compile time.
+
+You can check ``ws_allocate -V`` to see if capability mode was compiled in.
 
 **TODO** this needs work
 Finally, a cron job has to be set up that calls the `ws_expirer` script at
@@ -129,7 +131,7 @@ A very simple example `ws.conf` file:
 
 ```yaml
 admins: [root]			# users listed here can see all workspaces with ws_list
-adminmail: [root]      # add somethingmeaningfull here, it is used to alarm of bad confitions
+adminmail: [root@localhost]      # add somethingmeaningfull here, it is used to alarm of bad confitions
 clustername: My Green Cluster	# some name for the cluster
 smtphost: mail.mydomain.com     # (my smtp server for sending mails)
 dbuid: 85			# a user id, this is the owner of some directories
@@ -422,8 +424,7 @@ some horrible setuid hacks, second version was partially in C++.
 V2 offers an internal abstraction of the DB, which will allow to have
 a new DB format in the future.
 
-V2 first implementation is compatible with V1, only some extra options
-in ws.conf (`adminmail` **TODO** is that all?) are needed.
+V2 first implementation is compatible with V1.
 
 A DB file is currently still a YAML file, this can change in the future.
 
@@ -431,6 +432,8 @@ There are three tools that need privileges, these are ```ws_allocate```,
 ```ws_release``` and ```ws_restore```.
 
 All three have to change owners and permissions of files.
+
+**TODO** needs review
 
 All other tools are either for root only (in ```sbin```) or do not need
 privileges (```ws_list```, ```ws_extend```, ```ws_find```, ```ws_register```,
@@ -546,4 +549,5 @@ find /var/log/workspace -type f -ctime +80 -exec rm {} \;
 ## Contributing
 
 Is highly welcome. Please refer to the
-[issue tracker](https://github.com/holgerBerger/hpc-workspace-v2/issues) of this project.
+[issue tracker](https://github.com/holgerBerger/hpc-workspace-v2/issues) of this project and
+[dicussions](https://github.com/holgerBerger/hpc-workspace-v2/discussions)

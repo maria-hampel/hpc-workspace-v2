@@ -50,7 +50,7 @@ The default one will be chosen if you do not specify a filesystem. You can other
 choose the filesystem using ```ws_allocate -F <location> <ID> <DURATION>```.
 
 **Important:** Creating a workspace a second time with any of above lines
-is a no-operation, it always returns the same path, so it is safe and encourage
+is a no-operation, it always returns the same path, so it is safe and encouraged
 to use such a line in batch jobs, which are part of a series of jobs working
 on the same data, no matter if the job was running before or not.
 
@@ -78,11 +78,14 @@ the ```ws_restore``` command as long as it is not finally deleted.
 
 The real deletion will probably take place during the nighttime.
 
-**Please note:** data in a released workspace can still account for the quota usage!
-In case the data is limiting you, delete the data before releasing the workspace, or if already
-released, restore it using ```ws_restore```, delete it and release the workspace again.
+If you are sure you do not need the data anymore, there is an option ``--delete-data`` to
+wipe the date while releasing it - **use with care**.
 
-There is an option ```ws_restore --delete-data``` which wipes the data and releases the workspace,
+**Please note:** data in a released workspace can still account for the quota usage!
+In case the data is limiting you, delete the data before releasing the workspace, or use the ``--delete-data`` optin with care,
+or if already released, restore it using ```ws_restore```, delete it and release the workspace again.
+
+In addition, to ease above described procedure, there is an option ```ws_restore --delete-data``` which wipes the data and releases the workspace,
 **use with care**, data can not be restored.
 
 ## extending workspaces
@@ -105,6 +108,8 @@ You can store default values for reminder and email in ~/.ws_user.conf (from ver
 Defaults in file can be overruled with command line options.
 
 You can change reminder and email address of an existing workspace using ```ws_allocate -r <days> -m <mail> -x <workspace> 0```.
+
+You can also generate a calender entry via email with ``ws_send_ical``, see manpage for more details.
 
 
 ## cooperative usage (group workspaces and sharing with other users)
