@@ -42,4 +42,11 @@ TEST_CASE("utils", "[utils]")
         REQUIRE(utils::prettyBytes(1000) == "1 KB");
         REQUIRE(utils::prettyBytes(1500000) == "1.5 MB");
     }
+
+    SECTION("trimright")
+    {
+        REQUIRE(utils::trimright("- \n") == std::string("-"));
+        REQUIRE(utils::trimright(std::string("- \n")) == std::string("-"));
+        REQUIRE(utils::trimright(" ") == "");
+    }
 }

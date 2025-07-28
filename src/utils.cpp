@@ -518,6 +518,21 @@ void setupLogging(const std::string ident) {
     }
 }
 
+// right trim whitespaces from a string
+std::string trimright(const std::string& in) {
+    std::string str(in);
+    str.erase(str.find_last_not_of(" \n\r\t") + 1);
+    return str;
+}
+
+// right trim whitespaces from a string
+std::string trimright(const char* in) {
+    std::string str(in);
+    str.erase(str.find_last_not_of(" \n\r\t") + 1);
+    return str;
+}
+
+
 } // namespace utils
 
 // internal recursive functions, based on file handles

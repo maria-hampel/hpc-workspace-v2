@@ -96,6 +96,10 @@ std::string prettyBytes(const uint64_t size);
 // setup the logging
 void setupLogging(const std::string ident);
 
+// right trim whitespaces from a string
+std::string trimright(const std::string& in);
+std::string trimright(const char* in);
+
 } // namespace utils
 
 #endif
