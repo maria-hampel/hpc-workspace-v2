@@ -115,7 +115,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
     // check for magic in DB entry, to avoid that DB is not existing and all workspaces
     // get wiped by accident, e.g. due to mouting problems if DB is not in same FS as workspaces
-    if (!cppfs::exists(cppfs::path(config.getFsConfig(fs).database) / ".ws_db_magic")) {
+    if (cppfs::exists(cppfs::path(config.getFsConfig(fs).database) / ".ws_db_magic")) {
         auto magic = utils::getFirstLine(utils::getFileContents(config.getFsConfig(fs).database + "/.ws_db_magic"));
         if (magic != fs) {
             spdlog::error("DB directory {} from fs {} does not contain .ws_db_magic with correct workspace name in it, "
@@ -217,7 +217,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
         }
     }
 
-    fmt::println("    {} valid, {} invalid directories found.", result.valid_deleted, result.invalid_deleted);
+    fmt::println("    {} valid, {} invalid directories found.\n", result.valid_deleted, result.invalid_deleted);
 
     return result;
 }
@@ -262,7 +262,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         // do we have to expire?
         if (time((long*)0L) > expiration) {
             auto timestamp = to_string(time((long*)0L));
-            fmt::println(" expiring {} (expired {})", id, ctime(&expiration));
+            fmt::println(" expiring {} (expired {})", id, utils::trimright(ctime(&expiration)));
             result.expired_ws++;
             if (!dryrun) {
                 // db entry first
@@ -290,7 +290,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
     fmt::println("  {} workspaces expired, {} kept.", result.expired_ws, result.kept_ws);
 
-    fmt::println("Checking deleted DB for workspaces to be deleted for {}", fs);
+    fmt::println("Checking deleted DB for workspaces to be deleted for filesystem {}", fs);
 
     // search in DB for expired/released workspaces for those over keeptime to delete them
     for (auto const& id : db->matchPattern("*", "*", {}, true, false)) {
@@ -355,7 +355,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         }
     }
 
-    fmt::println("  {} workspaces deleted.", result.deleted_ws);
+    fmt::println("  {} workspaces deleted.\n", result.deleted_ws);
 
     return result;
 }
