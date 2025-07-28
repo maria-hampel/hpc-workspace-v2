@@ -23,6 +23,9 @@ _common_setup() {
     mkdir -p /tmp/ws/ws2/2
     mkdir -p /tmp/ws/ws2/2/.removed
 
+    echo ws1  > /tmp/ws/ws1-db/.ws_db_magic
+    echo ws2  > /tmp/ws/ws2-db/.ws_db_magic
+
     if [ -f /.dockerenv ]
     then
         USER=usera

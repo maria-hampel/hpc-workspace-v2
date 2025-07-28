@@ -579,6 +579,18 @@ Database* Config::openDB(const string fs) const {
     if (traceflag)
         spdlog::trace("opendb {}", fs);
     // TODO: version check here to determine which DB to open
+
+    // check for magic in DB entry, to avoid that DB is not existing and all workspaces
+    // get wiped by accident, e.g. due to mouting problems if DB is not in same FS as workspaces
+    if (cppfs::exists(cppfs::path(getFsConfig(fs).database) / ".ws_db_magic")) {
+        auto magic = utils::getFirstLine(utils::getFileContents(getFsConfig(fs).database + "/.ws_db_magic"));
+        if (magic != fs) {
+            throw DatabaseException(fmt::format("DB directory {} from fs {} does not contain .ws_db_magic with correct workspace name in it", getFsConfig(fs).database, fs));
+        }
+    } else {
+        throw DatabaseException(fmt::format("DB directory {} from fs {} does not contain .ws_db_magic", getFsConfig(fs).database, fs));
+    }
+
     return new FilesystemDBV1(this, fs);
 }
 
