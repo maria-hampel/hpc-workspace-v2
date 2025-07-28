@@ -532,7 +532,6 @@ std::string trimright(const char* in) {
     return str;
 }
 
-
 } // namespace utils
 
 // internal recursive functions, based on file handles

@@ -299,7 +299,8 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     mail << "Content-Type: text/plain; charset=UTF-8" << CRLF;
     mail << "Content-Transfer-Encoding: 7bit" << CRLF;
     mail << "" << CRLF;
-    mail << "Workspace " << wsname << " on host " << clustername << " on filesystem " << resource << " is going to expire " << CRLF;
+    mail << "Workspace " << wsname << " on host " << clustername << " on filesystem " << resource
+         << " is going to expire " << CRLF;
     mail << "" << CRLF;
 
     mail << "--" << boundary << CRLF;
