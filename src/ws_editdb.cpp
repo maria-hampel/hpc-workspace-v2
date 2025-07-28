@@ -80,8 +80,6 @@ int main(int argc, char** argv) {
     // set custom logging format
     utils::setupLogging(string(argv[0]));
 
-
-
     // define options
     po::options_description cmd_options("\nOptions");
     // clang-format off
