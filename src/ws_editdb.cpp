@@ -80,10 +80,7 @@ int main(int argc, char** argv) {
     // set custom logging format
     utils::setupLogging(string(argv[0]));
 
-    if (!user::isRoot()) {
-        spdlog::error("Sorry, this tool is for root only.");
-        exit(0);
-    }
+
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -152,6 +149,12 @@ int main(int argc, char** argv) {
         utils::printVersion("ws_editdb");
         utils::printBuildFlags();
         exit(0);
+    }
+
+    // non root can use the tool on own config
+    if (!user::isRoot() && configfile == "") {
+        spdlog::warn("Sorry, this tool is for root only.");
+        exit(-1);
     }
 
     // read config
