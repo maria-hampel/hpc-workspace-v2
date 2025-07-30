@@ -203,6 +203,7 @@ void Config::readYAML(string yamlstr) {
     readRyamlScalar(config, "default_workspace", global.defaultWorkspace); // SPEC:CHANGE: accept alias
     readRyamlScalar(config, "default", global.defaultWorkspace);
     readRyamlScalar(config, "duration", global.maxduration);
+    readRyamlScalar(config, "maxduration", global.maxduration);
     readRyamlScalar(config, "durationdefault", global.durationdefault);
     readRyamlScalar(config, "reminderdefault", global.reminderdefault);
     readRyamlScalar(config, "maxextensions", global.maxextensions);
@@ -242,6 +243,8 @@ void Config::readYAML(string yamlstr) {
                         node >> fs.keeptime;
                     if (node = ws["maxduration"]; node.has_val())
                         node >> fs.maxduration;
+                    if (node = ws["duration"]; node.has_val())
+                        node >> fs.maxduration;
                     if (node = ws["maxextensions"]; node.has_val())
                         node >> fs.maxextensions;
                     else
@@ -254,6 +257,10 @@ void Config::readYAML(string yamlstr) {
                         node >> fs.restorable;
                     if (node = ws["comment"]; node.has_val())
                         node >> fs.comment;
+
+                    if (fs.maxduration == 0 && global.maxduration!=0) {
+                        fs.maxduration = global.maxduration;
+                    }
 
                     readRyamlSequence(ws, "spaces", fs.spaces);
                     readRyamlSequence(ws, "groupdefault", fs.groupdefault);
@@ -288,6 +295,8 @@ void Config::readYAML(const string yaml) {
         global.defaultWorkspace = config["default"].as<string>();
     if (config["duration"])
         global.maxduration = config["duration"].as<int>();
+    if (config["maxduration"])
+        global.maxduration = config["maxduration"].as<int>();
     if (config["durationdefault"])
         global.durationdefault = config["durationdefault"].as<int>();
     if (config["reminderdefault"])
@@ -347,6 +356,11 @@ void Config::readYAML(const string yaml) {
                         fs.maxduration = ws["duration"].as<int>();
                     else
                         fs.maxduration = 0;
+
+                    if (fs.maxduration == 0 && global.maxduration!=0) {
+                        fs.maxduration = global.maxduration;
+                    }
+
                     if (ws["maxextensions"])
                         fs.maxextensions = ws["maxextensions"].as<int>();
                     else
