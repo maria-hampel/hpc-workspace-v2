@@ -113,7 +113,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
             spdlog::info("only cleaning in space {}", single_space);
             spaces = {single_space};
         } else {
-            spdlog::error("given space not in filesystem {}, skipping.", fs);
+            spdlog::info("given space not in filesystem {}, skipping.", fs);
             return {0, 0, 0, 0};
         }
     }
