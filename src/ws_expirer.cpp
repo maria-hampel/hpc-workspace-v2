@@ -161,15 +161,17 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
             string timestamp = fmt::format("{}", time(NULL));
             if (!dryrun) {
                 try {
-                    fmt::println("      move {} to {}", founddir.dir,
-                                 (cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs) / timestamp).string());
+                    fmt::println(
+                        "      move {} to {}", founddir.dir,
+                        (cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs) / timestamp).string());
                     cppfs::rename(founddir.dir, cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs));
                 } catch (cppfs::filesystem_error& e) {
                     spdlog::error("      failed to move to deleted: {} ({})", founddir.dir, e.what());
                 }
             } else {
-                fmt::println("      would move {} to {}", founddir.dir,
-                             (cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs) / timestamp).string());
+                fmt::println(
+                    "      would move {} to {}", founddir.dir,
+                    (cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs) / timestamp).string());
             }
             result.invalid_ws++;
         } else {
@@ -339,18 +341,20 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         if (debugflag) {
             spdlog::debug("released = {}, releasetime (filename) = {}", released, releasetime);
         }
-        if (released > 1000000000L) {              // released after 2001? if not ignore it
+        if (released > 1000000000L) { // released after 2001? if not ignore it
             releasetime = expiration = released;
-        } else if (released != 0) { // not released at all, expired, releasetime is taken from filename
+        } else if (released != 0) {    // not released at all, expired, releasetime is taken from filename
             releasetime = 3000000000L; // date in future, 2065
             fmt::println(stderr, "  IGNORING released {} for {}", releasetime, id);
         }
 
-        if ((time((long*)0L) > (expiration + keeptime * 24 * 3600)) || (time((long*)0L) >= releasetime + releasekeeptime)) {
+        if ((time((long*)0L) > (expiration + keeptime * 24 * 3600)) ||
+            (time((long*)0L) >= releasetime + releasekeeptime)) {
 
             result.deleted_ws++;
 
-            if (time((long*)0L) >= releasetime + releasekeeptime) { // even a released workspace will be not deleted before releasekeeptime seconds old hour old
+            if (time((long*)0L) >= releasetime + releasekeeptime) { // even a released workspace will be not deleted
+                                                                    // before releasekeeptime seconds old hour old
                 fmt::println(" deleting DB entry {}, was released {}", id, utils::trimright(ctime(&releasetime)));
             } else {
                 fmt::println(" deleting DB entry {}, expired {}", id, utils::trimright(ctime(&expiration)));
