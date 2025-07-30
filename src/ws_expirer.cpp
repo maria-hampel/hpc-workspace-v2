@@ -382,7 +382,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 int main(int argc, char** argv) {
 
     // options and flags
-    std::vector<string> filesystem;
+    std::string filesystem;
     std::string single_space;
     std::string configfile;
     bool dryrun = true;
@@ -401,7 +401,7 @@ int main(int argc, char** argv) {
      cmd_options.add_options()
         ("help,h", "produce help message")
         ("version,V", "show version")
-        ("filesystems,F", po::value<vector<string>>(&filesystem), "filesystems/workspaces to delete from")
+        ("filesystems,F", po::value<string>(&filesystem), "filesystems/workspaces to delete from, comma separated")
         ("space,s", po::value<string>(&single_space), "path of a single space that should be deleted")
         ("cleaner,c", "no dry-run mode")
         ("configfile", po::value<string>(&configfile), "path to configfile");
@@ -475,9 +475,9 @@ int main(int argc, char** argv) {
     // main logic from here
     std::vector<std::string> fslist;
 
-    if (opts.count("filesystem")) {
+    if (opts.count("filesystems")) {
         // use only valid filesystems from commmand line
-        for (auto const& fs : filesystem) {
+        for (auto const& fs : utils::splitString(filesystem, ',')) {
             if (canFind(config.Filesystems(), fs))
                 fslist.push_back(fs);
         }
@@ -485,8 +485,9 @@ int main(int argc, char** argv) {
         fslist = config.Filesystems();
     }
 
-    if (debugflag)
+    if (debugflag) {
         spdlog::debug("fslist: {}", fslist);
+    }
 
     if (cleanermode) {
         fmt::println("really cleaning!");
