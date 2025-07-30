@@ -3,12 +3,10 @@ setup() {
     _common_setup
 }
 
-
 @test "ws_expirer present" {
     which ws_expirer
 }
 
-# bats test_tags=broken:v1-5-0
 @test "ws_expirer print version" {
     run ws_expirer --version
     assert_output --partial "ws_expirer"
@@ -96,4 +94,12 @@ setup() {
     run ws_expirer --config bats/ws.conf -F ws1,ws2
     assert_output --partial "ws1"
     assert_output --partial "ws2"
+}
+
+@test "ws_expirer missing magic" {
+    mv /tmp/ws/ws1-db/.ws_db_magic /tmp/ws/ws1-db/.ws_db_magiC
+    run ws_expirer --config bats/ws.conf
+    assert_output --partial "does not contain .ws_db_magic"
+    assert_success
+    mv /tmp/ws/ws1-db/.ws_db_magiC /tmp/ws/ws1-db/.ws_db_magic
 }
