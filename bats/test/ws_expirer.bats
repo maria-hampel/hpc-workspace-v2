@@ -39,15 +39,17 @@ setup() {
     ws_release --config bats/ws.conf EXPIRE_TEST
 }
 
-#@test "ws_expirer released" {
-#    ws_allocate --config bats/ws.conf EXPIRE_TEST 1
-#    ws_release --config bats/ws.conf EXPIRE_TEST
-#    run ws_expirer --config bats/ws.conf -c
-#    assert_output --regexp 'expiring .*-EXPIRE_TEST'
-#    assert_success
-#    ws_editdb --config bats/ws.conf --not-kidding -e --add-time -20 "EXPIRE_TEST*"
-#    run ws_expirer --config bats/ws.conf
-#    assert_output --regexp 'expiring .*-EXPIRE_TEST'
-#    assert_success
-#    ws_release --config bats/ws.conf EXPIRE_TEST
-#}
+@test "ws_expirer released" {
+    ws_allocate --config bats/ws.conf EXPIRE_TEST 1
+    ws_release --config bats/ws.conf EXPIRE_TEST
+    run ws_expirer --config bats/ws.conf --forcedeletereleased
+    assert_output --regexp 'deleting DB.*-EXPIRE_TEST'
+    assert_output --regexp 'deleting directory.*-EXPIRE_TEST'
+    assert_success
+    run ws_expirer --config bats/ws.conf --forcedeletereleased -c
+    assert_output --regexp 'deleting DB.*-EXPIRE_TEST'
+    assert_output --regexp 'deleting directory.*-EXPIRE_TEST'
+    assert_success
+    run ws_list -e --config bats/ws.conf EXPIRE_TEST*
+    refute_output --partial EXPIRE_TEST
+}

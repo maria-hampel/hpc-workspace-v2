@@ -81,6 +81,9 @@ struct clean_stray_result_t {
     long invalid_deleted;
 };
 
+// time to keep released workspaces before deletion in seconds
+long releasekeeptime = 3600;
+
 // clean_stray_directtories
 //  finds directories that are not in DB and removes them,
 //  returns numbers of valid and invalid directories
@@ -319,8 +322,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             continue;
         }
 
+        long releasetime;
         auto expiration = dbentry->getExpiration();
-        auto releasetime = dbentry->getReleaseTime();
         auto keeptime = config.getFsConfig(fs).keeptime;
 
         // get released time from name = id
@@ -332,23 +335,24 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             continue;
         }
 
-        auto released = dbentry->getReleaseTime(); // check if it was released by user
+        auto released = dbentry->getReleaseTime(); // check if it was released by user, 0 if not
         if (released > 1000000000L) {              // released after 2001? if not ignore it
-            releasetime = released;
+            releasetime = expiration = released;
         } else {
             releasetime = 3000000000L; // date in future, 2065
             fmt::println(stderr, "  IGNORING released {} for {}", releasetime, id);
         }
 
-        if ((time((long*)0L) > (expiration + keeptime * 24 * 3600)) || (time((long*)0L) > releasetime + 3600)) {
+        if ((time((long*)0L) > (expiration + keeptime * 24 * 3600)) || (time((long*)0L) >= releasetime + releasekeeptime)) {
 
             result.deleted_ws++;
 
-            if (time((long*)0L) > releasetime + 3600) {
-                fmt::print(" deleting DB entry {}, was released ", id, ctime(&releasetime));
+            if (time((long*)0L) >= releasetime + releasekeeptime) { // even a released workspace will be not deleted before releasekeeptime seconds old hour old
+                fmt::println(" deleting DB entry {}, was released {}", id, utils::trimright(ctime(&releasetime)));
             } else {
-                fmt::print(" deleting DB entry {}, expired ", id, ctime(&expiration));
+                fmt::println(" deleting DB entry {}, expired {}", id, utils::trimright(ctime(&expiration)));
             }
+
             if (cleanermode) {
                 db->deleteEntry(id, true);
             }
@@ -401,7 +405,12 @@ int main(int argc, char** argv) {
     // clang-format on
 
     po::options_description secret_options("Secret");
-    secret_options.add_options()("debug", "show debugging information")("trace", "show tracing information");
+    // clang-format off
+    secret_options.add_options()
+        ("debug", "show debugging information")
+        ("trace", "show tracing information")
+        ("forcedeletereleased", "option for testing");
+    // clang-format on
 
     po::options_description all_options;
     all_options.add(cmd_options).add(secret_options);
@@ -437,6 +446,10 @@ int main(int argc, char** argv) {
     if (opts.count("cleaner")) {
         cleanermode = true;
         dryrun = false;
+    }
+
+    if (opts.count("forcedeletereleased")) {
+        releasekeeptime = 0;
     }
 
     // read config
