@@ -21,6 +21,18 @@ setup() {
     assert_success
 }
 
+@test "ws_expirer dryrun" {
+    run ws_expirer --config bats/ws.conf
+    assert_output --partial "simulate cleaning - dryrun"
+    assert_success
+}
+
+@test "ws_expirer not dryrun" {
+    run ws_expirer --config bats/ws.conf -c
+    assert_output --partial "really cleaning!"
+    assert_success
+}
+
 @test "ws_expirer keep" {
     ws_allocate --config bats/ws.conf EXPIRE_TEST 1
     ws_editdb --config bats/ws.conf --not-kidding --add-time -1 EXPIRE_TEST
@@ -60,4 +72,28 @@ setup() {
     assert_success
     run ws_list -e --config bats/ws.conf EXPIRE_TEST*
     refute_output --partial EXPIRE_TEST
+}
+
+@test "ws_expirer broken DB entry" {
+    cp /dev/null /tmp/ws/ws1-db/${USER}-broken
+    run ws_expirer --config bats/ws.conf
+    assert_output --partial "could not read"
+    rm -f /tmp/ws/ws1-db/${USER}-broken
+}
+
+@test "ws_expirer with space" {
+    run ws_expirer --config bats/ws.conf -s /tmp/ws/ws2/1
+    assert_output --partial "given space not in filesystem ws1"
+    assert_output --partial "only cleaning in space /tmp/ws/ws2/1"
+}
+
+@test "ws_expirer with filesystem" {
+    run ws_expirer --config bats/ws.conf -F ws2
+    refute_output --partial "ws1"
+}
+
+@test "ws_expirer with filesystems" {
+    run ws_expirer --config bats/ws.conf -F ws1,ws2
+    assert_output --partial "ws1"
+    assert_output --partial "ws2"
 }
