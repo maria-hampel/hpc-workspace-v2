@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
                         }
                     }
                 } catch (DatabaseException& e) {
-                    fmt::println(e.what());
+                    spdlog::error(e.what());
                 }
             }
 

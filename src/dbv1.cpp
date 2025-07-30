@@ -341,8 +341,7 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
 
     std::string filecontent = utils::getFileContents(filename.c_str());
     if (filecontent == "") {
-        spdlog::error("Could not read file <{}>", filename);
-        throw DatabaseException("could not read file");
+        throw DatabaseException(fmt::format("could not read file <{}>", filename));
     }
 
     try {
