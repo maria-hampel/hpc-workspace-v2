@@ -31,7 +31,7 @@ setup() {
     assert_output --partial "change expiration"
     assert_success
     run ws_list --config bats/ws.conf  EDITTEST
-    assert_output --regexp "(2 days)|1 days 23"
+    assert_output --regexp "(2 days)|1 days, 23"
     assert_success
     ws_release --config bats/ws.conf EDITTEST
 }
