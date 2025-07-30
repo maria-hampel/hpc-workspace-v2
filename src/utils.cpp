@@ -448,6 +448,10 @@ auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::
 
 // delete path be deleting contents and deleting path itself
 void rmtree(std::string path) {
+    if (traceflag) {
+        spdlog::trace("rmtree({})", path);
+    }
+
     struct stat orig_stat, new_stat;
 
     int r = fstatat(0, path.c_str(), &orig_stat, AT_SYMLINK_NOFOLLOW);
@@ -536,6 +540,9 @@ std::string trimright(const char* in) {
 
 // internal recursive functions, based on file handles
 static void rmtree_fd(int topfd, std::string path) {
+    if (traceflag) {
+        spdlog::trace("rmtree_fd({}, {})", topfd, path);
+    }
     auto dir = fdopendir(topfd);
     if (dir != nullptr) {
         std::vector<struct dirent*> entries;
