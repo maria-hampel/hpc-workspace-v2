@@ -162,14 +162,14 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
             if (!dryrun) {
                 try {
                     fmt::println("      move {} to {}", founddir.dir,
-                                 (cppfs::path(founddir.space) / config.deletedPath(fs) / timestamp).string());
-                    cppfs::rename(founddir.dir, cppfs::path(founddir.space) / config.deletedPath(fs));
+                                 (cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs) / timestamp).string());
+                    cppfs::rename(founddir.dir, cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs));
                 } catch (cppfs::filesystem_error& e) {
                     spdlog::error("      failed to move to deleted: {} ({})", founddir.dir, e.what());
                 }
             } else {
                 fmt::println("      would move {} to {}", founddir.dir,
-                             (cppfs::path(founddir.space) / config.deletedPath(fs) / timestamp).string());
+                             (cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs) / timestamp).string());
             }
             result.invalid_ws++;
         } else {
@@ -286,7 +286,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                 // workspace second
                 auto wspath = dbentry->getWSPath();
                 try {
-                    auto tgt = cppfs::path(wspath) / config.deletedPath(fs) /
+                    auto tgt = cppfs::path(wspath).remove_filename() / config.deletedPath(fs) /
                                (cppfs::path(wspath).filename().string() + "-" + timestamp);
                     if (debugflag) {
                         spdlog::debug("mv ", wspath, " -> ", tgt.string());
@@ -336,9 +336,12 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         }
 
         auto released = dbentry->getReleaseTime(); // check if it was released by user, 0 if not
+        if (debugflag) {
+            spdlog::debug("released = {}, releasetime (filename) = {}", released, releasetime);
+        }
         if (released > 1000000000L) {              // released after 2001? if not ignore it
             releasetime = expiration = released;
-        } else {
+        } else if (released != 0) { // not released at all, expired, releasetime is taken from filename
             releasetime = 3000000000L; // date in future, 2065
             fmt::println(stderr, "  IGNORING released {} for {}", releasetime, id);
         }
@@ -357,8 +360,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                 db->deleteEntry(id, true);
             }
 
-            auto wspath = cppfs::path(dbentry->getWSPath()) / config.getFsConfig(fs).deletedPath / id;
-            fmt::println(" deleting directory: {}", wspath.string());
+            auto wspath = cppfs::path(dbentry->getWSPath()).remove_filename() / config.getFsConfig(fs).deletedPath / id;
+            fmt::println("   deleting directory: {}", wspath.string());
             if (cleanermode) {
                 try {
                     utils::rmtree(wspath.string());
