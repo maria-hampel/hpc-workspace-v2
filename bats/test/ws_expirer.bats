@@ -32,11 +32,19 @@ setup() {
 
 @test "ws_expirer expire" {
     ws_allocate --config bats/ws.conf EXPIRE_TEST 1
-    ws_editdb --config bats/ws.conf --not-kidding --add-time -10 EXPIRE_TEST
-    run ws_expirer --config bats/ws.conf
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -5 EXPIRE_TEST
+    run ws_expirer --config bats/ws.conf -c
     assert_output --regexp 'expiring .*-EXPIRE_TEST'
     assert_success
     ws_release --config bats/ws.conf EXPIRE_TEST
+}
+
+@test "ws_expirer delete expired" {
+    ws_editdb --config bats/ws.conf --not-kidding --expired --add-time -5 EXPIRE_TES*
+    run ws_expirer --config bats/ws.conf -c
+    assert_output --regexp 'deleting DB.*-EXPIRE_TEST'
+    assert_output --regexp 'deleting directory.*-EXPIRE_TEST'
+    assert_success
 }
 
 @test "ws_expirer released" {
