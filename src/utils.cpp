@@ -504,11 +504,11 @@ void setupLogging(const std::string ident) {
     if (user::isRoot()) {
         // stderr sink in color and with >= trace
         auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
-        stderr_sink->set_level(spdlog::level::trace);
         stderr_sink->set_pattern("%^%l%$: %v");
 
         auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
         spdlog::set_default_logger(stderr_logger);
+        spdlog::set_level(spdlog::level::trace);
     } else {
         // stderr sink in color and with >= info
         auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
@@ -522,6 +522,7 @@ void setupLogging(const std::string ident) {
 
         spdlog::logger* log = new spdlog::logger("multi_sink", {stderr_sink, syslog_sink});
         spdlog::set_default_logger(std::shared_ptr<spdlog::logger>(log));
+        spdlog::set_level(spdlog::level::trace);
     }
 }
 
@@ -539,13 +540,9 @@ std::string trimright(const char* in) {
     return str;
 }
 
-void initCurl() {
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-}
+void initCurl() { curl_global_init(CURL_GLOBAL_DEFAULT); }
 
-void cleanupCurl () {
-    curl_global_cleanup();
-}
+void cleanupCurl() { curl_global_cleanup(); }
 
 // Send the a Mail with curl to the smtpUrl
 bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,

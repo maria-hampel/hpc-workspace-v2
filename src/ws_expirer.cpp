@@ -50,6 +50,8 @@
 #include "utils.h"
 #include "ws.h"
 
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/syslog_sink.h"
 #include "spdlog/spdlog.h"
 
 // init caps here, when euid!=uid
@@ -83,6 +85,14 @@ struct clean_stray_result_t {
 
 // time to keep released workspaces before deletion in seconds
 long releasekeeptime = 3600;
+
+static void setupLogging(const std::string ident) {
+    auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+    stderr_sink->set_pattern("%^%l%$: %v");
+    auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
+    spdlog::set_default_logger(stderr_logger);
+    spdlog::set_level(spdlog::level::trace);
+}
 
 // clean_stray_directtories
 //  finds directories that are not in DB and removes them,
@@ -396,8 +406,8 @@ int main(int argc, char** argv) {
     // locals settings to prevent strange effects
     utils::setCLocal();
 
-    // set custom logging format
-    utils::setupLogging(string(argv[0]));
+    // set custom logging format, this different than other tools, as this tool is for root anyhow
+    setupLogging(string(argv[0]));
 
     // define options
     po::options_description cmd_options("\nOptions");
