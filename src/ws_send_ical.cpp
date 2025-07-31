@@ -64,9 +64,6 @@ template <> struct fmt::formatter<po::options_description> : ostream_formatter {
 
 std::string CRLF = "\r\n";
 
-static std::string email_content;
-static size_t email_index = 0;
-
 void commandline(po::variables_map& opt, string& filesystem, string& mailaddress, string& name, std::string& userconf,
                  std::string& configfile, int argc, char** argv) {
 
@@ -298,7 +295,7 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     mail << "Content-Type: text/plain; charset=UTF-8" << CRLF;
     mail << "Content-Transfer-Encoding: 7bit" << CRLF;
     mail << "" << CRLF;
-    mail << "Workspace " << wsname << " on host " << clustername << " on filesystem " << resource
+    mail << "Your workspace " << wsname << " on filesystem " << resource << " at HPC System " << clustername
          << " is going to expire " << CRLF;
     mail << "" << CRLF;
 
@@ -473,5 +470,5 @@ int main(int argc, char** argv) {
         // fmt::print("success; filesystem {}, workspacename {}, mailaddress {}", filesystem, name, mailaddress);
     }
 
-    utils::cleanupCurl;
+    utils::cleanupCurl();
 }
