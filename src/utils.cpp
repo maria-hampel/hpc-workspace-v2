@@ -28,6 +28,7 @@
  */
 
 #include <cassert>
+#include <curl/curl.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <filesystem>
@@ -78,6 +79,7 @@ extern Cap caps;
 
 // fwd
 static void rmtree_fd(int topfd, std::string path);
+static size_t readEmailCallback(void* ptr, size_t size, size_t nmemb, void* userp);
 
 namespace utils {
 
@@ -536,7 +538,77 @@ std::string trimright(const char* in) {
     return str;
 }
 
+void initCurl() {
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+}
+
+void cleanupCurl () {
+    curl_global_cleanup();
+}
+
+// Send the a Mail with curl to the smtpUrl
+bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,
+              const std::string& completeMail) {
+    CURL* curl;
+    CURLcode res = CURLE_OK;
+
+    curl = curl_easy_init();
+    if (!curl) {
+        if (debugflag)
+            spdlog::debug("Failed to initialize curl");
+        return false;
+    }
+
+    EmailData emailData(completeMail);
+
+    curl_easy_setopt(curl, CURLOPT_URL, smtpUrl.c_str());
+
+    struct curl_slist* recipients = nullptr;
+    recipients = curl_slist_append(recipients, mail_to.c_str());
+    curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+    curl_easy_setopt(curl, CURLOPT_MAIL_FROM, mail_from.c_str());
+
+    curl_easy_setopt(curl, CURLOPT_READFUNCTION, readEmailCallback);
+    curl_easy_setopt(curl, CURLOPT_READDATA, &emailData);
+    curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+
+    if (debugflag) {
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    }
+
+    res = curl_easy_perform(curl);
+
+    if (debugflag) {
+        if (res == CURLE_OK) {
+            spdlog::debug("Email sent successfully");
+        } else {
+            spdlog::debug("curl_easy_perform() failed: {}", curl_easy_strerror(res));
+        }
+    }
+
+    curl_slist_free_all(recipients);
+    curl_easy_cleanup(curl);
+
+    return (res == CURLE_OK);
+}
+
 } // namespace utils
+
+// Callback function for curl
+static size_t readEmailCallback(void* ptr, size_t size, size_t nmemb, void* userp) {
+    EmailData* emailData = static_cast<EmailData*>(userp);
+
+    size_t available = emailData->content.length() - emailData->index;
+    if (available == 0) {
+        return 0; // No more data
+    }
+
+    size_t to_copy = std::min(available, size * nmemb);
+    memcpy(ptr, emailData->content.c_str() + emailData->index, to_copy);
+    emailData->index += to_copy;
+
+    return to_copy;
+}
 
 // internal recursive functions, based on file handles
 static void rmtree_fd(int topfd, std::string path) {
