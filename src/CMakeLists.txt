@@ -24,6 +24,7 @@ target_link_libraries(ws_common
         yaml-cpp::yaml-cpp
         ${LIBCAP}
         spdlog
+        CURL::libcurl
     PRIVATE
         Microsoft.GSL::GSL
 )
@@ -156,5 +157,4 @@ target_link_libraries(ws_send_ical
         ${Boost_LIBRARIES}
         fmt::fmt
         spdlog
-        CURL::libcurl
 )

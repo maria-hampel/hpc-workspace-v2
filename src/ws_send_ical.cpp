@@ -31,7 +31,6 @@
 #include "fmt/base.h"
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
-#include <curl/curl.h>
 #include <iostream>
 #include <regex>
 #include <string>
@@ -64,9 +63,6 @@ Cap caps{};
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
 std::string CRLF = "\r\n";
-
-static std::string email_content;
-static size_t email_index = 0;
 
 void commandline(po::variables_map& opt, string& filesystem, string& mailaddress, string& name, std::string& userconf,
                  std::string& configfile, int argc, char** argv) {
@@ -299,7 +295,7 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     mail << "Content-Type: text/plain; charset=UTF-8" << CRLF;
     mail << "Content-Transfer-Encoding: 7bit" << CRLF;
     mail << "" << CRLF;
-    mail << "Workspace " << wsname << " on host " << clustername << " on filesystem " << resource
+    mail << "Your workspace " << wsname << " on filesystem " << resource << " at HPC System " << clustername
          << " is going to expire " << CRLF;
     mail << "" << CRLF;
 
@@ -320,67 +316,7 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     return mail.str();
 }
 
-// Callback function for curl
-static size_t readEmailCallback(void* ptr, size_t size, size_t nmemb, void* userp) {
-    size_t available = email_content.length() - email_index;
-    if (available == 0) {
-        return 0; // No more data
-    }
 
-    size_t to_copy = std::min(available, size * nmemb);
-    memcpy(ptr, email_content.c_str() + email_index, to_copy);
-    email_index += to_copy;
-
-    return to_copy;
-}
-
-// Send the a Mail with curl to the smtpUrl
-bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,
-              const std::string& completeMail) {
-    CURL* curl;
-    CURLcode res = CURLE_OK;
-
-    curl = curl_easy_init();
-    if (!curl) {
-        if (debugflag)
-            spdlog::debug("Failed to initialize curl");
-        return false;
-    }
-
-    email_content = completeMail;
-    email_index = 0;
-
-    curl_easy_setopt(curl, CURLOPT_URL, smtpUrl.c_str());
-
-    struct curl_slist* recipients = nullptr;
-    recipients = curl_slist_append(recipients, mail_to.c_str());
-    curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
-
-    curl_easy_setopt(curl, CURLOPT_MAIL_FROM, mail_from.c_str());
-
-    curl_easy_setopt(curl, CURLOPT_READFUNCTION, readEmailCallback);
-    curl_easy_setopt(curl, CURLOPT_READDATA, nullptr);
-    curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-
-    if (debugflag) {
-        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-    }
-
-    res = curl_easy_perform(curl);
-
-    if (debugflag) {
-        if (res == CURLE_OK) {
-            spdlog::debug("Email sent successfully");
-        } else {
-            spdlog::debug("curl_easy_perform() failed: {}", curl_easy_strerror(res));
-        }
-    }
-
-    curl_slist_free_all(recipients);
-    curl_easy_cleanup(curl);
-
-    return (res == CURLE_OK);
-}
 
 int main(int argc, char** argv) {
     std::string filesystem;
@@ -403,7 +339,7 @@ int main(int argc, char** argv) {
     time_t now = time(nullptr);
 
     // setup curl
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    utils::initCurl();
 
     // Get Userconf
     string user_conf_filename = user::getUserhome() + "/.ws_user.conf";
@@ -524,7 +460,7 @@ int main(int argc, char** argv) {
             spdlog::debug("{}", completeMail);
         }
 
-        if (sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
+        if (utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
             fmt::println("Success: Calendar invitation sent to {}", mailaddress);
         } else {
             spdlog::debug("Failed to send calendar invitation to {}", mailaddress);
@@ -534,5 +470,5 @@ int main(int argc, char** argv) {
         // fmt::print("success; filesystem {}, workspacename {}, mailaddress {}", filesystem, name, mailaddress);
     }
 
-    curl_global_cleanup();
+    utils::cleanupCurl();
 }

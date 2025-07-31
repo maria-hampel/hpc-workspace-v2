@@ -36,6 +36,13 @@
 
 #include "fmt/core.h"
 
+struct EmailData {
+    std::string content;
+    size_t index;
+    
+    EmailData(const std::string& content) : content(content), index(0) {}
+};
+
 namespace utils {
 
 // helper to show sourcelocation in debugging
@@ -99,6 +106,13 @@ void setupLogging(const std::string ident);
 // right trim whitespaces from a string
 std::string trimright(const std::string& in);
 std::string trimright(const char* in);
+
+void initCurl();
+
+void cleanupCurl();
+
+bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,
+              const std::string& completeMail);
 
 } // namespace utils
 
