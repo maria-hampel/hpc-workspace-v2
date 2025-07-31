@@ -46,7 +46,6 @@ setup() {
     run ws_expirer --config bats/ws.conf -c
     assert_output --regexp 'expiring .*-EXPIRE_TEST'
     assert_success
-    ws_release --config bats/ws.conf EXPIRE_TEST
 }
 
 @test "ws_expirer delete expired" {
