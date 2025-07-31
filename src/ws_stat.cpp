@@ -69,6 +69,7 @@ using namespace std;
 bool debugflag = false;
 bool traceflag = false;
 bool verbose = false;
+int loglevel = 0;
 
 // result type for stat collection
 struct stat_result {

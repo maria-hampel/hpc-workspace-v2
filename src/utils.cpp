@@ -29,6 +29,7 @@
  */
 
 #include <cassert>
+#include <cstdlib>
 #include <curl/curl.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -38,6 +39,7 @@
 #include <memory>
 #include <regex>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <sys/stat.h>
 #include <vector>
@@ -76,6 +78,7 @@ using namespace std;
 // globals
 extern bool debugflag;
 extern bool traceflag;
+extern int loglevel;
 extern Cap caps;
 
 // fwd
@@ -523,6 +526,13 @@ void setupLogging(const std::string ident) {
         spdlog::logger* log = new spdlog::logger("multi_sink", {stderr_sink, syslog_sink});
         spdlog::set_default_logger(std::shared_ptr<spdlog::logger>(log));
         spdlog::set_level(spdlog::level::trace);
+    }
+
+    try {
+        loglevel = std::stoi(std::getenv("WS_LOG_LEVEL"));
+    } catch (std::invalid_argument& e) {
+        spdlog::error("ignoring invalid loglevel");
+        loglevel = 0;
     }
 }
 

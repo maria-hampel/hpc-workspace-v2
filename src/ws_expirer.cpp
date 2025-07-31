@@ -67,6 +67,7 @@ using namespace std;
 
 bool debugflag = false;
 bool traceflag = false;
+int loglevel = 0;
 
 bool cleanermode = false;
 
