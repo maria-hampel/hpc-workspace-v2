@@ -327,6 +327,7 @@ DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspac
     : parent_db(pdb), id(_id), workspace(_workspace), creation(_creation), expiration(_expiration), reminder(_reminder),
       extensions(_extensions), group(_group), mailaddress(_mailaddress), comment(_comment) {
     dbfilepath = pdb->getconfig()->getFsConfig(pdb->getfs()).database + "/" + id;
+    released = 0;
 }
 
 // read db entry from yaml file
