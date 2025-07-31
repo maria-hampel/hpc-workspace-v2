@@ -39,7 +39,7 @@
 struct EmailData {
     std::string content;
     size_t index;
-    
+
     EmailData(const std::string& content) : content(content), index(0) {}
 };
 

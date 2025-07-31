@@ -316,8 +316,6 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     return mail.str();
 }
 
-
-
 int main(int argc, char** argv) {
     std::string filesystem;
     std::string mailaddress("");

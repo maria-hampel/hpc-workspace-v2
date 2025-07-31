@@ -258,7 +258,7 @@ void Config::readYAML(string yamlstr) {
                     if (node = ws["comment"]; node.has_val())
                         node >> fs.comment;
 
-                    if (fs.maxduration == 0 && global.maxduration!=0) {
+                    if (fs.maxduration == 0 && global.maxduration != 0) {
                         fs.maxduration = global.maxduration;
                     }
 
@@ -357,7 +357,7 @@ void Config::readYAML(const string yaml) {
                     else
                         fs.maxduration = 0;
 
-                    if (fs.maxduration == 0 && global.maxduration!=0) {
+                    if (fs.maxduration == 0 && global.maxduration != 0) {
                         fs.maxduration = global.maxduration;
                     }
 
