@@ -170,14 +170,6 @@ std::string generateICSDateFormat(const time_t time) {
     return s;
 }
 
-// Generate the Date Format used for Mime Mails from time_t
-std::string generateMailDateFormat(const time_t time) {
-    char timeString[std::size("Mon, 29 Nov 2010 21:54:29 +1100")];
-    std::strftime(std::data(timeString), std::size(timeString), "%a, %d %h %Y %X %z", std::localtime(&time));
-    std::string s(timeString);
-    return s;
-}
-
 // Encode ics input for Base64
 std::string base64Encode(const std::string& input) {
     const std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -256,18 +248,6 @@ std::string generateICS(const std::unique_ptr<DBEntry>& entry, const std::string
     return ics.str();
 }
 
-// Generate a message ID from current time, PID, and Random component
-std::string generateMessageID(const std::string& domain = "ws_send_ical") {
-    auto now = std::time(nullptr);
-    auto pid = getpid();
-
-    std::hash<std::string> hasher;
-    std::string unique_string = std::to_string(now) + std::to_string(pid) + std::to_string(rand());
-    auto hash = hasher(unique_string);
-
-    return fmt::format("{}.{}.{}@{}", now, pid, hash, domain);
-}
-
 // Generate the Mail
 std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics, const std::string mail_from,
                          const std::string mail_to, const std::string clustername, time_t now) {
@@ -275,10 +255,10 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     std::string resource = entry->getFilesystem();
 
     std::stringstream mail;
-    std::string expirationtimestr = generateMailDateFormat(entry->getExpiration());
-    std::string createtimestr = generateMailDateFormat(now);
+    std::string expirationtimestr = utils::generateMailDateFormat(entry->getExpiration());
+    std::string createtimestr = utils::generateMailDateFormat(now);
     std::string boundary = "_NextPart_01234567.89ABCDEF";
-    std::string messageID = generateMessageID();
+    std::string messageID = utils::generateMessageID();
 
     std::string encodedICS = base64Encode(ics);
 

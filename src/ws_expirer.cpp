@@ -85,6 +85,8 @@ struct clean_stray_result_t {
 
 // time to keep released workspaces before deletion in seconds
 long releasekeeptime = 3600;
+std::string CRLF = "\r\n";
+std::string boundary = "_NextPart_01234567.89ABCDEF";
 
 static void setupLogging(const std::string ident) {
     auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
@@ -92,6 +94,38 @@ static void setupLogging(const std::string ident) {
     auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
     spdlog::set_default_logger(stderr_logger);
     spdlog::set_level(spdlog::level::trace);
+}
+
+std::string generateReminder(const std::string& mail_from, const std::string mail_to, const long expirationtime, const std::string& wsname, 
+                            const std::string& fsname, const std::string& clustername) {
+
+    std::stringstream mail;
+    std::string expirationtimestr = utils::generateMailDateFormat(expirationtime);
+    std::string messageID = utils::generateMessageID();
+    std::string createtimestr = utils::generateMailDateFormat(time((long*)0L));
+
+    mail << "From: " << mail_from << CRLF;
+    mail << "To: " << mail_to << CRLF;
+    mail << "Subject: Workspace " << wsname << " will expire at " << expirationtimestr << CRLF;
+    mail << "Message-ID: <" << messageID << ">" << CRLF;
+    mail << "Date: " << createtimestr << CRLF;
+    mail << "MIME-Version: 1.0" << CRLF;
+    mail << "Content-Type: multipart/mixed; boundary=" << boundary << CRLF;
+    mail << "" << CRLF;
+
+    mail << "--" << boundary << CRLF;
+    mail << "Content-Type: text/plain; charset=UTF-8" << CRLF;
+    mail << "Content-Transfer-Encoding: 7bit" << CRLF;
+    mail << "" << CRLF;
+    mail << "Your workspace " << wsname << " on filesystem " << fsname << " at HPC System " << clustername
+         << " will expire at " << expirationtimestr << CRLF;
+    mail << "" << CRLF;
+
+    mail << "" << CRLF;
+    mail << "--" << boundary << "--" << CRLF;
+    mail << "" << CRLF;
+
+    return mail.str();
 }
 
 // clean_stray_directtories
@@ -311,7 +345,32 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         } else {
             fmt::println(" keeping {}", id); // TODO: add expiration time
             result.kept_ws++;
-            // TODO: reminder mails
+            // Send reminder emails
+            auto reminder = dbentry->getReminder();
+            if (time((long*)0L) > (expiration - (reminder * ( 24 * 3600 )))){
+                std::string smtpUrl = "smtp://" + config.smtphost();
+                std::string mail_from = config.mailfrom();
+                if (smtpUrl == "" || mail_from == ""){
+                    spdlog::warn("No smtphost or mailfrom available to contact users, please check your system config");
+                } else {
+                    std::string mail_to = dbentry->getMailaddress();
+                    std::string clustername = config.clustername();
+                    
+                    std::string completeMail = generateReminder(mail_from, mail_to, expiration, id, fs, clustername);
+                    /* TODO */
+                    fmt::println(" send mail to {}", id);
+                    // fmt::print("{}", completeMail);
+                    try {
+                        if (!utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
+                            spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
+                        }
+                    } catch (const std::exception& e) {
+                        spdlog::error("Exception while sending email: {}", e.what());
+                    }
+                }
+
+            }    
+            
         }
     }
 
@@ -405,6 +464,9 @@ int main(int argc, char** argv) {
 
     // locals settings to prevent strange effects
     utils::setCLocal();
+
+    // initialize curl
+    utils::initCurl();
 
     // set custom logging format, this different than other tools, as this tool is for root anyhow
     setupLogging(string(argv[0]));
@@ -523,6 +585,9 @@ int main(int argc, char** argv) {
     for (auto const& fs : fslist) {
         expire_workspaces(config, fs, dryrun);
     }
+
+    // Cleanup curl
+    utils::cleanupCurl();
 
     return 0;
 }

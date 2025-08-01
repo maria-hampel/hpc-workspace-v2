@@ -107,10 +107,19 @@ void setupLogging(const std::string ident);
 std::string trimright(const std::string& in);
 std::string trimright(const char* in);
 
+// Generate the Date Format used for Mime Mails from time_t/long
+std::string generateMailDateFormat(const time_t time);
+
+// Generate a message ID from current time, PID, and Random component
+std::string generateMessageID(const std::string& domain = "ws_send_ical");
+
+// Initialize Curl
 void initCurl();
 
+// Cleanup Curl 
 void cleanupCurl();
 
+// Send the a Mail with curl to the smtpUrl
 bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,
               const std::string& completeMail);
 

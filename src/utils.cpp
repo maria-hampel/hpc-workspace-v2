@@ -540,8 +540,30 @@ std::string trimright(const char* in) {
     return str;
 }
 
+// Generate the Date Format used for Mime Mails from time_t
+std::string generateMailDateFormat(const time_t time) {
+    char timeString[std::size("Mon, 29 Nov 2010 21:54:29 +1100")];
+    std::strftime(std::data(timeString), std::size(timeString), "%a, %d %h %Y %X %z", std::localtime(&time));
+    std::string s(timeString);
+    return s;
+}
+
+// Generate a message ID from current time, PID, and Random component
+std::string generateMessageID(const std::string& domain) {
+    auto now = std::time(nullptr);
+    auto pid = getpid();
+
+    std::hash<std::string> hasher;
+    std::string unique_string = std::to_string(now) + std::to_string(pid) + std::to_string(rand());
+    auto hash = hasher(unique_string);
+
+    return fmt::format("{}.{}.{}@{}", now, pid, hash, domain);
+}
+
+// Initialze curl
 void initCurl() { curl_global_init(CURL_GLOBAL_DEFAULT); }
 
+//Cleanup curl
 void cleanupCurl() { curl_global_cleanup(); }
 
 // Send the a Mail with curl to the smtpUrl
