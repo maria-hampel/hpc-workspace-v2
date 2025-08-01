@@ -56,7 +56,7 @@ using namespace std;
 // global variables
 bool debugflag = false;
 bool traceflag = false;
-int loglevel = 0;
+int debuglevel = 0;
 
 // init caps here, when euid!=uid
 Cap caps{};

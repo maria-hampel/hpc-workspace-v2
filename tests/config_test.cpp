@@ -18,6 +18,7 @@ namespace fs = std::filesystem;
 
 bool debugflag = false;
 bool traceflag = false;
+int debuglevel = 0;
 
 // init caps here, when euid!=uid
 Cap caps{};

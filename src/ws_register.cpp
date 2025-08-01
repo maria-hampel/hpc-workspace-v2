@@ -62,7 +62,7 @@ using namespace std;
 
 bool debugflag = false;
 bool traceflag = false;
-int loglevel = 0;
+int debuglevel = 0;
 
 int main(int argc, char** argv) {
 

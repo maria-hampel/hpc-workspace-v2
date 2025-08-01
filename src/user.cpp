@@ -44,6 +44,7 @@
 
 extern bool traceflag;
 extern bool debugflag;
+extern int debuglevel;
 
 namespace user {
 
@@ -105,7 +106,7 @@ std::vector<std::string> getGrouplist() {
 
     delete[] gids;
 
-    if (debugflag)
+    if (debugflag && debuglevel > 0)
         spdlog::debug("groups={}", grplist);
 
     return grplist;

@@ -5,6 +5,7 @@
 
 bool debugflag = false;
 bool traceflag = false;
+int debuglevel = 0;
 
 TEST_CASE("User config yaml format", "[userconfig]")
 {

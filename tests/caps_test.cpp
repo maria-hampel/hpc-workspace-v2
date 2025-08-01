@@ -9,6 +9,7 @@
 
 bool debugflag = false;
 bool traceflag = false;
+int debuglevel = 0;
 
 TEST_CASE("Caps", "[capabilities]")
 {

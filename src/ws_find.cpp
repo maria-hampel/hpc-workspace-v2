@@ -59,7 +59,7 @@ using namespace std;
 
 bool debugflag = false;
 bool traceflag = false;
-int loglevel = 0;
+int debuglevel = 0;
 
 // helper for fmt::
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};

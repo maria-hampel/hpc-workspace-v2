@@ -17,6 +17,7 @@ Cap caps{};
 
 bool debugflag = false;
 bool traceflag = false;
+int debuglevel = 0;
 
 TEST_CASE("Database Test", "[db]")
 {

@@ -57,6 +57,7 @@ namespace cppfs = std::filesystem;
 
 extern bool debugflag;
 extern bool traceflag;
+extern int debuglevel;
 
 // tries to read a list of config files, in given order, can be used to check for /etc/ws.d first and /etc/ws.conf
 // second stops when file can be read, but reads all files in case of directory given
@@ -226,8 +227,8 @@ void Config::readYAML(string yamlstr) {
                     auto name = it.key();
                     fs.name = {name.str, name.len}; // c4::string -> std::string
 
-                    if (debugflag)
-                        spdlog::debug("config, reading workspace {}", fs.name);
+                    if (debugflag && debuglevel > 0)
+                        spdlog::debug("config, reading workspace {} with ryaml", fs.name);
 
                     auto ws = it[fs.name.c_str()];
 
@@ -322,8 +323,8 @@ void Config::readYAML(const string yaml) {
                 for (auto it : list) {
                     Filesystem_config fs;
                     fs.name = it.first.as<string>();
-                    if (debugflag)
-                        spdlog::debug("config, reading workspace {}", fs.name);
+                    if (debugflag && debuglevel > 0)
+                        spdlog::debug("config, reading workspace {} with yaml-cpp", fs.name);
                     auto ws = it.second;
                     if (ws["spaces"])
                         fs.spaces = ws["spaces"].as<vector<string>>();
@@ -413,11 +414,11 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
     if (filesystems.at(filesystem).user_acl.size() > 0 || filesystems.at(filesystem).group_acl.size() > 0) {
         // as soon as any ACL is present access is denied and has to be granted
         ok = false;
-        if (debugflag)
+        if (debugflag && debuglevel > 0)
             spdlog::debug("ACLs present");
 
         if (filesystems.at(filesystem).group_acl.size() > 0) {
-            if (debugflag)
+            if (debugflag && debuglevel > 0)
                 spdlog::debug("   group ACL present,");
             auto aclmap = utils::parseACL(filesystems.at(filesystem).group_acl);
             for (const auto& group : groups) {
@@ -432,7 +433,7 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
                             ok = !canFind(perm.second, intent);
                         }
                     }
-                    if (debugflag)
+                    if (debugflag && debuglevel > 0)
                         spdlog::debug("   access for {} {}", group, ok ? "granted" : "denied");
                 }
             }
@@ -447,7 +448,7 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
         }
 
         if (filesystems.at(filesystem).user_acl.size() > 0) {
-            if (debugflag)
+            if (debugflag && debuglevel > 0)
                 spdlog::debug("   user ACL present,");
             auto aclmap = utils::parseACL(filesystems.at(filesystem).user_acl);
             if (aclmap.count(user) > 0) {
@@ -461,7 +462,7 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
                         ok = !canFind(perm.second, intent);
                     }
                 }
-                if (debugflag)
+                if (debugflag && debuglevel > 0)
                     spdlog::debug("   access for {} {}", user, ok ? "granted" : "denied");
             }
 
@@ -476,11 +477,11 @@ bool Config::hasAccess(const string user, const vector<string> groups, const str
 
     // check admins list, admins can see and access all filesystems
     if (global.admins.size() > 0) {
-        if (debugflag)
+        if (debugflag && debuglevel > 0)
             spdlog::debug("   admin list present, ");
         if (canFind(global.admins, user))
             ok = true;
-        if (debugflag)
+        if (debugflag && debuglevel > 0)
             spdlog::debug("   access {}", ok ? "granted" : "denied");
     }
 
@@ -516,7 +517,7 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
         spdlog::trace("validFilesystems(user={},groups={})", user, groups);
     vector<string> validfs;
 
-    if (debugflag) {
+    if (debugflag && debuglevel > 0) {
         // avoid vector<> fmt::print for clang <=17 at least
         spdlog::debug("validFilesystems({},{}) over ", user, groups);
         for (const auto& [fs, val] : filesystems)
@@ -526,13 +527,13 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
     // check if group or user default, user first
     // SPEC: with users first a workspace with user default is always in front of a groupdefault
     for (auto const& [fs, val] : filesystems) {
-        if (debugflag)
+        if (debugflag && debuglevel > 0)
             spdlog::debug("fs={} filesystems.at(fs).userdefault={}", fs, filesystems.at(fs).userdefault);
         if (canFind(filesystems.at(fs).userdefault, user)) {
-            if (debugflag)
+            if (debugflag && debuglevel > 0)
                 spdlog::debug(" checking if userdefault <{}> already added", fs);
             if (hasAccess(user, groups, fs, intent) && !canFind(validfs, fs)) {
-                if (debugflag)
+                if (debugflag && debuglevel > 0)
                     spdlog::debug("   adding userdefault <{}>", fs);
                 validfs.push_back(fs);
                 break;
@@ -543,12 +544,12 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
     // now groups
     for (auto const& [fs, val] : filesystems) {
         for (string group : groups) {
-            if (debugflag)
+            if (debugflag && debuglevel > 0)
                 spdlog::debug("checking if group <{}> in groupdefault[{}]={}", group, fs,
                               filesystems.at(fs).groupdefault);
             if (canFind(filesystems.at(fs).groupdefault, group)) {
                 if (hasAccess(user, groups, fs, intent) && !canFind(validfs, fs)) {
-                    if (debugflag)
+                    if (debugflag && debuglevel > 0)
                         spdlog::debug("adding groupdefault <{}>", fs);
                     validfs.push_back(fs);
                     goto groupend;
@@ -559,7 +560,7 @@ vector<string> Config::validFilesystems(const string user, const vector<string> 
 groupend:
 
     // global default last
-    if (debugflag) {
+    if (debugflag && debuglevel > 0) {
         spdlog::debug("global.default_workspace={}", global.defaultWorkspace);
         spdlog::debug("hasAccess({}, {}, {})={}", user, groups, global.defaultWorkspace,
                       hasAccess(user, groups, global.defaultWorkspace, intent));
@@ -568,7 +569,7 @@ groupend:
     }
     if ((global.defaultWorkspace != "") && hasAccess(user, groups, global.defaultWorkspace, intent) &&
         !canFind(validfs, global.defaultWorkspace)) {
-        if (debugflag)
+        if (debugflag && debuglevel > 0)
             spdlog::debug("adding default_workspace <{}>", global.defaultWorkspace);
         validfs.push_back(global.defaultWorkspace);
     }
@@ -576,7 +577,7 @@ groupend:
     // now all others with access
     for (auto const& [fs, val] : filesystems) {
         if (hasAccess(user, groups, fs, intent) && !canFind(validfs, fs)) {
-            if (debugflag)
+            if (debugflag && debuglevel > 0)
                 spdlog::debug("adding as having access <{}>", fs);
             validfs.push_back(fs);
         }

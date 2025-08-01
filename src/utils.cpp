@@ -78,7 +78,7 @@ using namespace std;
 // globals
 extern bool debugflag;
 extern bool traceflag;
-extern int loglevel;
+extern int debuglevel;
 extern Cap caps;
 
 // fwd
@@ -528,11 +528,14 @@ void setupLogging(const std::string ident) {
         spdlog::set_level(spdlog::level::trace);
     }
 
-    try {
-        loglevel = std::stoi(std::getenv("WS_LOG_LEVEL"));
-    } catch (std::invalid_argument& e) {
-        spdlog::error("ignoring invalid loglevel");
-        loglevel = 0;
+    auto ws_debug_level = std::getenv("WS_DEBUG_LEVEL");
+    if (ws_debug_level) {
+        try {
+            debuglevel = std::stoi(ws_debug_level);
+        } catch (std::invalid_argument& e) {
+            spdlog::error("ignoring invalid debuglevel");
+            debuglevel = 0;
+        }
     }
 }
 
