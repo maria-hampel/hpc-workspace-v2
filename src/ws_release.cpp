@@ -240,7 +240,13 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
             spdlog::debug("searching valid filesystems, currently {}", cfilesystem);
         }
 
-        std::unique_ptr<Database> candidate_db(config.openDB(cfilesystem));
+        std::unique_ptr<Database> candidate_db;
+        try {
+            candidate_db = std::unique_ptr<Database>(config.openDB(cfilesystem));
+        } catch (DatabaseException &e) {
+            spdlog::error(e.what());
+            continue;
+        }
 
         // check if entry exists
         try {

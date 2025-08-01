@@ -209,7 +209,13 @@ int main(int argc, char** argv) {
     for (auto const& fs : fslist) {
         if (debugflag)
             spdlog::debug("loop over fslist {} in {}", fs, fslist);
-        std::unique_ptr<Database> db(config.openDB(fs));
+        std::unique_ptr<Database> db;
+        try {
+            db = std::unique_ptr<Database>(config.openDB(fs));
+        } catch (DatabaseException &e) {
+            spdlog::error(e.what());
+            continue;
+        }
 
 #pragma omp parallel for schedule(dynamic)
         for (auto const& id : db->matchPattern(pattern, userpattern, {}, listexpired, false)) {

@@ -162,7 +162,13 @@ int main(int argc, char** argv) {
         }
 
         // create links
-        std::unique_ptr<Database> db(config.openDB(fs));
+        std::unique_ptr<Database> db;
+        try {
+            db = std::unique_ptr<Database>(config.openDB(fs));
+        } catch (DatabaseException &e) {
+            spdlog::error(e.what());
+            continue;
+        }
         for (auto const& id : db->matchPattern("*", username, grouplist, false, false)) {
             try {
                 std::unique_ptr<DBEntry> entry(db->readEntry(id, false));

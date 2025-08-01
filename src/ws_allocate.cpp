@@ -329,7 +329,13 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
         }
 
         // auto db = config.openDB(cfilesystem);
-        std::unique_ptr<Database> candidate_db(config.openDB(cfilesystem));
+        std::unique_ptr<Database> candidate_db;
+        try {
+            candidate_db = std::unique_ptr<Database>(config.openDB(cfilesystem));
+        } catch (DatabaseException &e) {
+            spdlog::error(e.what());
+            continue;
+        }
 
         // handle extension request with username first, as it has different error handling
         if (extensionflag && user_option.length() > 0) {
@@ -493,7 +499,15 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
         // SPEC:CHANGE: no LUA callouts
 
         // open DB where workspace will be created
-        std::unique_ptr<Database> creationDB(config.openDB(newfilesystem));
+        std::unique_ptr<Database> creationDB;
+        try {
+            creationDB = std::unique_ptr<Database>(config.openDB(newfilesystem));
+        } catch (DatabaseException &e) {
+            spdlog::error(e.what());
+            spdlog::error("aborting");
+            return;
+        }
+
 
         auto wsdir = creationDB->createWorkspace(name, user_option, opt.count("group") > 0, groupname);
 

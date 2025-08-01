@@ -215,7 +215,14 @@ void restore(const string name, const string target, const string username, cons
     for (auto const& fs : fslist) {
         if (debugflag)
             spdlog::debug("loop over fslist {} in {}", fs, fslist);
-        std::unique_ptr<Database> db(config.openDB(fs));
+
+        std::unique_ptr<Database> db;
+        try {
+            db = std::unique_ptr<Database>(config.openDB(fs));
+        } catch (DatabaseException &e) {
+            spdlog::error(e.what());
+            continue;
+        }
 
         for (auto const& id : db->matchPattern(id_noowner, username, grouplist, true, false)) {
             hits.push_back({fs, id});
@@ -243,7 +250,15 @@ void restore(const string name, const string target, const string username, cons
         return;
     }
 
-    std::unique_ptr<Database> source_db(config.openDB(source_filesystem));
+    std::unique_ptr<Database> source_db;
+    try {
+        source_db = std::unique_ptr<Database>(config.openDB(source_filesystem));
+    } catch (DatabaseException &e) {
+        spdlog::error(e.what());
+        spdlog::error("aborting");
+        return;
+    }
+
     // get source entry
     std::unique_ptr<DBEntry> source_entry;
     try {
@@ -321,7 +336,15 @@ void restore(const string name, const string target, const string username, cons
         for (auto const& fs : fslist) {
             if (debugflag)
                 spdlog::debug("loop over fslist {} in {}", fs, fslist);
-            std::unique_ptr<Database> candiate_db(config.openDB(fs));
+
+            std::unique_ptr<Database> candiate_db;
+            try {
+                candiate_db = std::unique_ptr<Database>(config.openDB(fs));
+            } catch (DatabaseException &e) {
+                spdlog::error(e.what());
+                continue;
+            }
+
 
             try {
                 std::unique_ptr<DBEntry> entry(candiate_db->readEntry(fmt::format("{}-{}", username, target), false));
@@ -482,7 +505,15 @@ int main(int argc, char** argv) {
         for (auto const& fs : fslist) {
             if (debugflag)
                 spdlog::debug("loop over fslist {} in {}", fs, fslist);
-            std::unique_ptr<Database> db(config.openDB(fs));
+
+            std::unique_ptr<Database> db;
+            try {
+                db = std::unique_ptr<Database>(config.openDB(fs));
+            } catch (DatabaseException &e) {
+                spdlog::error(e.what());
+                continue;
+            }
+
             try {
                 for (auto const& id : db->matchPattern("*", userpattern, grouplist, true, false)) {
                     fmt::println("{}", id);
