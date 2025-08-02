@@ -99,6 +99,9 @@ each call will consume an extension, unless the new expiration date is shorter
 than the previous one. You can also shorten the lifetime if no extensions
 are available anymore.
 
+You can extend group members workspaces if they had been created using ```ws_allocate -G <group>```
+to create a writable group workspace using ```ws_allocate -x -u <user> <workspace id> <days>```.
+
 ## getting reminder
 
 To get a reminder email before the workspace expires, you can set a reminder alarm
@@ -119,6 +122,9 @@ and is group readable.
 
 When it is created with ```-G <groupname>``` the workspace gets writable as well, and gets group sticky bit. The group can be specified in
 the ~/.ws_user.conf file as well.
+
+A writable workspace can also be listed by group members with ```ws_list -g``` and it can in addition be extended
+using ```ws_allocate -x -u <username> <workspace-id> <days>.
 
 With ```ws_share``` you can share workspaces with users outside your group, using ACLs (if supported by underlaying filesystem, since 1.3.7)
 

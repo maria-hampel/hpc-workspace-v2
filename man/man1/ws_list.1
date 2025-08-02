@@ -61,7 +61,16 @@ The shown order is the order workspaces are searched in, from top to bottom.
 select the filesystem to list the workspaces from.
 .TP
 \-g
-show group-workspaces visible for current group in addition to own workspaces
+show group-workspaces visible for current group in addition to own workspaces.
+You can extend visible workspace in behalf of the owner if the workspace is writable,
+either as it was created with
+.B ws_allocate -G <groupname>
+or because it was made
+writable later with
+.B chmod
+. See
+.B ws_allocate
+manpage for details.
 .TP
 \-s
 short listing, only workspace names will be listed.
