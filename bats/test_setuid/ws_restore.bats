@@ -10,7 +10,7 @@ setup() {
 
 @test "ws_restore print version" {
     run ws_restore --version
-    assert_output --partial "workspace"
+    assert_output --partial "ws_restore"
     assert_success
 }
 
