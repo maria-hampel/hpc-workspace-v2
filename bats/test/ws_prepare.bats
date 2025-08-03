@@ -52,12 +52,11 @@ setup() {
     rm -fr /tmp/ws
     env ws_prepare --config "bats/ws.conf"
     run ls /tmp/ws
-    assert_output <<EOF1
-    ws1
+    assert_output "    ws1
     ws1-db
     ws2
-    ws2-db
-EOF1
+    ws2-db"
+
     run ls -la /tmp/ws/ws1-db
     assert_output --partial ".removed"
     assert_output --partial ".ws_db_magic"

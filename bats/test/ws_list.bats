@@ -32,7 +32,7 @@ setup() {
     # create a temporary workspace for 3 days
     # prepare expected output for diff
     wsdir=$(ws_allocate --config bats/ws.conf ${ws_name}_timestamped 3)
-cat <<EOF >ref.txt
+cat <<EOF >/tmp/$$ref.txt
 Id: ${ws_name}_timestamped
     workspace directory  : $wsdir
     remaining time       : 2 days, 23 hours
@@ -41,15 +41,16 @@ Id: ${ws_name}_timestamped
     available extensions : 3
 EOF
     sleep 1
+    TMP=/tmp/$$tmp.txt
     # get ws_list output and parse and modify (check only day accuracy)
-    ws_list --config bats/ws.conf ${ws_name}_timestamped | grep -v expiration > tmp.txt
+    ws_list --config bats/ws.conf ${ws_name}_timestamped | grep -v expiration > $TMP
     ctime=$(date +%F $(cat tmp.txt | grep "/creation time/{ print $3 }"))
     etime=$(date +%F $(cat tmp.txt | grep "/expiration date/{ print $3 }"))
-    sed -i -e "s/\(.*creation time\s*:\) .*/\1 $ctime/" tmp.txt
-    sed -i -e "s/\(.*expiration date\s*:\) .*/\1 $etime/" tmp.txt
-    sed -i -e "s/\(.*filesystem name\s*:\) .*/\1 FS/" tmp.txt
+    sed -i -e "s/\(.*creation time\s*:\) .*/\1 $ctime/" $TMP
+    sed -i -e "s/\(.*expiration date\s*:\) .*/\1 $etime/" $TMP
+    sed -i -e "s/\(.*filesystem name\s*:\) .*/\1 FS/" $TMP
 
-    diff tmp.txt ref.txt
+    diff $TMP /tmp/$$ref.txt
     #rm tmp.txt ref.txt
 #    ws_release ${ws_name}_timestamped
     rm /tmp/ws/ws2-db/${USER}-${ws_name}_timestamped
@@ -63,18 +64,15 @@ EOF
     ws_allocate --config bats/ws.conf sortTestC 2
 
     run ws_list --config bats/ws.conf -s -N "sortTest*"
-    assert_output <<EOF1
-${USER}-sortTestA
+    assert_output "${USER}-sortTestA
 ${USER}-sortTestB
-${USER}-sortTestC
-EOF1
+${USER}-sortTestC"
 
     run ws_list --config bats/ws.conf -s -r -N "sortTest?"
-    assert_output <<EOF2
-${USER}-sortTestC
+    assert_output "${USER}-sortTestC
 ${USER}-sortTestB
-${USER}-sortTestA
-EOF2
+${USER}-sortTestA"
+
 }
 
 @test "ws_list sorting by creation" {
@@ -83,18 +81,15 @@ EOF2
     #ws_allocate --config bats/ws.conf sortTestC 2
 
     run ws_list --config bats/ws.conf -s -C "sortTest*"
-    assert_output <<EOF3
-${USER}-sortTestB
+    assert_output "${USER}-sortTestB
 ${USER}-sortTestA
-${USER}-sortTestC
-EOF3
+${USER}-sortTestC"
+
 
     run ws_list --config bats/ws.conf -s -r -C "sortTest*"
-    assert_output <<EOF9
-${USER}-sortTestC
+    assert_output "${USER}-sortTestC
 ${USER}-sortTestA
-${USER}-sortTestB
-EOF9
+${USER}-sortTestB"
 }
 
 @test "ws_list sorting by remaining time" {
@@ -103,18 +98,14 @@ EOF9
     #ws_allocate --config bats/ws.conf sortTestC 2
 
     run ws_list --config bats/ws.conf -s -R "sortTest[A-C]"
-    assert_output <<EOF4
-${USER}-sortTestA
+    assert_output "${USER}-sortTestA
 ${USER}-sortTestC
-${USER}-sortTestB
-EOF4
+${USER}-sortTestB"
 
     run ws_list --config bats/ws.conf -s -r -R "sortTest*"
-    assert_output <<EOF10
-${USER}-sortTestB
+    assert_output "${USER}-sortTestB
 ${USER}-sortTestC
-${USER}-sortTestA
-EOF10
+${USER}-sortTestA"
 }
 
 @test "ws_list pattern" {
@@ -124,19 +115,15 @@ EOF10
 
 @test "ws_list other fs" {
     ws_allocate --config bats/ws.conf -F ws1 WS1TEST
-    run ws_list --config bats/ws.conf -s -F ws1
-    assert_output <<EOF5
-${USER}-WS1TEST
-EOF5
+    run ws_list --config bats/ws.conf -s -F ws1 WS1TEST
+    assert_output ${USER}-WS1TEST
 }
 
 @test "ws_list list fs" {
     run ws_list --config bats/ws.conf -l
-    assert_output <<EOF6
-available filesystems (sorted according to priority):
+    assert_output "available filesystems (sorted according to priority):
 ws2
-ws1
-EOF6
+ws1"
 }
 
 @test "ws_list list fs detailed" {
@@ -159,8 +146,7 @@ EOF6
 
 @test "ws_list invalid option" {
     run ws_list --config bats/ws.conf -T
-    assert_output <<EOF8
-Usage: ws_list [options] [pattern]
+    assert_output "Usage: ws_list [options] [pattern]
 
 Options:
   -h [ --help ]                   produce help message
@@ -179,9 +165,7 @@ Options:
   -t [ --terse ]                  terse listing
   --config arg                    config file
   -p [ --pattern ] arg            pattern matching name (glob syntax)
-  -v [ --verbose ]                verbose listing
-
-EOF8
+  -v [ --verbose ]                verbose listing"
 }
 
 @test "ws_list warn about missing adminmail in config" {
