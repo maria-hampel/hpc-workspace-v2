@@ -11,6 +11,8 @@ including internals.
 ## new functionality
 
 - `ws_list` is a lot faster due to no python startup and faster listing and reading of DB
+- `ws_list -g` is a lot faster as it does only read DB entries of owners sharing a group
+- `ws_list -L` shows information aboit workspaces, including permissions and a comment given bu administrator
 - `/etc/ws.d` is primary location of config, files are read in alphabetical order and merged, if no files there,
 `/etc/ws.conf` is read
 - `ws_release --delete-data` to wipe data while releasing a workspace (also in v1 since a while)
@@ -28,9 +30,10 @@ including internals.
 ## changed behaviour
 
 - field `adminmail` as a list of email addresses is required in config (gives warning when not present)
+- ws_release bails out if workspace name is not unique
 - lua callout for path building is no longer supported, allocation options should fully replace its functionality
 - user needs access to default workspace (was giving a warning in v1 for some years already)
-- each tool does some checks on config validity
+- each tool does some checks on config validity and can bail out if config is bad, even for fiels it does not use
 - new human check in `ws_restore`, avoid dependency on `terminfo` or `ncurses`
 
 ## what's new under the hood
