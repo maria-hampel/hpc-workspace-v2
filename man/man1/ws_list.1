@@ -5,7 +5,7 @@ ws_list \- list workspaces
 
 .SH SYNOPSIS
 .B ws_list
-[\-h] [\-F FILESYSTEM] [\-g] [\-l] [\-s] [\-v] [\-s] [\-r] [\-N] [\-R] [\-C] [PATTERN]
+[\-h] [\-F FILESYSTEM] [\-g] [\-l] [\-L] [\-s] [\-v] [\-s] [\-r] [\-N] [\-R] [\-C] [PATTERN]
 
 .SH DESCRIPTION
 List
@@ -54,8 +54,15 @@ is available allowing you to restore workspaces on your own.
 display usage help text
 .TP
 \-l
-list the available filesystems, only filesystems the user has access to will be shown.
+list the available filesystems, only filesystems the user has list access to will be shown.
 The shown order is the order workspaces are searched in, from top to bottom.
+.TP
+\-L
+list the available filesystems you have list access for with properties like maximum duration and number of extensions granted
+as well as retention time after expiration or release, as well as permissions like right to allocate, extend and restore to.
+Add
+.B -v
+to see an explanation of the fields.
 .TP
 \-F
 select the filesystem to list the workspaces from.
