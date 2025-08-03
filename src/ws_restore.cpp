@@ -170,7 +170,7 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
 /*
  * check that either username matches the name of the workspace, or we are root
  */
-bool check_name(const string name, const string username, const string real_username) {
+bool check_name(const string name, const string real_username) {
     // as username and id can contain -, splitting is not good here
     //  name has shape:    username-id-timestamp
     //                             ^ search for this
@@ -542,7 +542,7 @@ int main(int argc, char** argv) {
                 exit(-1);
             }
         }
-        if (check_name(name, username, real_username)) {
+        if (check_name(name, real_username)) {
             if (cppfs::path(argv[0]).filename() == "ws_restore") {
                 if (utils::new_ruh()) {
                     restore(name, target, username, config, filesystem, opt.count("delete-data"));

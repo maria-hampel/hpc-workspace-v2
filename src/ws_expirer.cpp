@@ -48,10 +48,9 @@
 
 #include "caps.h"
 #include "utils.h"
-#include "ws.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/sinks/syslog_sink.h"
+#include "spdlog/sinks/syslog_sink.h" // IWYU pragma: keep
 #include "spdlog/spdlog.h"
 
 // init caps here, when euid!=uid
@@ -87,7 +86,7 @@ struct clean_stray_result_t {
 // time to keep released workspaces before deletion in seconds
 long releasekeeptime = 3600;
 
-static void setupLogging(const std::string ident) {
+static void setupLogging() {
     auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
     stderr_sink->set_pattern("%^%l%$: %v");
     auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
@@ -408,7 +407,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // set custom logging format, this different than other tools, as this tool is for root anyhow
-    setupLogging(string(argv[0]));
+    setupLogging();
 
     // define options
     po::options_description cmd_options("\nOptions");

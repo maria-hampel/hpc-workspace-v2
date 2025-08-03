@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
     int addtime = 0;
     bool listexpired = false;
     bool dryrun = true;
-    bool verbose = false;
+    // bool verbose = false;
 
     po::variables_map opts;
 
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
     // get flags
 
     listexpired = opts.count("expired");
-    verbose = opts.count("verbose");
+    // verbose = opts.count("verbose");
     if (opts.count("dry-run") && opts.count("not-kidding")) {
         spdlog::error("Use either --dry-run or no-kidding.");
         exit(0);
