@@ -31,6 +31,7 @@
 #include "fmt/base.h"
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
+#include <memory>
 #include <string>
 
 #include <regex> // buggy in redhat 7
@@ -234,6 +235,7 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
     // loop over valid workspaces, and see if the workspace exists
 
     std::unique_ptr<Database> db;
+    std::vector<std::unique_ptr<DBEntry>> entrylist;
 
     for (std::string cfilesystem : searchlist) {
         if (debugflag) {
@@ -255,17 +257,26 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
             else
                 dbid = username + "-" + name;
 
-            dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
+            entrylist.push_back(std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false)));
             db = std::move(candidate_db);
             foundfs = cfilesystem;
             ws_exists = true;
-            break;
         } catch (DatabaseException& e) {
             // silently ignore non existiong entries
             if (debugflag)
                 spdlog::debug("existence check failed for {}/{}", cfilesystem, dbid);
         }
     } // searchloop
+
+    // make sure workspace ID is unique
+    if (entrylist.size() > 1) {
+        spdlog::error("aborting, there is {} workspaces with that name, please use -F to specify filesystem",
+                      entrylist.size());
+        return;
+    } else {
+        if (entrylist.size() > 0)
+            dbentry = std::move(entrylist[0]);
+    }
 
     // workspace exists, release it
 
@@ -320,6 +331,8 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
         syslog(LOG_INFO, "release for user <%s> from <%s> to <%s> done.", user::getUsername().c_str(),
                dbentry->getWSPath().c_str(), target.c_str());
 
+        spdlog::info("workspace {} released.", name);
+
         //
         // third remove data is requested
         //
@@ -367,6 +380,8 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
 
             // remove DB entry
             dbentry->remove();
+
+            spdlog::info("workspace {} and data deleted, can not be restored.", name);
 
         } // if delete-data
 
