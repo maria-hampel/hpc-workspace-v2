@@ -30,6 +30,7 @@
 
 #include <grp.h>
 #include <pwd.h>
+#include <set>
 #include <string>
 #include <sys/types.h>
 #include <unistd.h>
@@ -110,6 +111,67 @@ std::vector<std::string> getGrouplist() {
         spdlog::debug("groups={}", grplist);
 
     return grplist;
+}
+
+// return a list of groupnames for a given user
+std::vector<std::string> getUserGroupList(const std::string& username) {
+    std::vector<std::string> groupList;
+    struct passwd* pw;
+
+    // Get user information by username
+    pw = getpwnam(username.c_str());
+    if (pw == nullptr) {
+        spdlog::warn("user {} not found.", username);
+        return groupList; // Return empty vector
+    }
+
+    // Get primary group name
+    struct group* gr = getgrgid(pw->pw_gid);
+    if (gr != nullptr) {
+        groupList.push_back(gr->gr_name);
+    } else {
+        spdlog::warn("could not get primary group name for GID {}", pw->pw_gid);
+    }
+
+    // Get supplementary groups
+    // getgrouplist needs a buffer for gids. We'll start with a reasonable size
+    // and resize if needed.
+    int ngroups = 10; // Initial guess for number of groups
+    std::vector<gid_t> gids(ngroups);
+
+    int result = getgrouplist(username.c_str(), pw->pw_gid, gids.data(), &ngroups);
+
+    if (result == -1) {
+        // Buffer was too small. ngroups now contains the required size.
+        gids.resize(ngroups);
+        result = getgrouplist(username.c_str(), pw->pw_gid, gids.data(), &ngroups);
+    }
+
+    if (result == -1) {
+        spdlog::warn("getgrouplist failed for user ", username);
+        return groupList; // Return what we have so far (primary group, if any)
+    }
+
+    // Use a set to store unique group names, as getgrouplist might return
+    // the primary group name again.
+    std::set<std::string> uniqueGroupNames;
+    if (!groupList.empty()) { // Add primary group if it was successfully found
+        uniqueGroupNames.insert(groupList[0]);
+    }
+
+    for (int i = 0; i < ngroups; ++i) {
+        gr = getgrgid(gids[i]);
+        if (gr != nullptr) {
+            uniqueGroupNames.insert(gr->gr_name);
+        } else {
+            spdlog::warn("could not get group name for GID {}", gids[i]);
+        }
+    }
+
+    // Convert set back to vector
+    groupList.assign(uniqueGroupNames.begin(), uniqueGroupNames.end());
+
+    return groupList;
 }
 
 } // namespace user

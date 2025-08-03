@@ -30,11 +30,13 @@
  *
  */
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
 
 #include "fmt/core.h"
+#include "user.h"
 
 struct EmailData {
     std::string content;
@@ -55,9 +57,6 @@ class SrcPos {
     SrcPos(const char* _file, const int _line, const char* _func) : file(_file), line(_line), func(_func) {};
     std::string getSrcPos() { return fmt::format("{}:{}[{}]", file, line, func); }
 };
-
-// return names of groups of user given
-std::vector<std::string> getgroupnames(std::string username);
 
 // read a small file and returnm as string
 std::string getFileContents(const char* filename);
@@ -113,6 +112,39 @@ void cleanupCurl();
 
 bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,
               const std::string& completeMail);
+
+// class to check existance of intersection of group lists of two users, on user provided through constructor,
+// other user provided through method, with caching for result
+class HasGroupIntersection {
+  private:
+    std::vector<std::string> baselist;
+    std::map<std::string, bool> resultcache;
+
+  public:
+    HasGroupIntersection(const std::string baseuser) {
+        baselist = user::getUserGroupList(baseuser);
+        std::sort(baselist.begin(), baselist.end());
+    };
+    bool hasCommonGroups(const std::string user) {
+        auto it = resultcache.find(user);
+        if (it != resultcache.end())
+            return it->second;
+
+        // not found
+        auto comparelist = user::getUserGroupList(user);
+        std::sort(comparelist.begin(), comparelist.end());
+
+        std::vector<std::string> intersection;
+        std::set_intersection(baselist.begin(), baselist.end(), comparelist.begin(), comparelist.end(),
+                              std::back_inserter(intersection));
+
+        if (intersection.size() > 0) {
+            resultcache[user] = true;
+            return true;
+        }
+        return false;
+    };
+};
 
 } // namespace utils
 

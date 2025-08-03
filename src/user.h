@@ -37,13 +37,19 @@
 #include <sys/types.h>
 
 namespace user {
+
 std::string getUsername();
 std::string getUserhome();
 bool isRoot();
 bool isnotSetuid();
 bool isSetuid();
+// ret7urn name of current effective group
 std::string getGroupname();
+// return list of groups of current process
 std::vector<std::string> getGrouplist();
+// return a list of groupnames for a given user
+std::vector<std::string> getUserGroupList(const std::string& username);
+
 } // namespace user
 
 #endif
