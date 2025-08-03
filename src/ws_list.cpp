@@ -201,30 +201,36 @@ int main(int argc, char** argv) {
     auto grouplist = user::getGrouplist();
 
     // list of fileystems or list of workspaces
-    if (listfilesystems) {
+    if (listfilesystems) { // -l
         fmt::print("available filesystems (sorted according to priority):\n");
         for (auto fs : config.validFilesystems(username, grouplist, ws::LIST)) {
             fmt::print("{}\n", fs);
         }
-    } else if (listfilesystemdetails) {
+    } else if (listfilesystemdetails) { // -L
         fmt::println("available filesystems (sorted according to priority):\n");
         fmt::println("{:>10}{:>12}{:>12}{:>10}{:>12}{:>12}{:>12}{:>10}", "name", "maxduration", "extensions",
                      "keeptime", "allocatable", "extendable", "restorable", "comment");
         for (auto fs : config.validFilesystems(username, grouplist, ws::LIST)) {
             auto fsc = config.getFsConfig(fs);
             fmt::print("{:>10}{:>12}{:>12}{:>10}{:>12}{:>12}{:>12}   {}\n", fs, fsc.maxduration, fsc.maxextensions,
-                       fsc.keeptime, fsc.allocatable, fsc.extendable, fsc.restorable, fsc.comment);
+                       fsc.keeptime, config.hasAccess(username, grouplist, fs, ws::CREATE),
+                       config.hasAccess(username, grouplist, fs, ws::EXTEND),
+                       config.hasAccess(username, grouplist, fs, ws::RESTORE), fsc.comment);
         }
-        // TODO: extended ACL, check with hasAccess and intent
-        fmt::println("\nExplanation:");
-        fmt::println("  maxduration: maximum number of days you can specify with ws_allocate as lifetime");
-        fmt::println("   extensions: the numer of times you can extend the workspace");
-        fmt::println("     keeptime: the number of days an expired or released workspace can be restored (unless data "
-                     "was deleted)");
-        fmt::println("  allocatable: flag if new workspaces can be created here");
-        fmt::println("   extendable: flag if workspaces can be extended here");
-        fmt::println("   restorable: flag if new workspaces can be restored here");
-    } else {
+
+        if (verbose) {
+            fmt::println("\nExplanation:");
+            fmt::println("  maxduration: maximum number of days you can specify with ws_allocate as lifetime");
+            fmt::println("   extensions: the numer of times you can extend the workspace");
+            fmt::println(
+                "     keeptime: the number of days an expired or released workspace can be restored (unless data "
+                "was deleted)");
+            fmt::println("  allocatable: flag if new workspaces can be created here");
+            fmt::println("   extendable: flag if workspaces can be extended here");
+            fmt::println("   restorable: flag if new workspaces can be restored here");
+        }
+    } else { // list workspaces
+
         bool sort = sortbyname || sortbycreation || sortbyremaining;
 
         // if not pattern, show all entries
