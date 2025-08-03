@@ -219,6 +219,7 @@ void FilesystemDBV1::createEntry(const WsID id, const string workspace, const lo
 }
 
 // get a list of ids of matching DB entries for a user
+// groupworkspaces flag determines if content of DB entry has to be checked for correct group
 //  unittest: yes
 vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string user, const vector<string> groups,
                                           const bool deleted, const bool groupworkspaces) {
@@ -235,7 +236,13 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
             if (groupworkspaces) {
                 auto filelist = utils::dirEntries(pathname, filepattern);
                 vector<string> list;
+                utils::HasGroupIntersection groupintersection(user::getUsername());
+
                 for (auto const& f : filelist) {
+                    // optimization: check if owner (from filename) has common groups with caller. if not, do not read
+                    if (!groupintersection.hasCommonGroups(utils::splitString(f, '-')[0]))
+                        continue;
+
 #ifndef WS_RAPIDYAML_DB
                     YAML::Node dbentry;
                     try {
@@ -263,7 +270,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
                     }
                 }
                 return list;
-            } else {
+            } else { // simple file match, no group workspace
                 return utils::dirEntries(pathname, filepattern);
             }
         } catch (cppfs::filesystem_error const& e) {
@@ -484,13 +491,16 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
         if (creation > 0)
             fmt::print("    creation time        : {}", ctime(&creation));
         fmt::print("    expiration time      : {}", ctime(&expiration));
+        if (group != "")
+            fmt::println("    group                : {}", group);
         fmt::println("    filesystem name      : {}", filesystem);
     }
     fmt::println("    available extensions : {}", extensions);
     if (verbose) {
         long rd = expiration - reminder / (24 * 3600);
         fmt::print("    reminder             : {}", ctime(&rd));
-        fmt::println("    mailaddress          : {}", mailaddress);
+        if (mailaddress != "")
+            fmt::println("    mailaddress          : {}", mailaddress);
     }
 };
 
