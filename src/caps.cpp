@@ -30,7 +30,7 @@
 
 #include <cstdlib>
 
-#include "fmt/base.h"
+#include "fmt/base.h"   // IWYU pragma: keep
 #include "fmt/ranges.h" // IWYU pragma: keep
 
 #include "caps.h"
