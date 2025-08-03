@@ -22,6 +22,36 @@ setup() {
     assert_success
 }
 
+@test "ws_release bad fs" {
+    run ws_release --config bats/ws.conf -F wsX NONEXISTING
+    assert_output --partial "aborting, no valid filesystem given."
+    assert_failure
+}
+
+@test "ws_release non-existing" {
+    run ws_release -u someuser --config bats/ws.conf NONEXISTING
+    assert_output --partial "Ignoring username option"
+    assert_output --partial "Non-existent workspace given"
+    assert_failure
+}
+
+@test "ws_release existing" {
+    ws_allocate --config bats/ws.conf -F ws1 EXISTING
+    run ws_release --config bats/ws.conf EXISTING
+    assert_output --partial "workspace EXISTING released"
+    assert_success
+}
+
+@test "ws_release non-unique" {
+    ws_allocate --config bats/ws.conf -F ws1 DOUBLENAME
+    ws_allocate --config bats/ws.conf -F ws2 DOUBLENAME
+    run ws_release --config bats/ws.conf DOUBLENAME
+    assert_output --partial "there is 2 workspaces with that name"
+    assert_failure
+    run ws_release --config bats/ws.conf -F ws1 DOUBLENAME
+    run ws_release --config bats/ws.conf -F ws2 DOUBLENAME
+}
+
 @test "ws_release releases directory" {
     wsdir=$(ws_allocate --config bats/ws.conf -F ws1 $ws_name)
     assert_dir_exist $wsdir

@@ -72,7 +72,7 @@ template <> struct fmt::formatter<po::options_description> : ostream_formatter {
  *  parse the commandline and see if all required arguments are passed, and check the workspace name for
  *  bad characters
  */
-void commandline(po::variables_map& opt, string& name, string& filesystem, string& user, string& groupname,
+void commandline(po::variables_map& opt, string& name, string& filesystem, string& user,
                  bool& deletedata, int argc, char** argv, std::string& configfile) {
     // define all options
 
@@ -84,7 +84,6 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
         ("name,n", po::value<string>(&name), "workspace name")
         ("filesystem,F", po::value<string>(&filesystem), "filesystem")
         ("username,u", po::value<string>(&user), "username")
-        ("groupname,G", po::value<string>(&groupname)->default_value(""), "groupname")
         ("config,c", po::value<string>(&configfile), "config file")
         ("delete-data", "delete all data, workspace can NOT BE RECOVERED!");
     // clang-format on
@@ -159,20 +158,12 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
  *
  *  changes duration and maxextensions, does return true if they are out of bounds
  */
-bool validateFsAndGroup(const Config& config, const po::variables_map& opt, const std::string username) {
+bool validateFs(const Config& config, const po::variables_map& opt, const std::string username) {
     if (traceflag)
         spdlog::trace("validateFsAndGroup(username={})", username);
 
     // auto groupnames=getgroupnames(username); // FIXME:  use getGrouplist ?
     auto groupnames = user::getGrouplist();
-
-    // if a group was given, check if a valid group was given
-    if (opt["groupname"].as<string>() != "") {
-        if (find(groupnames.begin(), groupnames.end(), opt["groupname"].as<string>()) == groupnames.end()) {
-            spdlog::error("invalid group specified!");
-            return false;
-        }
-    }
 
     // if the user specifies a filesystem, he must be allowed to use it
     if (opt.count("filesystem")) {
@@ -191,10 +182,10 @@ bool validateFsAndGroup(const Config& config, const po::variables_map& opt, cons
  *  file accesses and config access are hidden in DB and config handling
  *  FIXME: make it -> int and return errors for tesing
  */
-void release(const Config& config, const po::variables_map& opt, string filesystem, const string name,
-             string user_option, const string groupname, const bool deletedata) {
+bool release(const Config& config, const po::variables_map& opt, string filesystem, const string name,
+             string user_option, const bool deletedata) {
     if (traceflag)
-        spdlog::trace("releae({}, {}, {}, {}, {})", filesystem, name, user_option, groupname, deletedata);
+        spdlog::trace("releae({}, {}, {}, {})", filesystem, name, user_option, deletedata);
 
     std::string username = user::getUsername(); // current user
 
@@ -202,13 +193,14 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
     auto valid_filesystems = config.validFilesystems(user::getUsername(), user::getGrouplist(), ws::RELEASE);
 
     if (valid_filesystems.size() == 0) {
-        spdlog::error("no valid filesystems in configuration, can not allocate");
-        exit(-1); // FIXME: bad for testing
+        spdlog::error("no valid filesystems in configuration, can not release");
+        return false; // FIXME: bad for testing
     }
 
     // validate filesystem and group given on command line
-    if (!validateFsAndGroup(config, opt, user_option)) {
-        spdlog::error("aborting!");
+    if (!validateFs(config, opt, user_option)) {
+        spdlog::error("aborting, no valid filesystem given.");
+        return false;
     }
 
     // if no filesystem provided, get valid filesystems from config, ordered: userdefault, groupdefault, globaldefault,
@@ -272,7 +264,7 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
     if (entrylist.size() > 1) {
         spdlog::error("aborting, there is {} workspaces with that name, please use -F to specify filesystem",
                       entrylist.size());
-        return;
+        return false;
     } else {
         if (entrylist.size() > 0)
             dbentry = std::move(entrylist[0]);
@@ -299,7 +291,7 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
             dbentry->release(timestamp); // timestamp is version information, same as for directory later
         } catch (const DatabaseException& e) {
             spdlog::error(e.what());
-            exit(-1); // on error we bail out, workspace will still exist and db most probably as well
+            return -1;  // on error we bail out, workspace will still exist and db most probably as well
         }
         // we exit this as DB user on success
 
@@ -323,7 +315,7 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
             if (debugflag)
                 spdlog::error("{}", e.what());
             spdlog::error("database entry could not be deleted!");
-            exit(-1);
+            return false;
         }
 
         caps.lower_cap({CAP_DAC_OVERRIDE}, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
@@ -390,14 +382,17 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
         // workspace does not exist and needs to be created
 
         spdlog::error("Non-existent workspace given.");
+        return false;
     }
+
+    return true;
 }
 
 int main(int argc, char** argv) {
     string name;
     string filesystem;
     string mailaddress("");
-    string user_option, groupname;
+    string user_option;
     string configfile;
     bool deletedata;
     po::variables_map opt;
@@ -413,7 +408,7 @@ int main(int argc, char** argv) {
     utils::setupLogging(string(argv[0]));
 
     // check commandline, get flags which are used to create ws object or for workspace release
-    commandline(opt, name, filesystem, user_option, groupname, deletedata, argc, argv, configfile);
+    commandline(opt, name, filesystem, user_option, deletedata, argc, argv, configfile);
 
     // find which config files to read
     //   user can change this if no setuid installation OR if root
@@ -448,5 +443,7 @@ int main(int argc, char** argv) {
     openlog("ws_release", 0, LOG_USER); // SYSLOG
 
     // release workspace
-    release(config, opt, filesystem, name, user_option, groupname, deletedata);
+    if (!release(config, opt, filesystem, name, user_option, deletedata)) {
+        return -1;
+    }
 }
