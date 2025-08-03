@@ -128,8 +128,8 @@ ws1"
 
 @test "ws_list list fs detailed" {
     run ws_list --config bats/ws.conf -L
-    assert_output --partial "ws2        32           3         7   one hell of a comment"
-    assert_output --partial "ws1        31           3         7"
+    assert_output --partial "ws2          32           3         7        true        true        true   one hell of a comment"
+    assert_output --partial "ws1          31           3         7        true        true        true"
 }
 
 @test "ws_list error handling" {
