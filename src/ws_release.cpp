@@ -72,8 +72,8 @@ template <> struct fmt::formatter<po::options_description> : ostream_formatter {
  *  parse the commandline and see if all required arguments are passed, and check the workspace name for
  *  bad characters
  */
-void commandline(po::variables_map& opt, string& name, string& filesystem, string& user,
-                 bool& deletedata, int argc, char** argv, std::string& configfile) {
+void commandline(po::variables_map& opt, string& name, string& filesystem, string& user, bool& deletedata, int argc,
+                 char** argv, std::string& configfile) {
     // define all options
 
     po::options_description cmd_options("\nOptions");
@@ -291,7 +291,7 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
             dbentry->release(timestamp); // timestamp is version information, same as for directory later
         } catch (const DatabaseException& e) {
             spdlog::error(e.what());
-            return -1;  // on error we bail out, workspace will still exist and db most probably as well
+            return -1; // on error we bail out, workspace will still exist and db most probably as well
         }
         // we exit this as DB user on success
 
