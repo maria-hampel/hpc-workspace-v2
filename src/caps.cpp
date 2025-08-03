@@ -120,7 +120,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 #ifdef WS_CAPA
     if (hascaps) {
         cap_t caps;
-        cap_value_t cap_list[cap_arg.size()]; // FIXME: VLA not in ISO C++
+        std::vector<cap_value_t> cap_list(cap_arg.size());
 
         int cnt = 0;
         for (const auto& ca : cap_arg) {
@@ -130,7 +130,7 @@ void Cap::drop_caps(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
         caps = cap_init();
 
         // setting caps we should have in PERMITTED set
-        if (cap_set_flag(caps, CAP_PERMITTED, cnt, cap_list, CAP_SET) == -1) {
+        if (cap_set_flag(caps, CAP_PERMITTED, cnt, cap_list.data(), CAP_SET) == -1) {
             spdlog::error("problem with permitted capabilities. {}", srcpos.getSrcPos());
             if (debugflag)
                 dump();
@@ -166,7 +166,7 @@ void Cap::lower_cap(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 #ifdef WS_CAPA
     if (hascaps) {
         cap_t caps;
-        cap_value_t cap_list[cap_arg.size()]; // FIXME VLA not in ISO C++
+        std::vector<cap_value_t> cap_list(cap_arg.size());
 
         int cnt = 0;
         for (const auto& ca : cap_arg) {
@@ -175,7 +175,7 @@ void Cap::lower_cap(std::vector<cap_value_t> cap_arg, int uid, utils::SrcPos src
 
         caps = cap_get_proc();
 
-        if (cap_set_flag(caps, CAP_EFFECTIVE, cnt, cap_list, CAP_CLEAR) == -1) {
+        if (cap_set_flag(caps, CAP_EFFECTIVE, cnt, cap_list.data(), CAP_CLEAR) == -1) {
             spdlog::error("problem with effective capabilities {}.", srcpos.getSrcPos());
             exit(1);
         }
@@ -209,7 +209,7 @@ void Cap::raise_cap(std::vector<cap_value_t> cap_arg, utils::SrcPos srcpos) {
 #ifdef WS_CAPA
     if (hascaps) {
         cap_t caps;
-        cap_value_t cap_list[cap_arg.size()]; // FIXME VLA not in ISO C++
+        std::vector<cap_value_t> cap_list(cap_arg.size());
 
         int cnt = 0;
         for (const auto& ca : cap_arg) {
@@ -218,7 +218,7 @@ void Cap::raise_cap(std::vector<cap_value_t> cap_arg, utils::SrcPos srcpos) {
 
         caps = cap_get_proc();
 
-        if (cap_set_flag(caps, CAP_EFFECTIVE, cnt, cap_list, CAP_SET) == -1) {
+        if (cap_set_flag(caps, CAP_EFFECTIVE, cnt, cap_list.data(), CAP_SET) == -1) {
             spdlog::error("problem with effective capabilities {}.", srcpos.getSrcPos());
             exit(1);
         }
