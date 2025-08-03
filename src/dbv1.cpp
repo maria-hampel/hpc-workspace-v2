@@ -466,7 +466,7 @@ void DBEntryV1::readFromString(std::string str) {
 
 #endif
 
-// print entry to stdout, for ws_list, should be only called lock protected, is not thread safe due to std::ctime
+// print entry to stdout, for ws_list
 //  TODO: unittest
 void DBEntryV1::print(const bool verbose, const bool terse) const {
     string repr;
@@ -489,8 +489,8 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
         if (comment != "")
             fmt::println("    comment              : {}", comment);
         if (creation > 0)
-            fmt::print("    creation time        : {}", ctime(&creation));
-        fmt::print("    expiration time      : {}", ctime(&expiration));
+            fmt::println("    creation time        : {}", utils::ctime(&creation));
+        fmt::println("    expiration time      : {}", utils::ctime(&expiration));
         if (group != "")
             fmt::println("    group                : {}", group);
         fmt::println("    filesystem name      : {}", filesystem);
@@ -498,7 +498,7 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
     fmt::println("    available extensions : {}", extensions);
     if (verbose) {
         long rd = expiration - reminder / (24 * 3600);
-        fmt::print("    reminder             : {}", ctime(&rd));
+        fmt::println("    reminder             : {}", utils::ctime(&rd));
         if (mailaddress != "")
             fmt::println("    mailaddress          : {}", mailaddress);
     }

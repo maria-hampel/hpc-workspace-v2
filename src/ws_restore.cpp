@@ -519,7 +519,7 @@ int main(int argc, char** argv) {
                     if (!terse) {
                         auto pos = id.rfind("-") + 1;
                         time_t t = atol(id.substr(pos).c_str());
-                        fmt::print("\tunavailable since : {}", std::ctime(&t)); // contains a \n
+                        fmt::println("\tunavailable since : {}", utils::ctime(&t));
                         fmt::println("\tin filesystem     : {}", db->readEntry(id, true)->getFilesystem());
                     }
                 }

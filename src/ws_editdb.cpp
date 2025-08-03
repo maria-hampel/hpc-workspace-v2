@@ -243,10 +243,9 @@ int main(int argc, char** argv) {
         if (addtime != 0) {
             auto expiration = entry->getExpiration();
             auto newexpiration = expiration + (addtime * DAYS);
-            auto olddate = string(std::ctime(&expiration));
-            auto newdate = string(std::ctime(&newexpiration));
-            fmt::println("    change expiration: {:.24} ({}) -> {:.24} ({})", olddate, expiration, newdate,
-                         newexpiration);
+            auto olddate = utils::ctime(&expiration);
+            auto newdate = utils::ctime(&newexpiration);
+            fmt::println("    change expiration: {} ({}) -> {} ({})", olddate, expiration, newdate, newexpiration);
             if (!dryrun) {
                 if (debugflag) {
                     spdlog::debug("updating entry");
