@@ -332,7 +332,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
         std::unique_ptr<Database> candidate_db;
         try {
             candidate_db = std::unique_ptr<Database>(config.openDB(cfilesystem));
-        } catch (DatabaseException &e) {
+        } catch (DatabaseException& e) {
             spdlog::error(e.what());
             continue;
         }
@@ -502,12 +502,11 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
         std::unique_ptr<Database> creationDB;
         try {
             creationDB = std::unique_ptr<Database>(config.openDB(newfilesystem));
-        } catch (DatabaseException &e) {
+        } catch (DatabaseException& e) {
             spdlog::error(e.what());
             spdlog::error("aborting");
             return;
         }
-
 
         auto wsdir = creationDB->createWorkspace(name, user_option, opt.count("group") > 0, groupname);
 

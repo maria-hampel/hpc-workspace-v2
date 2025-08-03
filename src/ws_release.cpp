@@ -243,7 +243,7 @@ void release(const Config& config, const po::variables_map& opt, string filesyst
         std::unique_ptr<Database> candidate_db;
         try {
             candidate_db = std::unique_ptr<Database>(config.openDB(cfilesystem));
-        } catch (DatabaseException &e) {
+        } catch (DatabaseException& e) {
             spdlog::error(e.what());
             continue;
         }

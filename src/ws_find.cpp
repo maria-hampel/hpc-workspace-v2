@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
         std::unique_ptr<Database> db;
         try {
             db = std::unique_ptr<Database>(config.openDB(fs));
-        } catch (DatabaseException &e) {
+        } catch (DatabaseException& e) {
             spdlog::error(e.what());
             continue;
         }

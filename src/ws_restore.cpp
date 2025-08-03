@@ -219,7 +219,7 @@ void restore(const string name, const string target, const string username, cons
         std::unique_ptr<Database> db;
         try {
             db = std::unique_ptr<Database>(config.openDB(fs));
-        } catch (DatabaseException &e) {
+        } catch (DatabaseException& e) {
             spdlog::error(e.what());
             continue;
         }
@@ -253,7 +253,7 @@ void restore(const string name, const string target, const string username, cons
     std::unique_ptr<Database> source_db;
     try {
         source_db = std::unique_ptr<Database>(config.openDB(source_filesystem));
-    } catch (DatabaseException &e) {
+    } catch (DatabaseException& e) {
         spdlog::error(e.what());
         spdlog::error("aborting");
         return;
@@ -340,11 +340,10 @@ void restore(const string name, const string target, const string username, cons
             std::unique_ptr<Database> candiate_db;
             try {
                 candiate_db = std::unique_ptr<Database>(config.openDB(fs));
-            } catch (DatabaseException &e) {
+            } catch (DatabaseException& e) {
                 spdlog::error(e.what());
                 continue;
             }
-
 
             try {
                 std::unique_ptr<DBEntry> entry(candiate_db->readEntry(fmt::format("{}-{}", username, target), false));
@@ -509,7 +508,7 @@ int main(int argc, char** argv) {
             std::unique_ptr<Database> db;
             try {
                 db = std::unique_ptr<Database>(config.openDB(fs));
-            } catch (DatabaseException &e) {
+            } catch (DatabaseException& e) {
                 spdlog::error(e.what());
                 continue;
             }
