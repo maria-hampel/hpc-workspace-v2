@@ -30,6 +30,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <ctime>
 #include <curl/curl.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -603,7 +604,21 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const st
     return (res == CURLE_OK);
 }
 
-} // namespace utils
+// thread safe ctime implementation, use this where std::ctime was used
+// please note: this does NOT append a \n!
+std::string ctime(const time_t* timer) {
+    char buffer[80];
+
+    auto ret = std::strftime(buffer, sizeof(buffer), "Www Mmm dd hh:mm:ss yyyy", localtime(timer));
+    if (ret == 0) {
+        spdlog::warn("bad strftime call in utils::ctime");
+    }
+    return std::string(buffer);
+}
+
+} // end of namespace utils
+
+// static functions local to this unit, not exposed
 
 // Callback function for curl
 static size_t readEmailCallback(void* ptr, size_t size, size_t nmemb, void* userp) {

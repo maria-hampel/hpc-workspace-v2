@@ -31,6 +31,7 @@
  */
 
 #include <algorithm>
+#include <ctime>
 #include <map>
 #include <string>
 #include <vector>
@@ -145,6 +146,10 @@ class HasGroupIntersection {
         return false;
     };
 };
+
+// thread safe ctime implementation, use this where std::ctime was used
+// please note: this does NOT append a \n!
+std::string ctime(const time_t* timer);
 
 } // namespace utils
 
