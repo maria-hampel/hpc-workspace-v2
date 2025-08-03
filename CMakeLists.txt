@@ -84,6 +84,7 @@ find_package(Boost COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 
 # for parallel ws_list
 add_compile_options(-fopenmp)
+# add_compile_options(-fopenmp=libomp)
 add_link_options(-fopenmp)
 
 set(YAML_CPP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
