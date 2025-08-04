@@ -51,6 +51,7 @@
 
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/syslog_sink.h" // IWYU pragma: keep
+#include "spdlog/sinks/daily_file_sink.h" // IWYU pragma: keep
 #include "spdlog/spdlog.h"
 
 // init caps here, when euid!=uid
@@ -106,13 +107,16 @@ struct clean_stray_result_t {
 long releasekeeptime = 3600;
 
 
-// own loggin setup, to allow implementation of addition syslog or file logging
-// spdlog seems to support file logging with log rotation
+// own logging setup,
+// logs in color to console
+// and into a daily rotating file with timestamps
 static void setupLogging() {
-    auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
-    stderr_sink->set_pattern("%^%l%$: %v");
-    auto stderr_logger = std::make_shared<spdlog::logger>("stderr_logger", stderr_sink);
-    spdlog::set_default_logger(stderr_logger);
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_pattern("%^%l%$: %v");
+    auto file_sink = std::make_shared<spdlog::sinks::daily_file_format_sink_mt>("/var/log/ws_expirer.log", 0, 1); // FIXME: TODO: make path a config paramer or command line argument
+    file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
+    spdlog::logger* log = new spdlog::logger("ws_expirer", {file_sink, console_sink});
+    spdlog::set_default_logger(std::shared_ptr<spdlog::logger>(log));
     spdlog::set_level(spdlog::level::trace);
 }
 
