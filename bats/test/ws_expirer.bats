@@ -21,7 +21,7 @@ setup() {
 
 @test "ws_expirer dryrun" {
     run ws_expirer --config bats/ws.conf
-    assert_output --partial "simulate cleaning - dryrun"
+    assert_output --partial "simulating cleaning - dryrun"
     assert_success
 }
 
