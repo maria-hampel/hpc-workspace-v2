@@ -116,16 +116,19 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const st
 
 // class to check existance of intersection of group lists of two users, on user provided through constructor,
 // other user provided through method, with caching for result
+// returns true if second user is unknown (empty group list)
 class HasGroupIntersection {
   private:
     std::vector<std::string> baselist;
     std::map<std::string, bool> resultcache;
 
   public:
+    // call this with caller user
     HasGroupIntersection(const std::string baseuser) {
         baselist = user::getUserGroupList(baseuser);
         std::sort(baselist.begin(), baselist.end());
     };
+    // call this with another user to check if groups ov the two overlap
     bool hasCommonGroups(const std::string user) {
         auto it = resultcache.find(user);
         if (it != resultcache.end())
@@ -133,6 +136,11 @@ class HasGroupIntersection {
 
         // not found
         auto comparelist = user::getUserGroupList(user);
+        // if this is empty, user is probably unknown, we better assume there is some intersection
+        if (comparelist.size() == 0) {
+            resultcache[user] = true;
+            return true;
+        }
         std::sort(comparelist.begin(), comparelist.end());
 
         std::vector<std::string> intersection;
@@ -142,8 +150,10 @@ class HasGroupIntersection {
         if (intersection.size() > 0) {
             resultcache[user] = true;
             return true;
+        } else {
+            resultcache[user] = false;
+            return false;
         }
-        return false;
     };
 };
 
