@@ -616,6 +616,19 @@ std::string ctime(const time_t* timer) {
     return std::string(buffer);
 }
 
+// thread safe ctime implementation, use this where std::ctime was used
+// please note: this does NOT append a \n!
+std::string ctime(const time_t ctimer) {
+    char buffer[80];
+
+    time_t timer = ctimer;
+    auto ret = std::strftime(buffer, sizeof(buffer), "%c", localtime(&timer));
+    if (ret == 0) {
+        spdlog::warn("bad strftime call in utils::ctime");
+    }
+    return std::string(buffer);
+}
+
 } // end of namespace utils
 
 // static functions local to this unit, not exposed

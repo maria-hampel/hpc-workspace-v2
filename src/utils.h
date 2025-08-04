@@ -160,6 +160,7 @@ class HasGroupIntersection {
 // thread safe ctime implementation, use this where std::ctime was used
 // please note: this does NOT append a \n!
 std::string ctime(const time_t* timer);
+std::string ctime(const time_t timer);
 
 } // namespace utils
 
