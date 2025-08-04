@@ -50,4 +50,10 @@ TEST_CASE("utils", "[utils]")
         REQUIRE(utils::trimright(std::string("- \n")) == std::string("-"));
         REQUIRE(utils::trimright(" ") == "");
     }
+
+    SECTION("ctime")
+    {
+        auto t = 1754337449L;
+        REQUIRE(utils::ctime(&t) == std::string("Mon Aug  4 21:57:29 2025"));
+    }
 }
