@@ -265,8 +265,11 @@ int main(int argc, char** argv) {
                 continue;
             }
 
+            // get list before loop to prevent matching per thread
+            auto matchlist = db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups);
+
 #pragma omp parallel for schedule(dynamic)
-            for (auto const& id : db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups)) {
+            for (auto const& id : matchlist) {
                 try {
                     std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
                     // if entry is valid
