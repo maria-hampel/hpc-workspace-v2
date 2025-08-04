@@ -39,6 +39,9 @@ TEST_CASE("Database Test", "[db]")
     fs::create_directories(ws2dbname);
     fs::create_directories(ws2dbname / fs::path(".removed"));
 
+    utils::writeFile(ws1dbname / ".ws_db_magic", "ws1");
+    utils::writeFile(ws2dbname / ".ws_db_magic", "ws2");
+
     // create a normal config file, V1 way
     std::ofstream wsconf(basedirname / "ws.conf");
     fmt::println(wsconf,
@@ -238,6 +241,9 @@ TEST_CASE("workspace creation test", "[db]")
     fs::create_directories(ws1dbname);
     fs::create_directories(ws2dbname);
     fs::create_directories(ws2dbname / fs::path(".removed"));
+
+    utils::writeFile(ws1dbname / ".ws_db_magic", "ws1");
+    utils::writeFile(ws2dbname / ".ws_db_magic", "ws2");
 
     // create a normal config file, V1 way
     std::ofstream wsconf(basedirname / "ws.conf");
