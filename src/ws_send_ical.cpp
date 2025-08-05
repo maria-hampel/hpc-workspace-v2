@@ -165,7 +165,9 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
 // Generate the Date Format used for ics attachments from time_t
 std::string generateICSDateFormat(const time_t time) {
     char timeString[std::size("yyyymmddThhmmssZ")];
-    std::strftime(std::data(timeString), std::size(timeString), "%Y%m%dT%H%M00Z", std::localtime(&time));
+    struct tm tm_buf;
+    localtime_r(&time, &tm_buf);
+    std::strftime(std::data(timeString), std::size(timeString), "%Y%m%dT%H%M00Z", &tm_buf);
     std::string s(timeString);
     return s;
 }

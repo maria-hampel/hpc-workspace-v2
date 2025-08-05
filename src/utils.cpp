@@ -543,7 +543,9 @@ std::string trimright(const char* in) {
 // Generate the Date Format used for Mime Mails from time_t
 std::string generateMailDateFormat(const time_t time) {
     char timeString[std::size("Mon, 29 Nov 2010 21:54:29 +1100")];
-    std::strftime(std::data(timeString), std::size(timeString), "%a, %d %h %Y %X %z", std::localtime(&time));
+    struct tm tm_buf;
+    localtime_r(&time, &tm_buf);
+    std::strftime(std::data(timeString), std::size(timeString), "%a, %d %h %Y %X %z", &tm_buf);
     std::string s(timeString);
     return s;
 }
