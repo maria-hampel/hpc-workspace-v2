@@ -113,6 +113,9 @@ std::string generateMailDateFormat(const time_t time);
 // Generate a message ID from current time, PID, and Random component
 std::string generateMessageID(const std::string& domain = "ws_send_ical");
 
+// generate the To Header for Mails
+std::string generateToHeader(std::vector<std::string> mail_to);
+
 // Initialize Curl
 void initCurl();
 
@@ -120,7 +123,7 @@ void initCurl();
 void cleanupCurl();
 
 // Send the a Mail with curl to the smtpUrl
-bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,
+bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, std::vector<std::string>& mail_to,
               const std::string& completeMail);
 
 } // namespace utils

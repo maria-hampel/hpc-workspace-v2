@@ -250,7 +250,7 @@ std::string generateICS(const std::unique_ptr<DBEntry>& entry, const std::string
 
 // Generate the Mail
 std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics, const std::string mail_from,
-                         const std::string mail_to, const std::string clustername, time_t now) {
+                         std::vector<std::string> mail_to, const std::string clustername, time_t now) {
     std::string wsname = entry->getId();
     std::string resource = entry->getFilesystem();
 
@@ -259,11 +259,13 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     std::string createtimestr = utils::generateMailDateFormat(now);
     std::string boundary = "_NextPart_01234567.89ABCDEF";
     std::string messageID = utils::generateMessageID();
+    std::string to_header = utils::generateToHeader(mail_to);
 
     std::string encodedICS = base64Encode(ics);
 
+
     mail << "From: " << mail_from << CRLF;
-    mail << "To: " << mail_to << CRLF;
+    mail << "To: " << to_header << CRLF;
     mail << "Subject: Workspace expire on " << expirationtimestr << CRLF;
     mail << "Message-ID: <" << messageID << ">" << CRLF;
     mail << "Date: " << createtimestr << CRLF;
@@ -421,7 +423,8 @@ int main(int argc, char** argv) {
         }
         std::string smtpUrl = "smtp://" + config.smtphost();
         std::string clustername = config.clustername();
-        std::string mail_to = mailaddress;
+        std::vector<std::string> mail_to;
+        mail_to.push_back(mailaddress);
 
         const auto& entry = entrylist.front();
 
@@ -437,7 +440,6 @@ int main(int argc, char** argv) {
             spdlog::debug("Generated email content:");
             spdlog::debug("{}", completeMail);
         }
-
         if (utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
             fmt::println("Success: Calendar invitation sent to {}", mailaddress);
         } else {

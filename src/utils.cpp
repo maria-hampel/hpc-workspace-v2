@@ -560,14 +560,24 @@ std::string generateMessageID(const std::string& domain) {
     return fmt::format("{}.{}.{}@{}", now, pid, hash, domain);
 }
 
+// generate the To Header for Mails
+std::string generateToHeader(std::vector<std::string> mail_to) {
+    std::string to_header;
+    for (size_t i = 0; i < mail_to.size(); ++i) {
+        if (i > 0) to_header += ", ";
+        to_header += mail_to[i];
+    }
+    return to_header;
+}
+
 // Initialze curl
 void initCurl() { curl_global_init(CURL_GLOBAL_DEFAULT); }
 
-//Cleanup curl
+// Cleanup curl
 void cleanupCurl() { curl_global_cleanup(); }
 
 // Send the a Mail with curl to the smtpUrl
-bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,
+bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, std::vector<std::string>& mail_to,
               const std::string& completeMail) {
     CURL* curl;
     CURLcode res = CURLE_OK;
@@ -584,7 +594,9 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const st
     curl_easy_setopt(curl, CURLOPT_URL, smtpUrl.c_str());
 
     struct curl_slist* recipients = nullptr;
-    recipients = curl_slist_append(recipients, mail_to.c_str());
+    for (const auto& mailaddress : mail_to){
+        recipients = curl_slist_append(recipients, mailaddress.c_str());
+    }
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, mail_from.c_str());
 

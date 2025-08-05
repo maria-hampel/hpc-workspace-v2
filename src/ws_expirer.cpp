@@ -96,7 +96,7 @@ static void setupLogging(const std::string ident) {
     spdlog::set_level(spdlog::level::trace);
 }
 
-std::string generateReminderMail(const std::string& mail_from, const std::string mail_to, const long expirationtime, const std::string& wsname, 
+std::string generateReminderMail(const std::string& mail_from, std::vector<std::string>& mail_to, const long expirationtime, const std::string& wsname, 
                             const std::string& fsname, const std::string& clustername) {
 
     std::stringstream mail;
@@ -104,8 +104,10 @@ std::string generateReminderMail(const std::string& mail_from, const std::string
     std::string messageID = utils::generateMessageID();
     std::string createtimestr = utils::generateMailDateFormat(time((long*)0L));
 
+    std::string to_header = utils::generateToHeader(mail_to);
+
     mail << "From: " << mail_from << CRLF;
-    mail << "To: " << mail_to << CRLF;
+    mail << "To: " << to_header << CRLF;
     mail << "Subject: Workspace " << wsname << " will expire at " << expirationtimestr << CRLF;
     mail << "Message-ID: <" << messageID << ">" << CRLF;
     mail << "Date: " << createtimestr << CRLF;
@@ -133,15 +135,10 @@ std::string generateErrorMail(const std::string& mail_from, std::vector<std::str
     std::string messageID = utils::generateMessageID();
     std::string createtimestr = utils::generateMailDateFormat(time((long*)0L));
 
-    // At first just take one Recipient
-    // std::string to_header;
-    // for (size_t i = 0; i < mail_to.size(); ++i) {
-    //     if (i > 0) to_header += ", ";
-    //     to_header += mail_to[i];
-    // }
+    std::string to_header = utils::generateToHeader(mail_to);
 
     mail << "From: " << mail_from << CRLF;
-    mail << "To: " << mail_to.at(0) << CRLF; // at first just one recipient 
+    mail << "To: " << to_header << CRLF; 
     mail << "Subject: " << subject << CRLF;
     mail << "Message-ID: <" << messageID << ">" << CRLF;
     mail << "Date: " << createtimestr << CRLF;
@@ -153,7 +150,7 @@ std::string generateErrorMail(const std::string& mail_from, std::vector<std::str
     mail << "Content-Type: text/plain; charset=UTF-8" << CRLF;
     mail << "Content-Transfer-Encoding: 7bit" << CRLF;
     mail << "" << CRLF;
-    mail << subject << "\nplease check workspace DB entry and may be restore some meaningfull entry if workspace should not get deleted" << CRLF;
+    mail << subject << "\nSkipping to avoid data loss. Please check Filesystem!" << CRLF;
     mail << "" << CRLF;
 
     mail << "" << CRLF;
@@ -222,14 +219,14 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
         spdlog::error("skipping, to avoid data loss");
         
         // Sending Error Mail
-        std::string subject = "";
+        std::string subject = e.what();
 
         if (smtpUrl == "" || mail_from == "" || adminmails.size() == 0) {
             spdlog::warn("No smtphost or mailfrom available to contact users or admins, please check your system config");
         } else {
             std::string completeMail = generateErrorMail(mail_from, adminmails, subject);
             try {
-                if (!utils::sendCurl(smtpUrl, mail_from, adminmails.at(0), completeMail)) {
+                if (!utils::sendCurl(smtpUrl, mail_from, adminmails, completeMail)) {
                     spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
                 }
             } catch (const std::exception& e) {
@@ -353,14 +350,14 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         spdlog::error("skipping, to avoid data loss");
 
         // Sending Error Mail
-        std::string subject = "";
+        std::string subject = e.what();
 
         if (smtpUrl == "" || mail_from == "" || adminmails.size() == 0) {
             spdlog::warn("No smtphost or mailfrom available to contact users or admins, please check your system config");
         } else {
             std::string completeMail = generateErrorMail(mail_from, adminmails, subject);
             try {
-                if (!utils::sendCurl(smtpUrl, mail_from, adminmails.at(0), completeMail)) {
+                if (!utils::sendCurl(smtpUrl, mail_from, adminmails, completeMail)) {
                     spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
                 }
             } catch (const std::exception& e) {
@@ -428,9 +425,11 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                 if (smtpUrl == "" || mail_from == ""){
                     spdlog::warn("No smtphost or mailfrom available to contact users, please check your system config");
                 } else {
-                    std::string mail_to = dbentry->getMailaddress();
+                    std::vector<std::string> mail_to;
+                    mail_to.push_back(dbentry->getMailaddress());
                     std::string clustername = config.clustername();
                     
+
                     std::string completeMail = generateReminderMail(mail_from, mail_to, expiration, id, fs, clustername);
                     fmt::println(" send mail to {}", id);
                     // fmt::print("{}", completeMail);
