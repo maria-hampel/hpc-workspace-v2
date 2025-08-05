@@ -266,7 +266,6 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
 
     std::string encodedICS = base64Encode(ics);
 
-
     mail << "From: " << mail_from << CRLF;
     mail << "To: " << to_header << CRLF;
     mail << "Subject: Workspace expire on " << expirationtimestr << CRLF;

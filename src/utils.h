@@ -119,7 +119,7 @@ std::string generateToHeader(std::vector<std::string> mail_to);
 // Initialize Curl
 void initCurl();
 
-// Cleanup Curl 
+// Cleanup Curl
 void cleanupCurl();
 
 // Send the a Mail with curl to the smtpUrl

@@ -580,7 +580,8 @@ std::string generateMessageID(const std::string& domain) {
 std::string generateToHeader(std::vector<std::string> mail_to) {
     std::string to_header;
     for (size_t i = 0; i < mail_to.size(); ++i) {
-        if (i > 0) to_header += ", ";
+        if (i > 0)
+            to_header += ", ";
         to_header += mail_to[i];
     }
     return to_header;
@@ -610,7 +611,7 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, std::vec
     curl_easy_setopt(curl, CURLOPT_URL, smtpUrl.c_str());
 
     struct curl_slist* recipients = nullptr;
-    for (const auto& mailaddress : mail_to){
+    for (const auto& mailaddress : mail_to) {
         recipients = curl_slist_append(recipients, mailaddress.c_str());
     }
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
