@@ -115,15 +115,16 @@ static void setupLogging() {
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     console_sink->set_pattern("%^%l%$: %v");
     auto file_sink = std::make_shared<spdlog::sinks::daily_file_format_sink_mt>(
-        "/var/log/ws_expirer.log", 0, 1); // FIXME: TODO: make path a config paramer or command line argument
+        "/tmp/ws_expirer.log", 0, 1); // FIXME: TODO: make path a config paramer or command line argument
     file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
     spdlog::logger* log = new spdlog::logger("ws_expirer", {file_sink, console_sink});
     spdlog::set_default_logger(std::shared_ptr<spdlog::logger>(log));
     spdlog::set_level(spdlog::level::trace);
 }
 
-std::string generateReminderMail(const std::string& mail_from, std::vector<std::string>& mail_to, const long expirationtime, const std::string& wsname, 
-                            const std::string& fsname, const std::string& clustername) {
+std::string generateReminderMail(const std::string& mail_from, std::vector<std::string>& mail_to,
+                                 const long expirationtime, const std::string& wsname, const std::string& fsname,
+                                 const std::string& clustername) {
 
     std::stringstream mail;
     std::string expirationtimestr = utils::generateMailDateFormat(expirationtime);
@@ -156,7 +157,8 @@ std::string generateReminderMail(const std::string& mail_from, std::vector<std::
     return mail.str();
 }
 
-std::string generateErrorMail(const std::string& mail_from, std::vector<std::string> mail_to, const std::string& subject){
+std::string generateErrorMail(const std::string& mail_from, std::vector<std::string> mail_to,
+                              const std::string& subject) {
     std::stringstream mail;
     std::string messageID = utils::generateMessageID();
     std::string createtimestr = utils::generateMailDateFormat(time((long*)0L));
@@ -164,7 +166,7 @@ std::string generateErrorMail(const std::string& mail_from, std::vector<std::str
     std::string to_header = utils::generateToHeader(mail_to);
 
     mail << "From: " << mail_from << CRLF;
-    mail << "To: " << to_header << CRLF; 
+    mail << "To: " << to_header << CRLF;
     mail << "Subject: " << subject << CRLF;
     mail << "Message-ID: <" << messageID << ">" << CRLF;
     mail << "Date: " << createtimestr << CRLF;
@@ -203,7 +205,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
     std::vector<string> spaces = config.getFsConfig(fs).spaces;
     std::vector<dir_t> dirs; // list of all directories in all spaces of 'fs'
-    
+
     // Infos needed to send errormails
     std::string mail_from = config.mailfrom();
     std::vector<std::string> adminmails = config.adminmail();
@@ -243,12 +245,13 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     } catch (DatabaseException& e) {
         spdlog::error(e.what());
         spdlog::error("skipping, to avoid data loss");
-        
+
         // Sending Error Mail
         std::string subject = e.what();
 
         if (smtpUrl == "" || mail_from == "" || adminmails.size() == 0) {
-            spdlog::warn("No smtphost or mailfrom available to contact users or admins, please check your system config");
+            spdlog::warn(
+                "No smtphost or mailfrom available to contact users or admins, please check your system config");
         } else {
             std::string completeMail = generateErrorMail(mail_from, adminmails, subject);
             try {
@@ -359,7 +362,6 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
     expire_result_t result = {0, 0, 0, 0, 0};
 
-
     // Infos needed for errormails and remindermails
     std::string smtpUrl = "smtp://" + config.smtphost();
     std::string mail_from = config.mailfrom();
@@ -379,7 +381,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         std::string subject = e.what();
 
         if (smtpUrl == "" || mail_from == "" || adminmails.size() == 0) {
-            spdlog::warn("No smtphost or mailfrom available to contact users or admins, please check your system config");
+            spdlog::warn(
+                "No smtphost or mailfrom available to contact users or admins, please check your system config");
         } else {
             std::string completeMail = generateErrorMail(mail_from, adminmails, subject);
             try {
@@ -426,7 +429,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         // do we have to expire?
         if (time((long*)0L) > expiration) {
             auto timestamp = to_string(time((long*)0L));
-            spdlog::info(" expiring {} (expired {})", id, utils::trimright(ctime(&expiration)));
+            spdlog::info(" expiring {} (expired {})", id, utils::ctime(&expiration));
             result.expired_ws++;
             if (!dryrun) {
                 // db entry first
@@ -446,20 +449,20 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                 }
             }
         } else {
-            spdlog::info("  keeping {}     (until {})", id, utils::ctime(expiration)); // TODO: add expiration time
+            spdlog::info("  keeping {}     (until {})", id, utils::ctime(expiration));
             result.kept_ws++;
             // Send reminder emails
             auto reminder = dbentry->getReminder();
-            if (time((long*)0L) > (expiration - (reminder * ( 24 * 3600 )))){
-                if (smtpUrl == "" || mail_from == ""){
+            if (time((long*)0L) > (expiration - (reminder * (24 * 3600)))) {
+                if (smtpUrl == "" || mail_from == "") {
                     spdlog::warn("No smtphost or mailfrom available to contact users, please check your system config");
                 } else {
                     std::vector<std::string> mail_to;
                     mail_to.push_back(dbentry->getMailaddress());
                     std::string clustername = config.clustername();
-                    
 
-                    std::string completeMail = generateReminderMail(mail_from, mail_to, expiration, id, fs, clustername);
+                    std::string completeMail =
+                        generateReminderMail(mail_from, mail_to, expiration, id, fs, clustername);
                     fmt::println(" send mail to {}", id);
                     // fmt::print("{}", completeMail);
                     try {
@@ -470,9 +473,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                         spdlog::error("Exception while sending email: {}", e.what());
                     }
                 }
-
-            }    
-            
+            }
         }
     }
 
@@ -526,9 +527,9 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
             if (time((long*)0L) >= releasetime + releasekeeptime) { // even a released workspace will be not deleted
                                                                     // before releasekeeptime seconds old hour old
-                spdlog::info(" deleting DB entry {}, was released {}", id, utils::trimright(ctime(&releasetime)));
+                spdlog::info(" deleting DB entry {}, was released {}", id, utils::ctime(&releasetime));
             } else {
-                spdlog::info(" deleting DB entry {}, expired {}", id, utils::trimright(ctime(&expiration)));
+                spdlog::info(" deleting DB entry {}, expired {}", id, utils::ctime(&expiration));
             }
 
             if (cleanermode) {
