@@ -554,12 +554,46 @@ std::string trimright(const char* in) {
     return str;
 }
 
+// Generate the Date Format used for Mime Mails from time_t
+std::string generateMailDateFormat(const time_t time) {
+    char timeString[std::size("Mon, 29 Nov 2010 21:54:29 +1100")];
+    struct tm tm_buf;
+    localtime_r(&time, &tm_buf);
+    std::strftime(std::data(timeString), std::size(timeString), "%a, %d %h %Y %X %z", &tm_buf);
+    std::string s(timeString);
+    return s;
+}
+
+// Generate a message ID from current time, PID, and Random component
+std::string generateMessageID(const std::string& domain) {
+    auto now = std::time(nullptr);
+    auto pid = getpid();
+
+    std::hash<std::string> hasher;
+    std::string unique_string = std::to_string(now) + std::to_string(pid) + std::to_string(rand());
+    auto hash = hasher(unique_string);
+
+    return fmt::format("{}.{}.{}@{}", now, pid, hash, domain);
+}
+
+// generate the To Header for Mails
+std::string generateToHeader(std::vector<std::string> mail_to) {
+    std::string to_header;
+    for (size_t i = 0; i < mail_to.size(); ++i) {
+        if (i > 0) to_header += ", ";
+        to_header += mail_to[i];
+    }
+    return to_header;
+}
+
+// Initialze curl
 void initCurl() { curl_global_init(CURL_GLOBAL_DEFAULT); }
 
+// Cleanup curl
 void cleanupCurl() { curl_global_cleanup(); }
 
 // Send the a Mail with curl to the smtpUrl
-bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const std::string& mail_to,
+bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, std::vector<std::string>& mail_to,
               const std::string& completeMail) {
     CURL* curl;
     CURLcode res = CURLE_OK;
@@ -576,7 +610,9 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, const st
     curl_easy_setopt(curl, CURLOPT_URL, smtpUrl.c_str());
 
     struct curl_slist* recipients = nullptr;
-    recipients = curl_slist_append(recipients, mail_to.c_str());
+    for (const auto& mailaddress : mail_to){
+        recipients = curl_slist_append(recipients, mailaddress.c_str());
+    }
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, mail_from.c_str());
 

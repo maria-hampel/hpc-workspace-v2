@@ -84,6 +84,7 @@ class DBEntry {
     virtual long getExpiration() const = 0;
     virtual long getReleaseTime() const = 0;
     virtual string getFilesystem() const = 0;
+    virtual long getReminder() const = 0;
 
     // get config of parent DB
     virtual const Config* getConfig() const = 0;

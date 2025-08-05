@@ -106,6 +106,7 @@ class DBEntryV1 : public DBEntry {
     long getExpiration() const;
     long getReleaseTime() const;
     string getFilesystem() const;
+    long getReminder() const;
 
     // return config of parent DB
     const Config* getConfig() const;

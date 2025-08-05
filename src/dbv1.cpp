@@ -554,6 +554,8 @@ long DBEntryV1::getReleaseTime() const { return released; }
 
 string DBEntryV1::getFilesystem() const { return filesystem; }
 
+long DBEntryV1::getReminder() const { return reminder; }
+
 // change expiration time
 void DBEntryV1::setExpiration(const time_t timestamp) { expiration = timestamp; }
 
