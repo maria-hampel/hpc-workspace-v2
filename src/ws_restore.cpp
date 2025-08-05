@@ -231,11 +231,11 @@ void restore(const string name, const string target, const string username, cons
     caps.lower_cap({CAP_DAC_OVERRIDE, CAP_DAC_READ_SEARCH}, config.dbuid(),
                    utils::SrcPos(__FILE__, __LINE__, __func__));
 
-    // exit in case not unique (unlikely due to labels with second precision!)
+    // exit in case not unique (unlikely due to labels with seconds precision!)
     if (hits.size() > 1) {
         spdlog::error("id {} is not unique, please give filesystem with -F!", name);
         for (const auto& h : hits) {
-            fmt::println(" {} is in {}", h.second, h.first);
+            spdlog::error(" {} is in {}", h.second, h.first);
         }
         return;
     } else if (hits.size() == 0) {
@@ -529,7 +529,7 @@ int main(int argc, char** argv) {
         } // loop over fs
         caps.lower_cap({CAP_DAC_OVERRIDE, CAP_DAC_READ_SEARCH}, config.dbuid(),
                        utils::SrcPos(__FILE__, __LINE__, __func__));
-    } else { // listflag
+    } else { // no listflag
 
         // construct db-entry username  name
         string real_username = user::getUsername();
@@ -549,7 +549,7 @@ int main(int argc, char** argv) {
                 } else {
                     syslog(LOG_INFO, "user <%s> failed ruh test.", username.c_str());
                 }
-            } else {
+            } else { // hack to allow test, human test can be skipped if executable has non-standard name
                 restore(name, target, username, config, filesystem, opt.count("delete-data"));
             }
         }
