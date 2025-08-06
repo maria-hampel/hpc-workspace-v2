@@ -2,7 +2,7 @@
 name: 💭 Proposal
 about: Suggest an idea for this project
 title: '[PROPOSAL] '
-labels: ['discuss']
+labels: ['enhancement']
 assignees: ''
 ---
 
