@@ -389,11 +389,11 @@ bool new_ruh() {
                "Pants", "Shoes", "Hat",   "Door",       "Window",   "Wall",  "Floor", "Ceiling", "Lightbulb",
                "Pen",   "Paper", "Clock", "Television", "Radio",    "Cloud", "Rock"}},
         {"3", {"Albert Einstein", "Isaac Newton", "Leonardo da Vinci", "Mahatma Gandhi",
-           "Nelson Mandela", "Martin Luther King Jr.", "Cleopatra", "Julius Caesar",
-           "Alexander the Great", "Napoleon Bonaparte", "George Washington",
-           "Abraham Lincoln", "Winston Churchill", "Marie Curie", "Rosalind Franklin",
-           "Galileo Galilei", "Charles Darwin", "Sigmund Freud", "Siddhartha Gautama",
-           "Confucius", "Socrates", "Plato", "Aristotle", "Homer"}},
+               "Nelson Mandela", "Martin Luther King Jr.", "Cleopatra", "Julius Caesar",
+               "Alexander the Great", "Napoleon Bonaparte", "George Washington",
+               "Abraham Lincoln", "Winston Churchill", "Marie Curie", "Rosalind Franklin",
+               "Galileo Galilei", "Charles Darwin", "Sigmund Freud", "Siddhartha Gautama",
+               "Confucius", "Socrates", "Plato", "Aristotle", "Homer"}},
     };
     // clang-format on
 
