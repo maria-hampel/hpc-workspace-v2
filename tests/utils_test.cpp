@@ -56,4 +56,65 @@ TEST_CASE("utils", "[utils]")
         auto t = 1754337449L;
         REQUIRE(utils::ctime(&t) == std::string("Mon Aug  4 21:57:29 2025"));
     }
+
+
+    SECTION("Valid email addresses") {
+        REQUIRE(utils::isValidEmail("test@example.com"));
+        REQUIRE(utils::isValidEmail("user.name@example.org"));
+        REQUIRE(utils::isValidEmail("user+tag@example.net"));
+        REQUIRE(utils::isValidEmail("firstname.lastname@domain.co.uk"));
+        REQUIRE(utils::isValidEmail("email@123.123.123.123"));
+        REQUIRE(utils::isValidEmail("1234567890@example.com"));
+        REQUIRE(utils::isValidEmail("email@example-one.com"));
+        REQUIRE(utils::isValidEmail("_______@example.com"));
+        REQUIRE(utils::isValidEmail("email@example.name"));
+        REQUIRE(utils::isValidEmail("test.email.with+symbol@example.com"));
+        REQUIRE(utils::isValidEmail("x@example.com"));
+    }
+
+    SECTION("Invalid email addresses - malformed") {
+        REQUIRE_FALSE(utils::isValidEmail("plainaddress"));
+        REQUIRE_FALSE(utils::isValidEmail("@missingusername.com"));
+        REQUIRE_FALSE(utils::isValidEmail("username@.com"));
+        REQUIRE_FALSE(utils::isValidEmail("username..double.dot@example.com"));
+        REQUIRE_FALSE(utils::isValidEmail("username@com"));
+        REQUIRE_FALSE(utils::isValidEmail("username@-example.com"));
+        REQUIRE_FALSE(utils::isValidEmail("username@example-.com"));
+        REQUIRE_FALSE(utils::isValidEmail(""));
+    }
+
+    SECTION("Invalid email addresses - consecutive dots and @ placement") {
+        REQUIRE_FALSE(utils::isValidEmail("user..name@example.com"));
+        REQUIRE_FALSE(utils::isValidEmail("user@example..com"));
+        REQUIRE_FALSE(utils::isValidEmail("@example.com"));
+        REQUIRE_FALSE(utils::isValidEmail("user@"));
+        REQUIRE_FALSE(utils::isValidEmail("user.@example.com"));
+        REQUIRE_FALSE(utils::isValidEmail("user@.example.com"));
+    }
+
+    SECTION("Invalid email addresses - too long") {
+        std::string long_email = std::string(250, 'a') + "@example.com"; // 261 characters total
+        REQUIRE_FALSE(utils::isValidEmail(long_email));
+    }
+
+    SECTION("Valid email addresses - edge cases") {
+        REQUIRE(utils::isValidEmail("a@b.co"));
+        REQUIRE(utils::isValidEmail("test@example.museum"));
+        REQUIRE(utils::isValidEmail("user#test@example.com"));
+        REQUIRE(utils::isValidEmail("user$test@example.com"));
+        REQUIRE(utils::isValidEmail("user%test@example.com"));
+        REQUIRE(utils::isValidEmail("user&test@example.com"));
+        REQUIRE(utils::isValidEmail("user'test@example.com"));
+        REQUIRE(utils::isValidEmail("user*test@example.com"));
+        REQUIRE(utils::isValidEmail("user=test@example.com"));
+        REQUIRE(utils::isValidEmail("user?test@example.com"));
+        REQUIRE(utils::isValidEmail("user^test@example.com"));
+        REQUIRE(utils::isValidEmail("user_test@example.com"));
+        REQUIRE(utils::isValidEmail("user`test@example.com"));
+        REQUIRE(utils::isValidEmail("user{test@example.com"));
+        REQUIRE(utils::isValidEmail("user|test@example.com"));
+        REQUIRE(utils::isValidEmail("user}test@example.com"));
+        REQUIRE(utils::isValidEmail("user~test@example.com"));
+    }
+
 }
