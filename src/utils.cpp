@@ -376,7 +376,7 @@ if(line==word_as_string) {
 // aRe yoU Human?
 // new version, no terminfo
 bool new_ruh() {
-
+    // clang-format off
     const std::map<std::string, std::vector<std::string>> wordmap = {
         {"0", {"Dog",   "Cat",  "Elephant", "Lion",  "Tiger",   "Cow",    "Horse",    "Monkey", "Snake",
                "Eagle", "Bear", "Wolf",     "Fox",   "Deer",    "Rabbit", "Squirrel", "Pig",    "Chicken",
@@ -388,12 +388,14 @@ bool new_ruh() {
         {"2", {"Car",   "House", "Tree",  "Book",       "Computer", "Phone", "Chair", "Table",   "Shirt",
                "Pants", "Shoes", "Hat",   "Door",       "Window",   "Wall",  "Floor", "Ceiling", "Lightbulb",
                "Pen",   "Paper", "Clock", "Television", "Radio",    "Cloud", "Rock"}},
-        {"3", {"Albert Einstein", "Isaac Newton", "Leonardo da Vinci", "Mahatma Gandhi", "Nelson Mandela",
-               "Martin Luther King Jr.", "Cleopatra", "Julius Caesar", "Alexander the Great", "Napoleon Bonaparte",
-               "George Washington", "Abraham Lincoln", "Winston Churchill", "Marie Curie", "Rosalind Franklin",
-               "Galileo Galilei", "Charles Darwin", "Sigmund Freud", "Siddhartha Gautama", "Confucius",
-               "Socrates", "Plato", "Aristotle", "Homer"}},
-        };
+        {"3", {"Albert Einstein", "Isaac Newton", "Leonardo da Vinci", "Mahatma Gandhi",
+           "Nelson Mandela", "Martin Luther King Jr.", "Cleopatra", "Julius Caesar",
+           "Alexander the Great", "Napoleon Bonaparte", "George Washington",
+           "Abraham Lincoln", "Winston Churchill", "Marie Curie", "Rosalind Franklin",
+           "Galileo Galilei", "Charles Darwin", "Sigmund Freud", "Siddhartha Gautama",
+           "Confucius", "Socrates", "Plato", "Aristotle", "Homer"}},
+    };
+    // clang-format on
 
     srand(time(NULL));
 
@@ -404,9 +406,11 @@ bool new_ruh() {
 
     auto ol = wordmap.at(idx[cat_index]);
 
-    std::cout << fmt::format("Is '{}' an [0] Animal, [1] Fruit or Vegetable or [2] Object or [3] Person? <type 0/1/2/3 + enter> :",
-                             ol[obj_index])
-              << std::flush;
+    std::cout
+        << fmt::format(
+               "Is '{}' an [0] Animal, [1] Fruit or Vegetable or [2] Object or [3] Person? <type 0/1/2/3 + enter> :",
+               ol[obj_index])
+        << std::flush;
 
     string line;
     getline(cin, line);
