@@ -475,7 +475,7 @@ void DBEntryV1::print(const bool verbose, const bool terse) const {
     if (parent_db->getconfig()->isAdmin(user::getUsername())) {
         fmt::println("Id: {}", id);
     } else {
-        fmt::println("Id: {}", utils::getID(id));
+        fmt::println("Id: {}", utils::getID(user::getUsername(), id));
     }
 
     fmt::println("    workspace directory  : {}", workspace);

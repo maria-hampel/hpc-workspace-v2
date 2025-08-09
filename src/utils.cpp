@@ -267,10 +267,15 @@ std::string getFirstLine(const std::string& multilineString) {
 }
 
 // getID returns id part of workspace id <username-id>
-std::string getID(const std::string wsid) {
-    auto spos = wsid.find("-", 0);
-    assert(spos != std::string::npos);
-    return wsid.substr(spos + 1, wsid.length());
+// Updated to accept the username explicitly and correctly handle usernames that contain '-'
+std::string getID(const std::string username, const std::string wsid) {
+    const std::string prefix = username + "-";
+    // Verify that wsid actually starts with the expected "username-" prefix
+    if (wsid.rfind(prefix, 0) != 0) {
+        spdlog::error("wsid '{}' does not start with expected username- prefix '{}'", wsid, prefix);
+        return "";
+    }
+    return wsid.substr(prefix.size());
 }
 
 /*
@@ -382,18 +387,24 @@ bool new_ruh() {
                "Green beans", "Peas",   "Asparagus", "Zucchini"}},
         {"2", {"Car",   "House", "Tree",  "Book",       "Computer", "Phone", "Chair", "Table",   "Shirt",
                "Pants", "Shoes", "Hat",   "Door",       "Window",   "Wall",  "Floor", "Ceiling", "Lightbulb",
-               "Pen",   "Paper", "Clock", "Television", "Radio",    "Cloud", "Rock"}}};
+               "Pen",   "Paper", "Clock", "Television", "Radio",    "Cloud", "Rock"}},
+        {"3", {"Albert Einstein", "Isaac Newton", "Leonardo da Vinci", "Mahatma Gandhi", "Nelson Mandela",
+               "Martin Luther King Jr.", "Cleopatra", "Julius Caesar", "Alexander the Great", "Napoleon Bonaparte",
+               "George Washington", "Abraham Lincoln", "Winston Churchill", "Marie Curie", "Rosalind Franklin",
+               "Galileo Galilei", "Charles Darwin", "Sigmund Freud", "Siddhartha Gautama", "Confucius",
+               "Socrates", "Plato", "Aristotle", "Homer"}},
+        };
 
     srand(time(NULL));
 
-    int cat_index = rand() % 2;
+    int cat_index = rand() % 3;
     int obj_index = rand() % 24;
 
-    const std::vector<std::string> idx = {"0", "1", "2"};
+    const std::vector<std::string> idx = {"0", "1", "2", "3"};
 
     auto ol = wordmap.at(idx[cat_index]);
 
-    std::cout << fmt::format("Is '{}' an [0] Animal, [1] Fruit or Vegetable or [2] Object? <type 0/1/2 + enter> :",
+    std::cout << fmt::format("Is '{}' an [0] Animal, [1] Fruit or Vegetable or [2] Object or [3] Person? <type 0/1/2/3 + enter> :",
                              ol[obj_index])
               << std::flush;
 
