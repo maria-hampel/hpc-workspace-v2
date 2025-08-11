@@ -57,6 +57,13 @@ TEST_CASE("utils", "[utils]")
         REQUIRE(utils::ctime(&t) == std::string("Mon Aug  4 21:57:29 2025"));
     }
 
+    SECTION("mail")
+    {
+        REQUIRE(utils::generateToHeader({"a"}) == std::string("a"));
+        REQUIRE(utils::generateToHeader({"a","b","c"}) == std::string("a, b, c"));
+
+        REQUIRE(utils::generateMessageID(".test") != utils::generateMessageID(".test"));
+    }
 
     SECTION("Valid email addresses") {
         REQUIRE(utils::isValidEmail("test@example.com"));
