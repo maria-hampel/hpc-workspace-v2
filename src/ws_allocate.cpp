@@ -268,7 +268,7 @@ bool validateDuration(const Config& config, const std::string filesystem, int& d
  *  FIXME: make it -> int and return errors for tesing
  *  FIXME: unit test this? make smaller functions to be able to test?
  */
-void allocate(const Config& config, const po::variables_map& opt, int duration, string filesystem, const string name,
+bool allocate(const Config& config, const po::variables_map& opt, int duration, string filesystem, const string name,
               const bool extensionflag, const int reminder, const string mailaddress, string user_option,
               const string groupname, const string comment) {
     if (traceflag)
@@ -322,6 +322,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
     // loop over valid workspaces, and see if the workspace exists
 
     std::unique_ptr<Database> db;
+    std::vector<std::unique_ptr<DBEntry>> entrylist;
 
     for (std::string cfilesystem : searchlist) {
         if (debugflag) {
@@ -341,11 +342,10 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
         if (extensionflag && user_option.length() > 0) {
             dbid = user_option + "-" + name;
             try {
-                dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
+                entrylist.push_back(std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false)));
                 db = std::move(candidate_db);
                 foundfs = cfilesystem;
                 ws_exists = true;
-                break;
             } catch (DatabaseException& e) {
                 spdlog::error("workspace does not exist, can not be extended!");
                 exit(-1); // FIXME: is exit good here?
@@ -358,11 +358,10 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
                 else
                     dbid = username + "-" + name;
 
-                dbentry = std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false));
+                entrylist.push_back(std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false)));
                 db = std::move(candidate_db);
                 foundfs = cfilesystem;
                 ws_exists = true;
-                break;
             } catch (DatabaseException& e) {
                 // silently ignore non existiong entries
                 if (debugflag)
@@ -370,6 +369,16 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
             }
         }
     } // searchloop
+
+    // make sure workspace ID is unique
+    if (entrylist.size() > 1) {
+        spdlog::error("aborting, there is {} workspaces with that name, please use -F to specify filesystem",
+                      entrylist.size());
+        return false;
+    } else {
+        if (entrylist.size() > 0)
+            dbentry = std::move(entrylist[0]);
+    }
 
     // workspace exists, change mailaddress, reminder settings or comment, and extend if requested
     // consume an extension
@@ -505,7 +514,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
         } catch (DatabaseException& e) {
             spdlog::error(e.what());
             spdlog::error("aborting");
-            return;
+            return false;
         }
 
         auto wsdir = creationDB->createWorkspace(name, user_option, opt.count("group") > 0, groupname);
@@ -534,6 +543,7 @@ void allocate(const Config& config, const po::variables_map& opt, int duration, 
 
         syslog(LOG_INFO, "created for user <%s> DB <%s> with space <%s>.", username.c_str(), id.c_str(), wsdir.c_str());
     }
+    return true;
 }
 
 int main(int argc, char** argv) {
@@ -600,6 +610,8 @@ int main(int argc, char** argv) {
     openlog("ws_allocate", 0, LOG_USER); // SYSLOG
 
     // allocate workspace
-    allocate(config, opt, duration, filesystem, name, extensionflag, reminder, mailaddress, user_option, groupname,
-             comment);
+    if (!allocate(config, opt, duration, filesystem, name, extensionflag, reminder, mailaddress, user_option, groupname,
+                  comment)) {
+        return -1;
+    }
 }

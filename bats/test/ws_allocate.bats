@@ -102,7 +102,7 @@ setup() {
 }
 
 @test "ws_allocate no option" {
-    run ws_allocate --config bats/bad_ws.conf 
+    run ws_allocate --config bats/bad_ws.conf
     assert_output  --partial "Usage"
     assert_failure
 }
@@ -114,10 +114,10 @@ setup() {
 }
 
 @test "ws_allocate too long duration (allocation and extension)" {
-    run ws_allocate --config bats/ws.conf TOLONG 1000 
-    assert_output  --partial "Duration longer than allowed" 
+    run ws_allocate --config bats/ws.conf TOLONG 1000
+    assert_output  --partial "Duration longer than allowed"
     assert_success
-    run ws_allocate --config bats/ws.conf -x TOLONG 1000 
+    run ws_allocate --config bats/ws.conf -x TOLONG 1000
     assert_success
     assert_output  --partial "Duration longer than allowed"
     rm -f /tmp/ws/ws2-db/${USER}-TOLONG
@@ -163,7 +163,7 @@ setup() {
 }
 
 @test "ws_allocate with reminder, valid email" {
-    run ws_allocate --config bats/ws.conf -r 1 -m a@b.c REMINDER 10 
+    run ws_allocate --config bats/ws.conf -r 1 -m a@b.c REMINDER 10
     assert_output --partial "remaining time in days: 10"
     assert_success
     run ws_list --config bats/ws.conf -v REMINDER
@@ -211,7 +211,7 @@ setup() {
     assert_success
     wsdir=$(ws_find --config bats/ws.conf WS2)
     run stat $wsdir
-    assert_output --partial "drwxr-x---" 
+    assert_output --partial "drwxr-x---"
     rm -f /tmp/ws/ws2-db/${USER}-WS2
 }
 
@@ -263,6 +263,17 @@ setup() {
     rm -f /tmp/ws/ws2-db/${USER}-extensiontest
 }
 
+@test "ws_allocate -x with non-unique name" {
+    ws_allocate --config bats/ws.conf -F ws1 TESTUNIQUE 10
+    ws_allocate --config bats/ws.conf -F ws2 TESTUNIQUE 10
+    run ws_allocate --config bats/ws.conf -x TESTUNIQUE 20
+    assert_failure
+    assert_output --partial "there is 2 workspaces"
+    ws_release --config bats/ws.conf -F ws1 TESTUNIQUE
+    ws_release --config bats/ws.conf -F ws2 TESTUNIQUE
+}
+
 cleanup() {
     ws_release --config bats/ws.conf $ws_name
+    ws_release --config bats/ws.conf TEST
 }
