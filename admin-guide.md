@@ -254,6 +254,7 @@ which needs intervention.
 ### `expirerlogpath`
 
 A path including filename where ```ws_expirer``` will place a logfile per day.
+The logfile contains additional timestamps compared to normal output.
 
 ### `deldirtimeout`
 
