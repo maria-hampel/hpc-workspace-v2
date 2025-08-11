@@ -71,6 +71,7 @@ int debuglevel = 0;
 
 bool cleanermode = false;
 
+// type for statistics
 struct expire_result_t {
     long expired_ws;
     long kept_ws;
@@ -78,6 +79,7 @@ struct expire_result_t {
     long sent_mails;
     long bad_db;
 
+    // add elements for global sum
     expire_result_t& operator+=(const expire_result_t& other) {
         expired_ws += other.expired_ws;
         kept_ws += other.kept_ws;
@@ -88,12 +90,14 @@ struct expire_result_t {
     }
 };
 
+// type for statistics
 struct clean_stray_result_t {
     long valid_ws;
     long invalid_ws;
     long valid_deleted;
     long invalid_deleted;
 
+    // add elements for global sum
     clean_stray_result_t& operator+=(const clean_stray_result_t& other) {
         valid_ws += other.valid_ws;
         invalid_ws += other.invalid_ws;
@@ -105,8 +109,8 @@ struct clean_stray_result_t {
 
 // time to keep released workspaces before deletion in seconds
 long releasekeeptime = 3600;
-std::string CRLF = "\r\n";
-std::string boundary = "_NextPart_01234567.89ABCDEF";
+const std::string CRLF = "\r\n";
+const std::string boundary = "_NextPart_01234567.89ABCDEF";
 
 // own logging setup,
 // logs in color to console
