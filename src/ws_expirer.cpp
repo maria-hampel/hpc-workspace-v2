@@ -112,14 +112,30 @@ long releasekeeptime = 3600;
 const std::string CRLF = "\r\n";
 const std::string boundary = "_NextPart_01234567.89ABCDEF";
 
-// own logging setup,
+// own ws_expirer logging setup,
 // logs in color to console
-// and into a daily rotating file with timestamps
-static void setupLogging() {
+static void setupMinimalLogging() {
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     console_sink->set_pattern("%^%l%$: %v");
-    auto file_sink = std::make_shared<spdlog::sinks::daily_file_format_sink_mt>(
-        "/tmp/ws_expirer.log", 0, 1); // FIXME: TODO: make path a config paramer or command line argument
+
+    spdlog::logger* log = new spdlog::logger("ws_expirer", {console_sink});
+    spdlog::set_default_logger(std::shared_ptr<spdlog::logger>(log));
+    spdlog::set_level(spdlog::level::trace);
+}
+
+// own ws_expirer logging setup,
+// logs in color to console
+// and into a daily rotating file with timestamps
+static void setupLogging(const std::string pathname) {
+    if (pathname.size() == 0) {
+        spdlog::warn("config contains no expirerlogpath, no file logging");
+        return;
+    }
+
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_pattern("%^%l%$: %v");
+
+    auto file_sink = std::make_shared<spdlog::sinks::daily_file_format_sink_mt>(pathname, 0, 1);
     file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
     spdlog::logger* log = new spdlog::logger("ws_expirer", {file_sink, console_sink});
     spdlog::set_default_logger(std::shared_ptr<spdlog::logger>(log));
@@ -578,7 +594,8 @@ int main(int argc, char** argv) {
     utils::initCurl();
 
     // set custom logging format, this different than other tools, as this tool is for root anyhow
-    setupLogging();
+    // setup minimal logging fist, config is not yet read for file logging
+    setupMinimalLogging();
 
     // define options
     po::options_description cmd_options("\nOptions");
@@ -657,6 +674,9 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
+    // now we can add file logging
+    setupLogging(config.expirerlogpath());
+
     // main logic from here
     std::vector<std::string> fslist;
 
@@ -699,7 +719,7 @@ int main(int argc, char** argv) {
     for (auto const& fs : fslist) {
         total_expire += expire_workspaces(config, fs, dryrun);
     }
-    spdlog::info("expiratiion summary: {} kept, {} expired, {} deleted, {} reminders sent, {} bad db entries",
+    spdlog::info("expiration summary: {} kept, {} expired, {} deleted, {} reminders sent, {} bad db entries",
                  total_expire.kept_ws, total_expire.expired_ws, total_expire.deleted_ws, total_expire.sent_mails,
                  total_expire.bad_db);
     spdlog::info("end of expiration");

@@ -42,6 +42,7 @@
 using namespace std;
 namespace cppfs = std::filesystem;
 
+// little shortcut
 using strings = std::vector<string>;
 
 // global part of config
@@ -59,6 +60,7 @@ struct Global_config {
     int dbuid;               // uid of DB user
     int dbgid;               // gid of DB user
     int deldirtimeout;       // timeout for directory deletion
+    string expirerlogpath;   // path where ws_expirer should place logfiles
 };
 
 // config of filesystem
@@ -142,6 +144,7 @@ class Config {
     string smtphost() const { return global.smtphost; };
     vector<string> admins() const { return global.admins; };
     vector<string> adminmail() const { return global.adminmail; };
+    string expirerlogpath() const { return global.expirerlogpath; };
 
   private:
     // read config from YAML string

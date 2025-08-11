@@ -110,7 +110,7 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
 
     if (!filefound) {
         isvalid = false;
-        spdlog::error("None of the config file exists!");
+        spdlog::error("None of the config files exists!");
     } else {
         validate();
     }
@@ -210,6 +210,9 @@ void Config::readYAML(string yamlstr) {
     readRyamlScalar(config, "maxextensions", global.maxextensions);
     readRyamlScalar(config, "dbuid", global.dbuid);
     readRyamlScalar(config, "dbgid", global.dbgid);
+
+    readRyamlSequence(config, "deldirtimeout", global.deldirtimeout);
+    readRyamlSequence(config, "expirerlogpath", global.expirerlogpath);
 
     readRyamlSequence(config, "admins", global.admins);
     readRyamlSequence(config, "adminmail", global.adminmail);
@@ -312,6 +315,10 @@ void Config::readYAML(const string yaml) {
         global.admins = config["admins"].as<vector<string>>();
     if (config["adminmail"])
         global.adminmail = config["adminmail"].as<vector<string>>();
+    if (config["deldirtimeout"])
+        global.deldirtimeout = config["deldirtimeout"].as<int>();
+    if (config["expirerlogpath"])
+        global.expirerlogpath = config["expirerlogpath"].as<string>();
 
     // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
     if (config["workspaces"] || config["filesystems"]) {

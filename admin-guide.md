@@ -251,6 +251,17 @@ just their own.
 A list of email addresses to inform when a bad condition is discovered by ws_expirer
 which needs intervention.
 
+### `expirerlogpath`
+
+A path including filename where ```ws_expirer``` will place a logfile per day.
+
+### `deldirtimeout`
+
+A timeout value in seconds that a single workspace is allowed to last.
+If this time is exceeded, the workspace will not be fully deleted, but
+deletion will be resumed in the next instance of the ```ws_expirer```.
+**Remark** not yet implemented in v2.
+
 ### filesystem specific options
 
 In the config entry `filesystems` (alias for compatibility is `workspaces`), multiple workspace location entries may be
