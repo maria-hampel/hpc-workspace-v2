@@ -180,7 +180,6 @@ bool validateFs(const Config& config, const po::variables_map& opt, const std::s
 /*
  *  release the workspace
  *  file accesses and config access are hidden in DB and config handling
- *  FIXME: make it -> int and return errors for tesing
  */
 bool release(const Config& config, const po::variables_map& opt, string filesystem, const string name,
              string user_option, const bool deletedata) {
