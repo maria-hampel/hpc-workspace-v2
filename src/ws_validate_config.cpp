@@ -152,7 +152,7 @@ int main(int argc, char** argv){
             fmt::println("default: {}", defaultws);
         } else if (config["default_workspace"]){
             defaultws = config["default_workspace"].as<string>();
-            fmt::println("default_workspace: {}");
+            fmt::println("default_workspace: {}", defaultws);
         } else {
             spdlog::error("Neither 'default nor 'default_workspace' found.");
             exit(1);
@@ -173,7 +173,7 @@ int main(int argc, char** argv){
             duration = config["duration"].as<int>();
             fmt::println("maxduration: {}", duration);
         } else if (config["maxduration"]){
-            auto duration = config["maxduration"].as<int>();
+            duration = config["maxduration"].as<int>();
             fmt::println("maxduration: {}", duration);
         } else {
             fmt::println("No duration found, continuing");
@@ -300,7 +300,7 @@ int main(int argc, char** argv){
                             } else if (ws["duration"]){
                                 duration = ws["duration"].as<int>();
                                 fmt::println("maxduration: {}", duration);
-                            } else if (ws["amxduration"]){
+                            } else if (ws["maxduration"]){
                                 duration = ws["maxduration"].as<int>();
                                 fmt::println("maxduration: {}", duration);
                             } else {
