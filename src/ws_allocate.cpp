@@ -183,7 +183,13 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
 
     // fix duration if none given and there is one in user config
     if (duration == -1) {
-        duration = userconfig.getDuration();
+        if (extension && (mailaddress != "" || comment != "" || reminder != 0)) {
+            spdlog::debug("setting duration to 0");
+            duration = 0;
+        } else {
+            spdlog::debug("reading duration from userconfig");
+            duration = userconfig.getDuration();
+        }
     }
 
     // validate email
