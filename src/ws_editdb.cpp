@@ -308,7 +308,7 @@ int main(int argc, char** argv) {
                             continue;
                         }
 
-                        cppfs::rename(oldpathdir, newpathdir);
+                        cppfs::rename(oldpathdb, newpathdb);
                         try {
                             cppfs::rename(oldpathdir, newpathdir);
                         } catch (const cppfs::filesystem_error& e) {
