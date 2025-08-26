@@ -264,7 +264,6 @@ int main(int argc, char** argv) {
                 auto id = entry->getId();
                 auto fs = entry->getFilesystem();
                 long oldtimestamp;
-                // fmt::println("{}, {}, {}", wspath, entry->getReleaseTime(), id);
 
                 try {
                     oldtimestamp = std::stol(utils::splitString(id, '-').at(std::count(id.begin(), id.end(), '-'))); 
@@ -289,12 +288,14 @@ int main(int argc, char** argv) {
 
                 if (!dryrun){
                     try {
-                        // Check if source files exist before attempting rename
+                        // Check if source files exist 
                         if (!cppfs::exists(oldpathdb)) {
                             spdlog::warn("Database entry does not exist: {}", oldpathdb.generic_string());
+                            continue;
                         }
                         if (!cppfs::exists(oldpathdir)) {
                             spdlog::warn("Directory does not exist: {}", oldpathdir.generic_string());
+                            continue;
                         }
 
                         // Check if target already exists
@@ -328,7 +329,6 @@ int main(int argc, char** argv) {
                 // wspath = entry->getWSPath();
                 // id = entry->getId();
                 // fmt::println("{}, {}, {}", wspath, entry->getReleaseTime(), id);
-
             }
         }
     }
