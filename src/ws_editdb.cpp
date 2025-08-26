@@ -71,6 +71,7 @@ int main(int argc, char** argv) {
     int addtime = 0;
     bool listexpired = false;
     bool dryrun = true;
+    bool rename = false;
     // bool verbose = false;
 
     po::variables_map opts;
@@ -94,6 +95,7 @@ int main(int argc, char** argv) {
         ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
         ("dry-run", "dry-run (default), do nothing, just show what would be done")
         ("add-time", po::value<int>(&addtime), "add time to selected workspace expiration time, in days")
+        ("rename,r", "rename expired files, use only with -e (use only when working with the v1 expirer)")
         ("not-kidding", "execute the actions")
         ("verbose,v", "verbose listing");
     // clang-format on
@@ -130,6 +132,10 @@ int main(int argc, char** argv) {
     if (opts.count("not-kidding")) {
         dryrun = false;
         spdlog::info("dry-run disabled");
+    }
+
+    if (opts.count("rename")) {
+        rename = true;
     }
 
     // global flags
@@ -252,6 +258,77 @@ int main(int argc, char** argv) {
                 }
                 entry->setExpiration(newexpiration);
                 entry->writeEntry();
+            }
+            if (rename && listexpired) {
+                auto wspath = entry->getWSPath();
+                auto id = entry->getId();
+                auto fs = entry->getFilesystem();
+                long oldtimestamp;
+                // fmt::println("{}, {}, {}", wspath, entry->getReleaseTime(), id);
+
+                try {
+                    oldtimestamp = std::stol(utils::splitString(id, '-').at(std::count(id.begin(), id.end(), '-'))); 
+                } catch (const out_of_range& e) {
+                    spdlog::error("skipping DB entry with unparsable name {}", id);
+                    continue;
+                }
+
+                auto oldpathdir = cppfs::path(wspath).remove_filename() / config.deletedPath(fs) /
+                               (cppfs::path(wspath).filename().string() + "-" + to_string(oldtimestamp));
+                auto oldpathdb = cppfs::path(config.database(fs)) / config.deletedPath(fs) / 
+                                (cppfs::path(wspath).filename().string() + "-" + to_string(oldtimestamp));
+                
+                auto newtimestamp = (oldtimestamp) + (addtime * DAYS);
+                auto newpathdir = cppfs::path(wspath).remove_filename() / config.deletedPath(fs) /
+                                (cppfs::path(wspath).filename().string() + "-" + to_string(newtimestamp));
+                auto newpathdb = cppfs::path(config.database(fs)) / config.deletedPath(fs) / 
+                                (cppfs::path(wspath).filename().string() + "-" + to_string(newtimestamp));
+
+                fmt::println("    rename dbentry {} -> {}", oldpathdb.generic_string(), newpathdb.generic_string());
+                fmt::println("    rename dir {} -> {}", oldpathdir.generic_string(), newpathdir.generic_string());
+
+                if (!dryrun){
+                    try {
+                        // Check if source files exist before attempting rename
+                        if (!cppfs::exists(oldpathdb)) {
+                            spdlog::warn("Database entry does not exist: {}", oldpathdb.generic_string());
+                        }
+                        if (!cppfs::exists(oldpathdir)) {
+                            spdlog::warn("Directory does not exist: {}", oldpathdir.generic_string());
+                        }
+
+                        // Check if target already exists
+                        if (cppfs::exists(newpathdb)) {
+                            spdlog::error("Target database entry already exists: {}", newpathdb.generic_string());
+                            continue;
+                        }
+                        if (cppfs::exists(newpathdir)) {
+                            spdlog::error("Target directory already exists: {}", newpathdir.generic_string());
+                            continue;
+                        }
+
+                        cppfs::rename(oldpathdir, newpathdir);
+                        try {
+                            cppfs::rename(oldpathdir, newpathdir);
+                        } catch (const cppfs::filesystem_error& e) {
+                            // Rollback database rename
+                            spdlog::error("Failed to rename directory, rolling back database rename: {}", e.what());
+                            try {
+                                cppfs::rename(newpathdb, oldpathdb);
+                            } catch (const cppfs::filesystem_error& rollback_error) {
+                                spdlog::error("Critical! Failed to rollback database rename! Manual intervention required.");
+                            }
+                            throw; 
+                        }
+                    } catch (const cppfs::filesystem_error& e) {
+                        spdlog::error("Failed to rename files for workspace {}: {}", id, e.what()); 
+                    }
+                }
+                // db does not get updated --> would need to reload it 
+                // wspath = entry->getWSPath();
+                // id = entry->getId();
+                // fmt::println("{}, {}, {}", wspath, entry->getReleaseTime(), id);
+
             }
         }
     }
