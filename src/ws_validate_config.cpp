@@ -43,8 +43,8 @@
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include <iostream>
-#include <filesystem>
 #include <string>
+#include <filesystem>
 
 #include "caps.h"
 #include "utils.h"
@@ -55,6 +55,7 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 using namespace std;
+namespace cppfs = std::filesystem;
 
 // global variables
 bool debugflag = false;
@@ -117,7 +118,27 @@ int main(int argc, char** argv){
 
     spdlog::info("validating config from {}", filename);
 
-    
+    std::vector<YAML::Node> wslist;
+    std::vector<string> wsnames;
+
+    try {
+        if (config["workspaces"] || config["filesystems"]) {
+            for (auto key : std::vector<string>{"workspaces", "filesystems"}){
+                if(config[key]){
+
+                    auto list = config[key];
+                    wslist.push_back(list);
+                    for (auto it : list){
+                        wsnames.push_back(it.first.as<string>());
+                    }
+                }
+            }
+        }
+    } catch (...) {
+        spdlog::error("No Workspaces defined");
+        exit(1);
+    }
+
     try {
         auto clustername = config["clustername"].as<string>();
         fmt::println("clustername: {}", clustername);
@@ -141,9 +162,9 @@ int main(int argc, char** argv){
     }
 
     // default/default_workspace
-    try {
-        std::string defaultws;
+    std::string defaultws;
 
+    try {
         if (config["default"] && config["default_workspace"]){
             spdlog::error("Both 'default and 'default_workspace defined. Choose one.");
             exit(1);
@@ -159,6 +180,11 @@ int main(int argc, char** argv){
         }
     } catch (...) {
         spdlog::error("No default found");
+        exit(1);
+    }
+    // try if defaultws is actually in the ws
+    if (!(std::find(wsnames.begin(), wsnames.end(), defaultws) != wsnames.end())){
+        spdlog::error("default workspace is not defined as workspace in the file");
         exit(1);
     }
 
@@ -243,140 +269,129 @@ int main(int argc, char** argv){
     }
 
 
-    try {
-        if (config["workspaces"] || config["filesystems"]) {
-            for (auto key : std::vector<string>{"workspaces", "filesystems"}){
-                if(config[key]){
-
-                    auto list = config[key];
-
-                    for (auto it : list){
-                        spdlog::info("checking config for filesystem {}", it.first.as<string>());
-
-                        auto ws = it.second;
-
-                        try {
-                            auto keeptime = ws["keeptime"].as<int>();
-                            fmt::println("keeptime: {}", keeptime);
-                        } catch (...) {
-                            fmt::println("No keeptime found, continuing");
-                        }
-
-                        try {
-                            auto spaces = ws["spaces"].as<vector<string>>();
-                            fmt::println("spaces: {}", spaces);
-                        } catch (...) {
-                            fmt::println("No spaces found, continuing");
-                        }
-                        
-                        try {
-                            auto spaceselection = ws["spaceselection"].as<string>();
-                            fmt::println("spaceselection: {}", spaceselection);
-                        } catch (...) {
-                            fmt::println("No spaceselection found, defaults to 'random', continuing");
-                        }
-
-                        try {
-                            auto deleted = ws["deleted"].as<string>();
-                            fmt::println("deleted: {}", deleted);
-                        } catch (...) {
-                            fmt::println("No deleted found, continuing");
-                        }
-
-                        try {
-                            auto database = ws["database"].as<string>();
-                            fmt::println("workspace database directory: {}", database);
-                        } catch (...) {
-                            fmt::println("No database location found, continuing");
-                        }
-
-                        //todo this is for duration/maxduration 
-                        try {
-                            int duration;
-
-                            if (ws["duration"] && ws["maxduration"]){
-                                spdlog::error("Both 'duration' and 'maxduration' defined. Choose one.");
-                                exit(1);
-                            } else if (ws["duration"]){
-                                duration = ws["duration"].as<int>();
-                                fmt::println("maxduration: {}", duration);
-                            } else if (ws["maxduration"]){
-                                duration = ws["maxduration"].as<int>();
-                                fmt::println("maxduration: {}", duration);
-                            } else {
-                                fmt::println("No duration found, continuing");
-                            }
-                        } catch (...) {
-                            fmt::println("No duration found, continuing");
-                        }
-
-                        try {
-                            auto groupdefault = ws["groupdefault"].as<vector<string>>();
-                            fmt::println("groupdefault: {}", groupdefault);
-                        } catch (...) {
-                            fmt::println("No groupdefault found, continuing");
-                        }
-
-                        try {
-                            auto userdefault = ws["userdefault"].as<vector<string>>();
-                            fmt::println("userdefault: {}", userdefault);
-                        } catch (...) {
-                            fmt::println("No userdefault found, continuing");
-                        }
-
-                        try {
-                            auto user_acl = ws["user_acl"].as<vector<string>>();
-                            fmt::println("user_acl: {}", user_acl);
-                        } catch (...) {
-                            fmt::println("No user_acl found, continuing");
-                        }
-
-                        try {
-                            auto group_acl = ws["group_acl"].as<vector<string>>();
-                            fmt::println("group_acl: {}", group_acl);
-                        } catch (...) {
-                            fmt::println("No group_acl found, continuing");
-                        }
-
-                        try {
-                            auto maxextensions = ws["maxextensions"].as<int>();
-                            fmt::println("maxextensions: {}", maxextensions);
-                        } catch (...) {
-                            fmt::println("No maxextensions found, continuing");
-                        }
-
-                        try {
-                            auto allocatable = ws["allocatable"].as<string>();
-                            fmt::println("allocatable: {}", allocatable);
-                        } catch (...) {
-                            fmt::println("No allocatable found, defaults to 'yes', continuing");
-                        }
-
-                        try {
-                            auto extendable = ws["extendable"].as<string>();
-                            fmt::println("extendable: {}", extendable);
-                        } catch (...) {
-                            fmt::println("No extendable found, defaults to 'yes', continuing");
-                        }
-
-                        try {
-                            auto restorable = ws["restorable"].as<int>();
-                            fmt::println("restorable: {}", restorable);
-                        } catch (...) {
-                            fmt::println("No restorable found, defaults to 'yes', continuing");
-                        }
-                    }
-                }
+    for (auto node : wslist){    
+        for (auto it : node){
+            spdlog::info("checking config for filesystem {}", it.first.as<string>());
+            auto ws = it.second;
+    
+            try {
+                auto keeptime = ws["keeptime"].as<int>();
+                fmt::println("    keeptime: {}", keeptime);
+            } catch (...) {
+                fmt::println("    No keeptime found, continuing");
             }
-        } else {
-            spdlog::error("No workspaces defined");
-            exit(1);
-        }
-    } catch (...) {
-        spdlog::error("No workspaces defined.");
-        exit(1);
-    }
 
+            try {
+                auto spaces = ws["spaces"].as<vector<string>>();
+                fmt::println("    spaces: {}", spaces);
+            } catch (...) {
+                spdlog::error("No spaces found, please add <\"spaces\": []>");
+            }
+            
+            try {
+                auto spaceselection = ws["spaceselection"].as<string>();
+                fmt::println("    spaceselection: {}", spaceselection);
+            } catch (...) {
+                fmt::println("    No spaceselection found, defaults to 'random', continuing");
+            }
+
+            try {
+                auto deleted = ws["deleted"].as<string>();
+                fmt::println("    deleted: {}", deleted);
+            } catch (...) {
+                spdlog::error("No deleted directory found, please add <\"deleted\": \"dir\"> clause to workspace");
+            }
+
+            try {
+                auto database = ws["database"].as<string>();
+                fmt::println("    workspace database directory: {}", database);
+                if (!cppfs::exists(database)) {
+                    spdlog::warn("database directory {} does not exist", database);
+                }
+                if (!cppfs::exists(database / cppfs::path(".ws_db_magic"))) {
+                    spdlog::warn("database directory {} does not contain .ws_db_magic!", database);
+                }
+            } catch (...) {
+                spdlog::error("No database location defined, please add <\"database\": \"dir\"> clause to workspace");
+            }
+
+            //todo this is for duration/maxduration 
+            try {
+                int duration;
+
+                if (ws["duration"] && ws["maxduration"]){
+                    spdlog::error("Both 'duration' and 'maxduration' defined. Choose one.");
+                    exit(1);
+                } else if (ws["duration"]){
+                    duration = ws["duration"].as<int>();
+                    fmt::println("    maxduration: {}", duration);
+                } else if (ws["maxduration"]){
+                    duration = ws["maxduration"].as<int>();
+                    fmt::println("    maxduration: {}", duration);
+                } else {
+                    fmt::println("    No duration found, continuing");
+                }
+            } catch (...) {
+                fmt::println("    No duration found, continuing");
+            }
+
+            try {
+                auto groupdefault = ws["groupdefault"].as<vector<string>>();
+                fmt::println("    groupdefault: {}", groupdefault);
+            } catch (...) {
+                fmt::println("    No groupdefault found, continuing");
+            }
+
+            try {
+                auto userdefault = ws["userdefault"].as<vector<string>>();
+                fmt::println("    userdefault: {}", userdefault);
+            } catch (...) {
+                fmt::println("    No userdefault found, continuing");
+            }
+
+            try {
+                auto user_acl = ws["user_acl"].as<vector<string>>();
+                fmt::println("    user_acl: {}", user_acl);
+            } catch (...) {
+                fmt::println("    No user_acl found, continuing");
+            }
+
+            try {
+                auto group_acl = ws["group_acl"].as<vector<string>>();
+                fmt::println("    group_acl: {}", group_acl);
+            } catch (...) {
+                fmt::println("    No group_acl found, continuing");
+            }
+
+            try {
+                auto maxextensions = ws["maxextensions"].as<int>();
+                fmt::println("    maxextensions: {}", maxextensions);
+            } catch (...) {
+                fmt::println("    No maxextensions found, continuing");
+            }
+
+            try {
+                auto allocatable = ws["allocatable"].as<string>();
+                fmt::println("    allocatable: {}", allocatable);
+            } catch (...) {
+                fmt::println("    No allocatable found, defaults to 'yes', continuing");
+            }
+
+            try {
+                auto extendable = ws["extendable"].as<string>();
+                fmt::println("    extendable: {}", extendable);
+            } catch (...) {
+                fmt::println("    No extendable found, defaults to 'yes', continuing");
+            }
+
+            try {
+                auto restorable = ws["restorable"].as<int>();
+                fmt::println("    restorable: {}", restorable);
+            } catch (...) {
+                fmt::println("    No restorable found, defaults to 'yes', continuing");
+            }
+        }
+}
     spdlog::info("config is valid!");
 
 
