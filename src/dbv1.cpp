@@ -86,7 +86,7 @@ namespace cppfs = std::filesystem;
 
 // create the workspace directory with the structure of this DB
 string FilesystemDBV1::createWorkspace(const string name, const string user_option, const bool groupflag,
-                                       const string groupname) {
+                                       const bool groupwritable, const string groupname) {
     string wsdir;
 
     std::string username = user::getUsername(); // current user
@@ -191,12 +191,13 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
     mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
 
     // group workspaces can be read and listed by group
-    if (groupflag || groupname != "") {
-        mode |= S_IRGRP | S_IXGRP;
+    if (groupflag) {
+        // SPEC:CHANGE setuid bit is always set, for readable group workspaces as well
+        mode |= S_IRGRP | S_IXGRP | S_ISGID;
     }
     // if a groupname is given make it writable as well
-    if (groupname != "") {
-        mode |= S_IWGRP | S_ISGID;
+    if (groupwritable) {
+        mode |= S_IWGRP;
     }
     if (chmod(wsdir.c_str(), mode)) {
         caps.lower_cap({CAP_FOWNER}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
@@ -211,10 +212,10 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
 
 // create new DB entry
 void FilesystemDBV1::createEntry(const WsID id, const string workspace, const long creation, const long expiration,
-                                 const long reminder, const int extensions, const string group,
+                                 const long reminder, const int extensions, const bool groupflag, const string group,
                                  const string mailaddress, const string comment) {
 
-    DBEntryV1 entry(this, id, workspace, creation, expiration, reminder, extensions, group, mailaddress, comment);
+    DBEntryV1 entry(this, id, workspace, creation, expiration, reminder, extensions, groupflag, group, mailaddress, comment);
     entry.writeEntry();
 }
 
@@ -329,10 +330,10 @@ void FilesystemDBV1::deleteEntry(const string wsid, const bool deleted) {
 
 // constructor to make new entry to write out
 DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation,
-                     const long _expiration, const long _reminder, const int _extensions, const string _group,
+                     const long _expiration, const long _reminder, const int _extensions, const bool _groupflag, const string _group,
                      const string _mailaddress, const string _comment)
     : parent_db(pdb), id(_id), workspace(_workspace), creation(_creation), expiration(_expiration), reminder(_reminder),
-      extensions(_extensions), group(_group), mailaddress(_mailaddress), comment(_comment) {
+      extensions(_extensions), groupflag(_groupflag), group(_group), mailaddress(_mailaddress), comment(_comment) {
     dbfilepath = pdb->getconfig()->getFsConfig(pdb->getfs()).database + "/" + id;
     released = 0;
 }
@@ -664,7 +665,7 @@ void DBEntryV1::writeEntry() {
     entry["acctcode"] = "";
     entry["reminder"] = reminder;
     entry["mailaddress"] = mailaddress;
-    if (group.length() > 0) {
+    if (groupflag && group.length() > 0) {
         entry["group"] = group;
     }
     if (released > 0) {
@@ -682,7 +683,7 @@ void DBEntryV1::writeEntry() {
     root["acctcode"] << "";
     root["reminder"] << reminder;
     root["mailaddress"] << mailaddress;
-    if (group.length() > 0) {
+    if (groupflag && group.length() > 0) {
         root["group"] << group;
     }
     if (released > 0) {

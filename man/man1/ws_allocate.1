@@ -5,7 +5,7 @@ ws_allocate \- create a workspace directory and return its path
 
 .SH SYNOPSIS
 .B ws_allocate
-[\-h] [\-x] [\-g] [\-G GROUPNAME] [\-u USER] [\-F FILESYSTEM] [\-d DURATION] [\-r DAYS] [\-m MAILADDRESS] [\-c COMMENT] NAME DURATION
+[\-h] [\-x] [\-g [GROUPNAME]] [\-G [GROUPNAME]] [--] [\-u USER] [\-F FILESYSTEM] [\-d DURATION] [\-r DAYS] [\-m MAILADDRESS] [\-c COMMENT] NAME DURATION
 
 .SH DESCRIPTION
 Create a
@@ -105,18 +105,23 @@ See
 .B ws_send_ical
 for a way to send calendar entries.
 .TP
-\-g
+\-g [GROUPNAME]
 a group-workspace will be created, that is a workspace that can be seen by other members of current group with
 .B ws_list -g
-and the workspace itself is created group readable.
+and the workspace itself is created group readable, and with group sticky bit.
+If no group is given, the current group is taken. Be carefull to have another option behind it or append -- to the option
+list to make it clear that next argument is not the GROUPNAME argument.
 .TP
-\-G GROUPNAME
+\-G [GROUPNAME]
 use your group GROUPNAME as group for the workspace and make the workspace group writable and set the group sticky bit.
 A group writable workspace can be seen as well with
 .B ws_list -g
 and it can be extended by group members with
 .B ws_allocate -x -u <user> <workspace-id> <days>
 in behalf of the owner.
+If no group is given, the current group is taken. Be carefull to have another option behind it or append -- to the option
+list to make it clear that next argument is not the GROUPNAME argument.
+
 
 .SH EXAMPLES
 .TP

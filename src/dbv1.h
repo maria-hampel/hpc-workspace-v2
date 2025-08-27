@@ -62,6 +62,8 @@ class DBEntryV1 : public DBEntry {
     long released;      // epoch time of manual release
     long reminder;      // epoch time of reminder to be sent out
     int extensions;     // extensions, counting down
+    // internal flag, here to avoid order warnings, does not end in DB
+    bool groupflag;     // flag to mark group workspaces
     string group;       // group for whom it is visible
     string mailaddress; // address for reminder email
     string comment;     // some user defined comment
@@ -72,7 +74,7 @@ class DBEntryV1 : public DBEntry {
     DBEntryV1(FilesystemDBV1* pdb) : parent_db(pdb) {};
     // constructor to make new entry to write out
     DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation,
-              const long _expiration, const long _reminder, const int _extensions, const string _group,
+              const long _expiration, const long _reminder, const int _extensions, const bool _groupflag, const string _group,
               const string _mailaddress, const string _comment);
 
     // read yaml entry from string
@@ -123,7 +125,7 @@ class FilesystemDBV1 : public Database {
 
     // create new DB entry
     void createEntry(const WsID id, const string workspace, const long creation, const long expiration,
-                     const long reminder, const int extensions, const string group, const string mailaddress,
+                     const long reminder, const int extensions, const bool groupflag, const string group, const string mailaddress,
                      const string comment);
 
     // read entry
@@ -141,7 +143,7 @@ class FilesystemDBV1 : public Database {
     // create workspace directory according to rules of this DB
     // and return the name
     std::string createWorkspace(const string name, const string user_option, const bool groupflag,
-                                const string groupname);
+                                const bool writable, const string groupname);
 
     // access to config
     const Config* getconfig() const { return config; }

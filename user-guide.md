@@ -117,14 +117,29 @@ You can also generate a calender entry via email with ``ws_send_ical``, see manp
 
 ## cooperative usage (group workspaces and sharing with other users)
 
-When a workspace is created with ```-g``` it gets a group workspace that is visible to others with ```ws_list -g``` (if in same group),
-and is group readable.
+When a workspace is created with ```-g [groupname]``` it gets a group workspace that is visible to others with ```ws_list -g``` (if in same group),
+and is group readable and gets group sticky bit.
 
-When it is created with ```-G <groupname>``` the workspace gets writable as well, and gets group sticky bit. The group can be specified in
-the ~/.ws_user.conf file as well.
+When it is created with ```-G [groupname]``` the workspace gets writable as well, and gets group sticky bit. The group can be specified in
+the ~/.ws_user.conf file as well as ```groupname```.
 
 A writable workspace can also be listed by group members with ```ws_list -g``` and it can in addition be extended
 using ```ws_allocate -x -u <username> <workspace-id> <days>.
+
+Please note the option parser needs either another option behind ```-g``` and ```-G``` if no groupname is given, or a ```--```.
+
+Syntax examples:
+```
+$ ws_allocate -G -- myworkspace
+```
+
+```
+$ ws_allocate -G --comment "no group" myworkspace
+```
+
+```
+$ ws_allocate -G rollingstone myworkspace
+```
 
 With ```ws_share``` you can share workspaces with users outside your group, using ACLs (if supported by underlaying filesystem, since 1.3.7)
 

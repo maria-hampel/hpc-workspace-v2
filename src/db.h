@@ -102,7 +102,7 @@ class Database {
   public:
     // new DB entry
     virtual void createEntry(const string id, const string workspace, const long creation, const long expiration,
-                             const long reminder, const int extensions, const string group, const string mailaddress,
+                             const long reminder, const int extensions, const bool groupflag, const string group, const string mailaddress,
                              const string comment) = 0;
 
     // read specific entry
@@ -118,7 +118,7 @@ class Database {
     // create workspace directory according to the rules of this Db and return the name
     // has to fix all permissions
     virtual std::string createWorkspace(const string name, const string user_option, const bool groupflag,
-                                        const string groupname) = 0;
+                                        const bool groupwritable, const string groupname) = 0;
 
     virtual ~Database() = default; // address-sanitizer needs this
 };

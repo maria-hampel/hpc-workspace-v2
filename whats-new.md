@@ -32,6 +32,8 @@ including internals.
 - field `adminmail` as a list of email addresses is required in config (gives warning when not present)
 - ws_release bails out if workspace name is not unique
 - ws_allocate -x bails out if workspace name is not unique
+- ws_allocate -g can take an groupname as well, -G can have no groupname
+- all group workspaces have group sticky bit
 - lua callout for path building is no longer supported, allocation options should fully replace its functionality
 - user needs access to default workspace (was giving a warning in v1 for some years already)
 - each tool does some checks on config validity and can bail out if config is bad, even for fiels it does not use

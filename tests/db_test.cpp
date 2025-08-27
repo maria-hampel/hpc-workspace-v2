@@ -277,7 +277,7 @@ workspaces:
     std::unique_ptr<Database> db2(config.openDB("ws2"));
 
     // create workspace dir
-    auto wsdir = db1->createWorkspace("test1", "", false, "");
+    auto wsdir = db1->createWorkspace("test1", "", false, false, "");
 
     REQUIRE(wsdir.size() > 0);
     REQUIRE(fs::exists(wsdir));
@@ -290,7 +290,7 @@ workspaces:
     }
 
     // create DBentry for it
-    db1->createEntry("user1-test1", wsdir, time(NULL), time(NULL) + 3601, 1, 7, "", "", "no comment");
+    db1->createEntry("user1-test1", wsdir, time(NULL), time(NULL) + 3601, 1, 7, false, "", "", "no comment");
 
     // see if we can match it
     REQUIRE(db1->matchPattern("test1", "user1", vector<string>{}, false, false) == vector<string>{"user1-test1"});
@@ -305,14 +305,14 @@ workspaces:
 
     auto uname = user::getUsername();
     auto gname = user::getGroupname();
-    wsdir = db1->createWorkspace("gtest2", uname, true, gname);
+    wsdir = db1->createWorkspace("gtest2", uname, true, true, gname);
 
     REQUIRE(wsdir.size() > 0);
     REQUIRE(fs::exists(wsdir));
     REQUIRE(fs::is_directory(wsdir));
 
     // create DBentry for it
-    db1->createEntry(uname + "-gtest2", wsdir, time(NULL), time(NULL) + 3601, 1, 7, gname, "", "no comment");
+    db1->createEntry(uname + "-gtest2", wsdir, time(NULL), time(NULL) + 3601, 1, 7, true, gname, "", "no comment");
 
     // see if we can match it, with a non-existing user
     REQUIRE(db1->matchPattern("gtest2", "does-not-exist", vector<string>{gname}, false, true) ==
