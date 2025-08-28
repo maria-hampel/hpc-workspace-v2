@@ -35,3 +35,21 @@ setup() {
     assert_success
     ws_release --config bats/ws.conf EDITTEST
 }
+
+@test "ws_editdb rename workspaces" {
+    ws_allocate --config bats/ws.conf -F ws1 TestWS 1
+    ws_release --config bats/ws.conf -F ws1 TestWS
+    OLDTIME=$(ls /tmp/ws/ws1-db/.removed | grep "TestWS" | sed 's/.*-//' | sort -n | tail -1)
+    run echo $OLDTIME
+    assert_output --partial "1"
+    assert_success
+    ws_editdb --config bats/ws.conf -e -r --add-time 20 --not-kidding
+    NEWTIME=$(ls /tmp/ws/ws1-db/.removed | grep "TestWS" | sed 's/.*-//' | sort -n | tail -1)
+    run echo $NEWTIME
+    assert_output --partial "1"
+    assert_success
+    DIFF=$((NEWTIME-OLDTIME))
+    assert_equal "$DIFF" 1728000
+}
+
+
