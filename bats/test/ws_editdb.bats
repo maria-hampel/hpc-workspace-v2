@@ -39,16 +39,22 @@ setup() {
 @test "ws_editdb rename workspaces" {
     ws_allocate --config bats/ws.conf -F ws1 TestWS 1
     ws_release --config bats/ws.conf -F ws1 TestWS
-    OLDTIME=$(ls /tmp/ws/ws1-db/.removed | grep "TestWS" | sed 's/.*-//' | sort -n | tail -1)
-    run echo $OLDTIME
+    OLDTIMEDB=$(ls /tmp/ws/ws1-db/.removed | grep "TestWS" | sed 's/.*-//' | sort -n | tail -1)
+    OLDTIMEDIR=$(ls /tmp/ws/ws1/.removed | grep "TestWS" | sed 's/.*-//' | sort -n | tail -1)
+    run echo $OLDTIMEDB
     assert_output --partial "1"
-    assert_success
+    run echo $OLDTIMEDIR
+    assert_output --partial "1"
     ws_editdb --config bats/ws.conf -e -r --add-time 20 --not-kidding
-    NEWTIME=$(ls /tmp/ws/ws1-db/.removed | grep "TestWS" | sed 's/.*-//' | sort -n | tail -1)
-    run echo $NEWTIME
+    NEWTIMEDB=$(ls /tmp/ws/ws1-db/.removed | grep "TestWS" | sed 's/.*-//' | sort -n | tail -1)
+    NEWTIMEDIR=$(ls /tmp/ws/ws1/.removed | grep "TestWS" | sed 's/.*-//' | sort -n | tail -1)
+    run echo $NEWTIMEDB
     assert_output --partial "1"
-    assert_success
-    DIFF=$((NEWTIME-OLDTIME))
+    run echo $NEWTIMEDIR
+    assert_output --partial "1"
+    DIFF=$((NEWTIMEDB-OLDTIMEDB))
+    assert_equal "$DIFF" 1728000
+    DIFF=$((NEWTIMEDIR-OLDTIMEDIR))
     assert_equal "$DIFF" 1728000
 }
 
