@@ -70,9 +70,6 @@ class DBEntry {
     // consume an extension (writes entry back)
     virtual void useExtension(const long expiration, const string mail, const int reminder, const string comment) = 0;
 
-    // print for ws_list
-    virtual void print(const bool verbose, const bool terse) const = 0;
-
     // getters
     virtual long getRemaining() const = 0;
     virtual string getId() const = 0;
@@ -85,6 +82,7 @@ class DBEntry {
     virtual long getReleaseTime() const = 0;
     virtual string getFilesystem() const = 0;
     virtual long getReminder() const = 0;
+    virtual string getGroup() const = 0;
 
     // get config of parent DB
     virtual const Config* getConfig() const = 0;
@@ -102,8 +100,8 @@ class Database {
   public:
     // new DB entry
     virtual void createEntry(const string id, const string workspace, const long creation, const long expiration,
-                             const long reminder, const int extensions, const bool groupflag, const string group, const string mailaddress,
-                             const string comment) = 0;
+                             const long reminder, const int extensions, const bool groupflag, const string group,
+                             const string mailaddress, const string comment) = 0;
 
     // read specific entry
     virtual std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted) = 0;

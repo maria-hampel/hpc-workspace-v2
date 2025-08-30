@@ -34,6 +34,7 @@
  *
  */
 
+#include <filesystem>
 #include <memory>
 
 #include "config.h"
@@ -65,6 +66,46 @@ int debuglevel = 0;
 // helper for fmt::
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
+void print_entry(const DBEntry* entry, const bool verbose, const bool terse, const bool permissions) {
+    long remaining = entry->getExpiration() - time(0L);
+
+    if (entry->getConfig()->isAdmin(user::getUsername())) {
+        fmt::println("Id: {}", entry->getId());
+    } else {
+        fmt::println("Id: {}", utils::getID(user::getUsername(), entry->getId()));
+    }
+
+    fmt::println("    workspace directory  : {}", entry->getWSPath());
+    if (remaining < 0) {
+        fmt::println("    remaining time       : {}", "expired");
+    } else {
+        fmt::println("    remaining time       : {} days, {} hours", remaining / (24 * 3600),
+                     (remaining % (24 * 3600)) / 3600);
+    }
+    if (!terse) {
+        if (entry->getComment() != "")
+            fmt::println("    comment              : {}", entry->getComment());
+        if (entry->getCreation() > 0)
+            fmt::println("    creation time        : {}", utils::ctime(entry->getCreation()));
+        fmt::println("    expiration time      : {}", utils::ctime(entry->getExpiration()));
+        if (entry->getGroup() != "")
+            fmt::println("    group                : {}", entry->getGroup());
+        fmt::println("    filesystem name      : {}", entry->getFilesystem());
+    }
+    fmt::println("    available extensions : {}", entry->getExtension());
+    if (verbose) {
+        long rd = entry->getExpiration() - entry->getReminder() / (24 * 3600);
+        fmt::println("    reminder             : {}", utils::ctime(&rd));
+        if (entry->getMailaddress() != "")
+            fmt::println("    mailaddress          : {}", entry->getMailaddress());
+    }
+
+    if (permissions) {
+        auto perm = cppfs::status(entry->getWSPath()).permissions();
+        fmt::println("    permissions          : {}", utils::permstring(perm));
+    }
+}
+
 int main(int argc, char** argv) {
 
     // options and flags
@@ -82,6 +123,7 @@ int main(int argc, char** argv) {
     bool sortbyremaining = false;
     bool sortreverted = false;
     bool terselisting = false;
+    bool permissions = false;
     bool verbose = false;
 
     po::variables_map opts;
@@ -112,6 +154,7 @@ int main(int argc, char** argv) {
         ("terse,t", "terse listing")
         ("config", po::value<string>(&configfile), "config file")
         ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
+        ("permissions,P", "list permissions of workspace directory")
         ("verbose,v", "verbose listing");
     // clang-format on
 
@@ -147,6 +190,7 @@ int main(int argc, char** argv) {
     sortbyremaining = opts.count("remaining");
     sortreverted = opts.count("reverted");
     terselisting = opts.count("terse");
+    permissions = opts.count("permissions");
     verbose = opts.count("verbose");
 
     // global flags
@@ -279,9 +323,9 @@ int main(int argc, char** argv) {
                             // if no sorting, print, otherwise append to list
                             if (!sort) {
                                 if (shortlisting) {
-                                    fmt::println(entry->getId());
+                                    fmt::println(entry->getId()); // FIXME:: cortecy for root/admin?
                                 } else {
-                                    entry->print(verbose, terselisting);
+                                    print_entry(entry.get(), verbose, terselisting, permissions);
                                 }
                             } else {
                                 entrylist.push_back(std::move(entry));
@@ -316,9 +360,9 @@ int main(int argc, char** argv) {
 
             for (const auto& entry : entrylist) {
                 if (shortlisting) {
-                    fmt::println(entry->getId());
+                    fmt::println(entry->getId()); // FIXME:: cortecy for root/admin?
                 } else {
-                    entry->print(verbose, terselisting);
+                    print_entry(entry.get(), verbose, terselisting, permissions);
                 }
             }
         }

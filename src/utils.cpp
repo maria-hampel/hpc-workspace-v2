@@ -681,6 +681,24 @@ std::string ctime(const time_t ctimer) {
     return std::string(buffer);
 }
 
+std::string permstring(const fs::perms p) {
+    stringstream str;
+    using std::filesystem::perms;
+    auto show = [&](char op, perms perm) { str << (perms::none == (perm & p) ? '-' : op); };
+    show('r', perms::owner_read);
+    show('w', perms::owner_write);
+    show('x', perms::owner_exec);
+    show('r', perms::group_read);
+    show('w', perms::group_write);
+    show('x', perms::group_exec);
+    show('r', perms::others_read);
+    show('w', perms::others_write);
+    show('x', perms::others_exec);
+    string ret;
+    str >> ret;
+    return ret;
+}
+
 } // end of namespace utils
 
 // static functions local to this unit, not exposed

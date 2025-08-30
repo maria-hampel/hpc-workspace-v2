@@ -55,13 +55,13 @@ class DBEntryV1 : public DBEntry {
     string id;     // ID of this workspace
 
     // main components of external format
-    string filesystem;  // location   // FIXME: is this used anywhere?
-    string workspace;   // directory path
-    long creation;      // epoch time of creation
-    long expiration;    // epoch time of expiration
-    long released;      // epoch time of manual release
-    long reminder;      // epoch time of reminder to be sent out
-    int extensions;     // extensions, counting down
+    string filesystem; // location   // FIXME: is this used anywhere?
+    string workspace;  // directory path
+    long creation;     // epoch time of creation
+    long expiration;   // epoch time of expiration
+    long released;     // epoch time of manual release
+    long reminder;     // epoch time of reminder to be sent out
+    int extensions;    // extensions, counting down
     // internal flag, here to avoid order warnings, does not end in DB
     bool groupflag;     // flag to mark group workspaces
     string group;       // group for whom it is visible
@@ -74,8 +74,8 @@ class DBEntryV1 : public DBEntry {
     DBEntryV1(FilesystemDBV1* pdb) : parent_db(pdb) {};
     // constructor to make new entry to write out
     DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation,
-              const long _expiration, const long _reminder, const int _extensions, const bool _groupflag, const string _group,
-              const string _mailaddress, const string _comment);
+              const long _expiration, const long _reminder, const int _extensions, const bool _groupflag,
+              const string _group, const string _mailaddress, const string _comment);
 
     // read yaml entry from string
     void readFromString(std::string str);
@@ -95,9 +95,6 @@ class DBEntryV1 : public DBEntry {
     // remove entry from DB
     void remove();
 
-    // print for ws_list
-    void print(const bool verbose, const bool terse) const;
-
     long getRemaining() const;
     int getExtension() const;
     string getMailaddress() const;
@@ -109,6 +106,7 @@ class DBEntryV1 : public DBEntry {
     long getReleaseTime() const;
     string getFilesystem() const;
     long getReminder() const;
+    string getGroup() const;
 
     // return config of parent DB
     const Config* getConfig() const;
@@ -125,8 +123,8 @@ class FilesystemDBV1 : public Database {
 
     // create new DB entry
     void createEntry(const WsID id, const string workspace, const long creation, const long expiration,
-                     const long reminder, const int extensions, const bool groupflag, const string group, const string mailaddress,
-                     const string comment);
+                     const long reminder, const int extensions, const bool groupflag, const string group,
+                     const string mailaddress, const string comment);
 
     // read entry
     std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted);
@@ -142,8 +140,8 @@ class FilesystemDBV1 : public Database {
 
     // create workspace directory according to rules of this DB
     // and return the name
-    std::string createWorkspace(const string name, const string user_option, const bool groupflag,
-                                const bool writable, const string groupname);
+    std::string createWorkspace(const string name, const string user_option, const bool groupflag, const bool writable,
+                                const string groupname);
 
     // access to config
     const Config* getconfig() const { return config; }

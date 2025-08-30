@@ -215,7 +215,8 @@ void FilesystemDBV1::createEntry(const WsID id, const string workspace, const lo
                                  const long reminder, const int extensions, const bool groupflag, const string group,
                                  const string mailaddress, const string comment) {
 
-    DBEntryV1 entry(this, id, workspace, creation, expiration, reminder, extensions, groupflag, group, mailaddress, comment);
+    DBEntryV1 entry(this, id, workspace, creation, expiration, reminder, extensions, groupflag, group, mailaddress,
+                    comment);
     entry.writeEntry();
 }
 
@@ -330,8 +331,8 @@ void FilesystemDBV1::deleteEntry(const string wsid, const bool deleted) {
 
 // constructor to make new entry to write out
 DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation,
-                     const long _expiration, const long _reminder, const int _extensions, const bool _groupflag, const string _group,
-                     const string _mailaddress, const string _comment)
+                     const long _expiration, const long _reminder, const int _extensions, const bool _groupflag,
+                     const string _group, const string _mailaddress, const string _comment)
     : parent_db(pdb), id(_id), workspace(_workspace), creation(_creation), expiration(_expiration), reminder(_reminder),
       extensions(_extensions), groupflag(_groupflag), group(_group), mailaddress(_mailaddress), comment(_comment) {
     dbfilepath = pdb->getconfig()->getFsConfig(pdb->getfs()).database + "/" + id;
@@ -467,44 +468,6 @@ void DBEntryV1::readFromString(std::string str) {
 
 #endif
 
-// print entry to stdout, for ws_list
-//  TODO: unittest
-void DBEntryV1::print(const bool verbose, const bool terse) const {
-    string repr;
-    long remaining = expiration - time(0L);
-
-    if (parent_db->getconfig()->isAdmin(user::getUsername())) {
-        fmt::println("Id: {}", id);
-    } else {
-        fmt::println("Id: {}", utils::getID(user::getUsername(), id));
-    }
-
-    fmt::println("    workspace directory  : {}", workspace);
-    if (remaining < 0) {
-        fmt::println("    remaining time       : {}", "expired");
-    } else {
-        fmt::println("    remaining time       : {} days, {} hours", remaining / (24 * 3600),
-                     (remaining % (24 * 3600)) / 3600);
-    }
-    if (!terse) {
-        if (comment != "")
-            fmt::println("    comment              : {}", comment);
-        if (creation > 0)
-            fmt::println("    creation time        : {}", utils::ctime(&creation));
-        fmt::println("    expiration time      : {}", utils::ctime(&expiration));
-        if (group != "")
-            fmt::println("    group                : {}", group);
-        fmt::println("    filesystem name      : {}", filesystem);
-    }
-    fmt::println("    available extensions : {}", extensions);
-    if (verbose) {
-        long rd = expiration - reminder / (24 * 3600);
-        fmt::println("    reminder             : {}", utils::ctime(&rd));
-        if (mailaddress != "")
-            fmt::println("    mailaddress          : {}", mailaddress);
-    }
-};
-
 // Use extension or update content of entry
 //  unittest: yes
 void DBEntryV1::useExtension(const long _expiration, const string _mailaddress, const int _reminder,
@@ -556,6 +519,8 @@ long DBEntryV1::getReleaseTime() const { return released; }
 string DBEntryV1::getFilesystem() const { return filesystem; }
 
 long DBEntryV1::getReminder() const { return reminder; }
+
+string DBEntryV1::getGroup() const { return group; }
 
 // change expiration time
 void DBEntryV1::setExpiration(const time_t timestamp) { expiration = timestamp; }

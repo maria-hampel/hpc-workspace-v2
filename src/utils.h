@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <ctime>
+#include <filesystem>
 #include <map>
 #include <string>
 #include <vector>
@@ -173,6 +174,9 @@ class HasGroupIntersection {
 // please note: this does NOT append a \n!
 std::string ctime(const time_t* timer);
 std::string ctime(const time_t timer);
+
+// get a string like rwx------ for permissions
+std::string permstring(std::filesystem::perms p);
 
 } // namespace utils
 
