@@ -71,8 +71,8 @@ template <> struct fmt::formatter<po::options_description> : ostream_formatter {
  *  bad characters
  */
 void commandline(po::variables_map& opt, string& name, int& duration, string& filesystem, bool& extension,
-                 int& reminder, string& mailaddress, string& user, string& groupreadable, string& groupwritable, string& comment, int argc,
-                 char** argv, std::string& userconf, std::string& configfile) {
+                 int& reminder, string& mailaddress, string& user, string& groupreadable, string& groupwritable,
+                 string& comment, int argc, char** argv, std::string& userconf, std::string& configfile) {
     // define all options
 
     po::options_description cmd_options("\nOptions");
@@ -154,7 +154,7 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
 
     // if no group given but needed, and there is one in userconfig, take it.
     if (opt.count("groupreadable") || opt.count("groupwritable")) {
-        if (groupreadable == "" && groupwritable== "" && userconfig.getGroupname()!="") {
+        if (groupreadable == "" && groupwritable == "" && userconfig.getGroupname() != "") {
             spdlog::info("taking group {} from ~/.ws_user.conf", userconfig.getGroupname());
             groupreadable = groupwritable = userconfig.getGroupname();
         }
@@ -535,7 +535,7 @@ bool allocate(const Config& config, const po::variables_map& opt, int duration, 
         // check which group to use, from commandline or use current group
         string primarygroup = "";
         if (groupreadable != "" || groupwritable != "") {
-            primarygroup = (groupreadable != "") ? groupreadable:groupwritable;
+            primarygroup = (groupreadable != "") ? groupreadable : groupwritable;
         } else {
             primarygroup = user::getGroupname();
         }
@@ -544,7 +544,8 @@ bool allocate(const Config& config, const po::variables_map& opt, int duration, 
         bool groupflag = opt.count("groupreadable") || opt.count("groupwritable");
 
         // create workspace
-        auto wsdir = creationDB->createWorkspace(name, user_option, groupflag, opt.count("groupwritable"), primarygroup);
+        auto wsdir =
+            creationDB->createWorkspace(name, user_option, groupflag, opt.count("groupwritable"), primarygroup);
 
         // now create DB entry
 
@@ -554,8 +555,8 @@ bool allocate(const Config& config, const po::variables_map& opt, int duration, 
         auto expiration = time(NULL) + duration * 24 * 3600;
 
         auto id = fmt::format("{}-{}", username, name);
-        creationDB->createEntry(id, wsdir, time(NULL), expiration, reminder, extensions, groupflag, primarygroup, mailaddress,
-                                comment);
+        creationDB->createEntry(id, wsdir, time(NULL), expiration, reminder, extensions, groupflag, primarygroup,
+                                mailaddress, comment);
 
         fmt::print("{}\n", wsdir);
         fmt::print(stderr, "remaining extensions  : {}\n", extensions);
@@ -601,8 +602,8 @@ int main(int argc, char** argv) {
     }
 
     // check commandline, get flags which are used to create ws object or for workspace allocation
-    commandline(opt, name, duration, filesystem, extensionflag, reminder, mailaddress, user_option, groupreadable, groupwritable, comment,
-                argc, argv, user_conf, configfile);
+    commandline(opt, name, duration, filesystem, extensionflag, reminder, mailaddress, user_option, groupreadable,
+                groupwritable, comment, argc, argv, user_conf, configfile);
 
     // find which config files to read
     //   user can change this if no setuid installation OR if root
@@ -631,7 +632,7 @@ int main(int argc, char** argv) {
 
     // allocate workspace
     if (!allocate(config, opt, duration, filesystem, name, extensionflag, reminder, mailaddress, user_option,
-                    groupreadable, groupwritable, comment)) {
+                  groupreadable, groupwritable, comment)) {
         return -1;
     }
 }

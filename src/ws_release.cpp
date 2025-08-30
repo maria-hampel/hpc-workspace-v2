@@ -349,9 +349,10 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
             cppfs::remove_all(cppfs::path(target), ec); // we ignore return value as we expect an error return anyhow
 
             // FIXME: https://github.com/holgerBerger/hpc-workspace-v2/issues/66
-            // std::filesystem::remove_all() seems to do early exit on first error at least with gcc version 14.2.0 (Ubuntu 14.2.0-19ubuntu2)
-            // so if there is files that can not be deleted in here, there is a chance that other files will not
-            // get deleted neither, depending on order. Switch to utils::rmtree() ? Needs verification if that has same issue.
+            // std::filesystem::remove_all() seems to do early exit on first error at least with gcc version 14.2.0
+            // (Ubuntu 14.2.0-19ubuntu2) so if there is files that can not be deleted in here, there is a chance that
+            // other files will not get deleted neither, depending on order. Switch to utils::rmtree() ? Needs
+            // verification if that has same issue.
 
             // we expect an error 13 for the topmost directory
             if (ec.value() != 13) {
