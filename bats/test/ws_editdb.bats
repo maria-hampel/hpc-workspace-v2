@@ -89,7 +89,7 @@ setup() {
     TIMESTAMPB=$((TIMESTAMPA-86400))
     cp -r /tmp/ws/ws1/.removed/$WSNAME$TIMESTAMPA /tmp/ws/ws1/.removed/$WSNAME$TIMESTAMPB
     cat /tmp/ws/ws1-db/.removed/$WSNAME$TIMESTAMPA | sed 's/'"$TIMESTAMPA"'/'"$TIMESTAMPB"'/' > "/tmp/ws/ws1-db/.removed/$WSNAME$TIMESTAMPB"
-    run ws_editdb --config bats/ws.conf -e -r --add-time 1 "$WSNAME$TIMESTAMPB"
+    run ws_editdb --config bats/ws.conf -e -r --add-time 1 "samesame-$TIMESTAMPB"
     assert_output --partial "error:"
     rm -fr /tmp/ws/ws1/.removed/$WSNAME$TIMESTAMPB 
     rm /tmp/ws/ws1-db/.removed/$WSNAME$TIMESTAMPB
