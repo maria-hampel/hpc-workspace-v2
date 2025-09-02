@@ -285,29 +285,29 @@ int main(int argc, char** argv) {
 
                 fmt::println("    rename dbentry {} -> {}", oldpathdb.generic_string(), newpathdb.generic_string());
                 fmt::println("    rename dir {} -> {}", oldpathdir.generic_string(), newpathdir.generic_string());
+ 
+                // Check if source files exist 
+                if (!cppfs::exists(oldpathdb)) {
+                    spdlog::warn("Database entry does not exist: {}", oldpathdb.generic_string());
+                    continue;
+                }
+                if (!cppfs::exists(oldpathdir)) {
+                    spdlog::warn("Directory does not exist: {}", oldpathdir.generic_string());
+                    continue;
+                }
+
+                // Check if target already exists
+                if (cppfs::exists(newpathdb)) {
+                    spdlog::error("Target database entry already exists: {}", newpathdb.generic_string());
+                    continue;
+                }
+                if (cppfs::exists(newpathdir)) {
+                    spdlog::error("Target directory already exists: {}", newpathdir.generic_string());
+                    continue;
+                }
 
                 if (!dryrun){
                     try {
-                        // Check if source files exist 
-                        if (!cppfs::exists(oldpathdb)) {
-                            spdlog::warn("Database entry does not exist: {}", oldpathdb.generic_string());
-                            continue;
-                        }
-                        if (!cppfs::exists(oldpathdir)) {
-                            spdlog::warn("Directory does not exist: {}", oldpathdir.generic_string());
-                            continue;
-                        }
-
-                        // Check if target already exists
-                        if (cppfs::exists(newpathdb)) {
-                            spdlog::error("Target database entry already exists: {}", newpathdb.generic_string());
-                            continue;
-                        }
-                        if (cppfs::exists(newpathdir)) {
-                            spdlog::error("Target directory already exists: {}", newpathdir.generic_string());
-                            continue;
-                        }
-
                         cppfs::rename(oldpathdb, newpathdb);
                         try {
                             cppfs::rename(oldpathdir, newpathdir);
@@ -318,6 +318,7 @@ int main(int argc, char** argv) {
                                 cppfs::rename(newpathdb, oldpathdb);
                             } catch (const cppfs::filesystem_error& rollback_error) {
                                 spdlog::error("Critical! Failed to rollback database rename! Manual intervention required.");
+                                exit(-1);
                             }
                             throw; 
                         }
