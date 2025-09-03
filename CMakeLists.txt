@@ -14,6 +14,8 @@ project(workspace
 # set to version number of the latest release
 add_definitions("-DWS_VERSION=\"${workspace_VERSION}\"")
 
+SET(SPDLOG_FMT_EXTERNAL ON)
+
 if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/.git")
     add_definitions(-DIS_GIT_REPOSITORY)
     # git commit hash macro
