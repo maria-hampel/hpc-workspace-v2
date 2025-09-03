@@ -518,9 +518,13 @@ int main(int argc, char** argv) {
                     fmt::println("{}", id);
                     if (!terse) {
                         auto pos = id.rfind("-") + 1;
-                        time_t t = atol(id.substr(pos).c_str());
-                        fmt::println("\tunavailable since : {}", utils::ctime(&t));
-                        fmt::println("\tin filesystem     : {}", db->readEntry(id, true)->getFilesystem());
+                        time_t filenametime = atol(id.substr(pos).c_str());
+                        auto entry = db->readEntry(id, true);
+                        time_t removetime = (filenametime + entry->getConfig()->getFsConfig(entry->getFilesystem()).keeptime*24*3600);
+                        time_t remaining = removetime - time(0L);
+                        fmt::println("\tunavailable since : {}", utils::ctime(filenametime));
+                        fmt::println("\trestorable until  : {} ({} days, {} hours)", utils::ctime(removetime), remaining / (24 * 3600),(remaining % (24 * 3600)) / 3600);
+                        fmt::println("\tin filesystem     : {}", entry->getFilesystem());
                     }
                 }
             } catch (DatabaseException& e) {
