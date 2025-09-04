@@ -658,7 +658,7 @@ int main(int argc, char** argv) {
     }
 
     // read config
-    //   user can change this if no setuid inadd expiration + keeptimestallation OR if root
+    //   user can change this if no setuid installation OR if root
     auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d", "/etc/ws.conf"};
     if (configfile != "") {
         if (user::isRoot() || caps.isUserMode()) {
