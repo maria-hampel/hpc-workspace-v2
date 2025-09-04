@@ -336,7 +336,9 @@ DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspac
     : parent_db(pdb), id(_id), workspace(_workspace), creation(_creation), expiration(_expiration), reminder(_reminder),
       extensions(_extensions), groupflag(_groupflag), group(_group), mailaddress(_mailaddress), comment(_comment) {
     dbfilepath = pdb->getconfig()->getFsConfig(pdb->getfs()).database + "/" + id;
+    // init extra internals here to avoid problems in release builds
     released = 0;
+    expired = 0;
 }
 
 // read db entry from yaml file
@@ -512,6 +514,8 @@ string DBEntryV1::getMailaddress() const { return mailaddress; }
 
 string DBEntryV1::getComment() const { return comment; }
 
+long DBEntryV1::getExpired() const { return expired; }
+
 long DBEntryV1::getExpiration() const { return expiration; }
 
 long DBEntryV1::getReleaseTime() const { return released; }
@@ -582,6 +586,13 @@ void DBEntryV1::expire(const std::string timestamp) {
     if (debugflag)
         spdlog::debug("dbtarget={}", dbtarget.string());
 
+    // DB part
+
+    // update expired entry so we can later see when this was expired by this method
+    expired = time(0L); // insteaf of making long from string again, just get time again as in caller
+    writeEntry();
+
+    // filesystem part
     try {
         if (debugflag)
             spdlog::debug("rename({}, {})", dbfilepath, dbtarget.string());

@@ -517,7 +517,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         }
 
         long releasetime;
-        auto expiration = dbentry->getExpiration();
+        // we take the bigger one here, expired is 0 initialized and should remain 0 till expirer touches it
+        auto expiration = std::max(dbentry->getExpiration(), dbentry->getExpired());
         auto keeptime = config.getFsConfig(fs).keeptime;
 
         // get released time from name = id

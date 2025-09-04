@@ -58,8 +58,9 @@ class DBEntryV1 : public DBEntry {
     string filesystem; // location   // FIXME: is this used anywhere?
     string workspace;  // directory path
     long creation;     // epoch time of creation
-    long expiration;   // epoch time of expiration
+    long expiration;   // epoch time of expiration, set when allocating
     long released;     // epoch time of manual release
+    long expired;      // epoch time when expirer actually expired this file
     long reminder;     // epoch time of reminder to be sent out
     int extensions;    // extensions, counting down
     // internal flag, here to avoid order warnings, does not end in DB
@@ -104,6 +105,7 @@ class DBEntryV1 : public DBEntry {
     string getWSPath() const;
     long getExpiration() const;
     long getReleaseTime() const;
+    long getExpired() const;
     string getFilesystem() const;
     long getReminder() const;
     string getGroup() const;
