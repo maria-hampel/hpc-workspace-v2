@@ -643,7 +643,9 @@ void DBEntryV1::writeEntry() {
     entry["workspace"] = workspace;
     entry["creation"] = creation;
     entry["expiration"] = expiration;
-    entry["expired"] = expired;
+    if (expired > 0) {
+        entry["expired"] = expired;
+    }
     entry["extensions"] = extensions;
     entry["acctcode"] = "";
     entry["reminder"] = reminder;
@@ -662,7 +664,9 @@ void DBEntryV1::writeEntry() {
     root["workspace"] << workspace;
     root["creation"] << creation;
     root["expiration"] << expiration;
-    root["expired"] << expired;
+    if (expired > 0) {
+        root["expired"] << expired;
+    }
     root["extensions"] << extensions;
     root["acctcode"] << "";
     root["reminder"] << reminder;
