@@ -390,6 +390,7 @@ void DBEntryV1::readFromString(std::string str) {
                                    : 0; // FIXME: c++ tool does not write this field, but takes from stat
     released = dbentry["released"] ? dbentry["released"].as<long>() : 0;
     expiration = dbentry["expiration"] ? dbentry["expiration"].as<long>() : 0;
+    expired = dbentry["expired"] ? dbentry["expired"].as<long>() : 0;
     reminder = dbentry["reminder"] ? dbentry["reminder"].as<long>() : 0;
     workspace = dbentry["workspace"] ? dbentry["workspace"].as<string>() : "";
     extensions = dbentry["extensions"] ? dbentry["extensions"].as<int>() : 0;
@@ -436,6 +437,11 @@ void DBEntryV1::readFromString(std::string str) {
         node >> expiration;
     else
         expiration = 0;
+    node = dbentry["expired"];
+    if (node.has_val())
+        node >> expired;
+    else
+        expired = 0;
     node = dbentry["reminder"];
     if (node.has_val())
         node >> reminder;
@@ -637,6 +643,9 @@ void DBEntryV1::writeEntry() {
     entry["workspace"] = workspace;
     entry["creation"] = creation;
     entry["expiration"] = expiration;
+    if (expired > 0) {
+        entry["expired"] = expired;
+    }
     entry["extensions"] = extensions;
     entry["acctcode"] = "";
     entry["reminder"] = reminder;
@@ -655,6 +664,9 @@ void DBEntryV1::writeEntry() {
     root["workspace"] << workspace;
     root["creation"] << creation;
     root["expiration"] << expiration;
+    if (expired > 0) {
+        root["expired"] << expired;
+    }
     root["extensions"] << extensions;
     root["acctcode"] << "";
     root["reminder"] << reminder;

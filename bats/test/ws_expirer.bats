@@ -48,13 +48,14 @@ setup() {
     assert_success
 }
 
-@test "ws_expirer delete expired" {
-    ws_editdb --config bats/ws.conf --not-kidding --expired --add-time -5 EXPIRE_TES*
-    run ws_expirer --config bats/ws.conf -c
-    assert_output --regexp 'deleting DB.*-EXPIRE_TEST'
-    assert_output --regexp 'deleting directory.*-EXPIRE_TEST'
-    assert_success
-}
+# This test does not work anymore since expied is now used
+# @test "ws_expirer delete expired" {
+#     ws_editdb --config bats/ws.conf --not-kidding --expired --add-time -5 EXPIRE_TES*
+#     run ws_expirer --config bats/ws.conf -c
+#     assert_output --regexp 'deleting DB.*-EXPIRE_TEST'
+#     assert_output --regexp 'deleting directory.*-EXPIRE_TEST'
+#     assert_success
+# }
 
 @test "ws_expirer released" {
     ws_allocate --config bats/ws.conf EXPIRE_TEST 1
@@ -102,3 +103,11 @@ setup() {
     assert_success
     mv /tmp/ws/ws1-db/.ws_db_magiC /tmp/ws/ws1-db/.ws_db_magic
 }
+
+@test "ws_expirer does not delete directly" {
+    ws_allocate --config bats/ws.conf -F ws1 TestWS 1
+    ws_editdb --config bats/ws.conf --add-time -20 -p "*TestWS*" --not-kidding
+    run ws_expirer --config bats/ws.conf -c 
+    assert_output --regexp "keeping restorable.*-TestWS"
+}
+
