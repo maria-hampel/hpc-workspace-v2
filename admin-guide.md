@@ -495,6 +495,8 @@ entry and the directory to the deleted directory if needed. The cleaner is only
 enabled if the `--cleaner` (or `-c`) option is specified when calling
 `ws_expirer`.
 
+**Warning:** anything in a spaces directory can be deleted by the expirer!
+
 ## Setting up the ws_expirer
 
 The `ws_expirer` is the tool which takes care of expired Workspaces. To set
@@ -508,7 +510,7 @@ Note the required `-c` option. This option enables the cleaner. If it were left
 out, `ws_expirer` would be running in "dry-run" mode, which is a testing
 feature, and would not perform any file operations.
 
-**Note:** It is higly required to test a configuration in dry-run mode first
+**Note:** It is strongly recommended to test a configuration in dry-run mode first
 and study the output of a manual run before setting up a cronjob!
 
 v2 introduced a new logging scheme, you can use the ```expirerlogpath``` option in the config file to

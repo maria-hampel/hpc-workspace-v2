@@ -6,14 +6,14 @@ This is the construction site of next major version of hpc-workspace++ tool.
 
 This version now has reached a usable state, it offers some tools
 and features not present in v1.
-please not that some tools are still missing, and that documentation
+please note that some tools are still missing, and that documentation
 is not yet up-to-date or complete.
 
 Please use the discussion tab if you would like to share input.
 
 ## Motivation/Goals
 
-The codebase got harder and scarier to maintain and needed a major cleanup and modernization.
+The old v1 codebase got harder and scarier to maintain and needed a major cleanup and modernization.
 
 - Separation of configuration and database implementation from the client tools
 is the first goal.
@@ -25,15 +25,17 @@ is the first goal.
 - backwards compatibility will be maintained, might have some restrictions (e.g. old config files will need some
   flags to be added)
 
-Functional extension is possible after this is achieved.
+- some tools might have slightly different options, when it adds functionality
+
+Functional extension and change of DB format is possible after this is achieved.
 
 ## Environment
 
 at the moment main development platform is
 
-- Ubuntu 22.04.5 LTS
-  - CMake 3.22.1
-  - gcc 11.4.0
+- Ubuntu 25.04
+  - CMake 3.31
+  - gcc 14.2.0
 
 future test platforms:
 
@@ -61,7 +63,7 @@ no intention to support old platforms like centos7, but it might work.
 
 language level might evolve from c++17 to c++20 if there is reasons.
 
-ws_list has a dependency to -fopenmp, can be removed from CMakeList.txt
+ws_list and ws_stat have a dependency to -fopenmp, can be removed from CMakeList.txt
 if not available.
 
 ## Dependencies
@@ -94,7 +96,7 @@ for testing:
 - [x] ws_send_ical (new in C++)
 - [x] ws_editdb (new tool)
 - [x] ws_share (will remain a shell script)
-- [ ] ws_expirer (will be migrated to C++)
+- [x] ws_expirer (will be migrated to C++)
 - [ ] ws_validate_config (might be migrated to C++)
 - [x] ws_prepare (new in C++)
 
@@ -107,7 +109,7 @@ for testing:
 - [x] add more unit tests to existing code
 - [x] build/select a better test framework for the tools
 - [x] debug what is there
-- [ ] check debug logic and data leaks
+- [x] check debug logic and data leaks
 - [ ] migrate more tools: migrate ws_expirer, ws_validate_config
 - [ ] add tests for new tools
 - [ ] create tests for ws_expire
@@ -136,7 +138,7 @@ cmake --preset debug
 cmake --build --preset debug  -j 12
 ```
 
-for mold and ninja users:
+for mold and ninja users (fastest builds):
 ```
 cmake --preset debug-ninja -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
 cmake --build --preset debug -j 12
@@ -172,7 +174,7 @@ codebase. This helps us to improve readability, avoid bikeshedding, enable autom
 Our formatting rules are defined in the `.clang-format` file. This configuration file is automatically picked up when
 running `clang-format`. We follow a style close to LLVM with some customizations. The style might be tweaked over time.
 
-### How to Use
+#### How to Use
 
 We provide a custom CMake target allowing to apply the style configuration to all source files in one sweep:
 
@@ -181,7 +183,7 @@ cmake -S . -B build
 cmake --build build --target clang-format
 ```
 
-or with presets
+or - prefered - with presets
 ```
 cmake --build build --preset debug --target clang-format
 ```

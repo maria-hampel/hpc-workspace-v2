@@ -6,15 +6,18 @@ For the latest version (which might not fit your installation) see
 
 ## motivation
 
+High performing parallel and reliable storage is a very expensive resource, and optimizing it's usage is in everybodies interest.
+
 *workspaces* are a concept allowing the operations team of an HPC resource to offload some
 tasks to the user, and allow the user to keep easier track of job directories.
 It also allows the operations team to manage and load balance several filesystems,
-and hiding this fact from the users.
+and hiding this fact from the users, as well as e.g. migrating data from one filesystem to another.
 
 A *workspace* is formost a directory created on behalf of the user with some properties
 - it has an *ID* selected by the user
 - it has a lifetime selected by the user, but limited by the operations team
 - it has permissions the user can influence or change
+- different qualities of storage can be offered with one interface
 
 The *workspace* is the place where big data remains during a job or during a job campaign.
 It is probably not the place to store source files, and it is not the place to archive data at.
@@ -76,21 +79,21 @@ but it does not delete the data immediately.
 The data is probably kept for a while if there is enough space and can be recovered using
 the ```ws_restore``` command as long as it is not finally deleted.
 
-The real deletion will probably take place during the nighttime.
+The real deletion will probably take place nightly.
 
 If you are sure you do not need the data anymore, there is an option ``--delete-data`` to
 wipe the date while releasing it - **use with care**.
 
 **Please note:** data in a released workspace can still account for the quota usage!
-In case the data is limiting you, delete the data before releasing the workspace, or use the ``--delete-data`` optin with care,
-or if already released, restore it using ```ws_restore```, delete it and release the workspace again.
+In case the data is limiting you, delete the data before releasing the workspace, or use the ``--delete-data`` optin with care.
+If already released, restore it using ```ws_restore```, delete it and release the workspace again.
 
 In addition, to ease above described procedure, there is an option ```ws_restore --delete-data``` which wipes the data and releases the workspace,
 **use with care**, data can not be restored.
 
 ## extending workspaces
 
-As each workspace has an expiration date, its lifetime is limited.
+As each workspace has an expiration date, its lifespan is limited.
 The operations team can allow you a certain number of extensions of a workspace,
 you can see the amount of available extensions with ```ws_list```.
 
@@ -100,7 +103,7 @@ than the previous one. You can also shorten the lifetime if no extensions
 are available anymore.
 
 You can extend group members workspaces if they had been created using ```ws_allocate -G <group>```
-to create a writable group workspace using ```ws_allocate -x -u <user> <workspace id> <days>```.
+(to create a writable group workspace) using ```ws_allocate -x -u <user> <workspace id> <days>```.
 
 ## getting reminder
 
@@ -126,7 +129,7 @@ the ~/.ws_user.conf file as well as ```groupname```.
 A writable workspace can also be listed by group members with ```ws_list -g``` and it can in addition be extended
 using ```ws_allocate -x -u <username> <workspace-id> <days>.
 
-Please note the option parser needs either another option behind ```-g``` and ```-G``` if no groupname is given, or a ```--```.
+**Please note:** the option parser needs either another option behind ```-g``` and ```-G``` if no groupname is given, or a ```--``` to separate options from position arguments.
 
 Syntax examples:
 ```
@@ -150,10 +153,12 @@ Those operations are applied to all files and directories in the workspace.
 ## user defaults with ~/.ws_user.conf file
 
 Some defaults can be set in ~/.ws_user.conf, so you do not have to give them on command line all the time.
-The file is in YAML syntax, and can have the follwing keys: ```mail```, ```duration```, ```reminder``` and ```groupname```.
+The file is in YAML syntax, and can have the following keys: ```mail```, ```duration```, ```reminder``` and ```groupname```
+and comments.
 
 Example:
 ```
+# example file
 mail: reach@me.here
 duration: 10
 reminder: 3
