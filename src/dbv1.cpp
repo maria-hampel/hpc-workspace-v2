@@ -397,6 +397,10 @@ void DBEntryV1::readFromString(std::string str) {
     mailaddress = dbentry["mailaddress"] ? dbentry["mailaddress"].as<string>() : "";
     comment = dbentry["comment"] ? dbentry["comment"].as<string>() : "";
     group = dbentry["group"] ? dbentry["group"].as<string>() : "";
+    if (group != "")
+        groupflag = true;
+    else
+        groupflag = false;
 }
 
 #else
@@ -468,10 +472,13 @@ void DBEntryV1::readFromString(std::string str) {
     else
         comment = "";
     node = dbentry["group"];
-    if (node.has_val() && node.val() != "")
+    if (node.has_val() && node.val() != "") {
+        groupflag = true;
         node >> group;
-    else
+    } else {
+        groupflag = false;
         group = "";
+    }
 }
 
 #endif
