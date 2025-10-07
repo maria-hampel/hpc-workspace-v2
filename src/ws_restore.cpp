@@ -175,7 +175,7 @@ bool check_name(const string name, const string real_username) {
     //  name has shape:    username-id-timestamp
     //                             ^ search for this
     // as id can contain - as well, let's compare username with start of name
-    if ((real_username != "root") && (name.rfind(real_username + "-", 0) != 0)) {
+    if ((real_username != "root") && (name.find(real_username + "-", 0) != 0)) {
         spdlog::error("only root can do this, or invalid workspace name!");
         return false;
     } else {
