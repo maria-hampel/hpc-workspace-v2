@@ -497,7 +497,7 @@ void DBEntryV1::useExtension(const long _expiration, const string _mailaddress, 
         comment = _comment;
 
     // if root does this, we do not use an extension
-    if ((getuid() != 0) && (_expiration != -1) && (_expiration > expiration)) {
+    if ((getuid() != 0) && (_expiration != -1) && (_expiration >= expiration)) {
         extensions--;
     }
     if ((extensions < 0) && (getuid() != 0)) {
