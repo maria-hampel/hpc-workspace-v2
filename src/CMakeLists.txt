@@ -158,3 +158,14 @@ target_link_libraries(ws_send_ical
         fmt::fmt
         spdlog
 )
+
+add_executable(ws_validate_config
+    ws_validate_config.cpp
+)
+target_link_libraries(ws_validate_config
+    PRIVATE
+        ws_common
+        ${Boost_LIBRARIES}
+        fmt::fmt
+        spdlog
+)
