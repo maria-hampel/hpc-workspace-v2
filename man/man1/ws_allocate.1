@@ -5,7 +5,7 @@ ws_allocate \- create a workspace directory and return its path
 
 .SH SYNOPSIS
 .B ws_allocate
-[\-h] [\-x] [\-g [GROUPNAME]] [\-G [GROUPNAME]] [--] [\-u USER] [\-F FILESYSTEM] [\-d DURATION] [\-r DAYS] [\-m MAILADDRESS] [\-c COMMENT] NAME DURATION
+[\-h] [\-x] [\-g [GROUPNAME]] [\-G [GROUPNAME]] [--] [\-u USER] [\-F FILESYSTEM] [\-d DURATION] [\-n NAME] [\-r DAYS] [\-m MAILADDRESS] [\-c COMMENT] NAME DURATION
 
 .SH DESCRIPTION
 Create a
@@ -70,8 +70,12 @@ display usage help text
 .TP
 \-x
 extend an existing workspace until today + DURATION days.
-The number of extensions can be limited. Can be combined with -m to add a mail address
-and with -r to add reminder to existing workspaces. If used with 0 as duration, it does
+The number of extensions can be limited. Can be combined with
+.B -m
+to add a mail address
+and with
+.B -r
+to add reminder to existing workspaces. If used with 0 as duration, it does
 not consume an extension.
 .TP
 \-F
@@ -82,13 +86,17 @@ See
 for a list of available filesystems and their order of allocation.
 .TP
 \-m
-mailaddress to send reminder mail to, can be combined with -x to add mailaddress to existing workspace (combine with duration 0).
+mailaddress to send reminder mail to, can be combined with
+.B -x
+to add mailaddress to existing workspace (combine with duration 0).
 .TP
 \-n NAME
 name of workspace, can also be given as first positional parameter
 .TP
 \-c
-comment to attach to workspace, can be combined with -x to change comment of an existing workspace (combine with duration 0).
+comment to attach to workspace, can be combined with \
+.B -x
+to change comment of an existing workspace (combine with duration 0).
 .TP
 \--config configfile
 path to configfile, for root only or for unpriviledged installations
@@ -106,10 +114,10 @@ See
 for a way to send calendar entries.
 .TP
 \-g [GROUPNAME]
-a group-workspace will be created, that is a workspace that can be seen by other members of current group with
+a group-workspace will be created, that is a workspace that can be seen by other members of specified group with
 .B ws_list -g
 and the workspace itself is created group readable, and with group sticky bit.
-If no group is given, the current group is taken. Be carefull to have another option behind it or append -- to the option
+If no group is given, the current group is taken (or group in .ws_user.conf file if present). Be carefull to have another option behind it or append -- to the option
 list to make it clear that next argument is not the GROUPNAME argument.
 .TP
 \-G [GROUPNAME]
@@ -119,7 +127,7 @@ A group writable workspace can be seen as well with
 and it can be extended by group members with
 .B ws_allocate -x -u <user> <workspace-id> <days>
 in behalf of the owner.
-If no group is given, the current group is taken. Be carefull to have another option behind it or append -- to the option
+If no group is given, the current group is taken (or group in .ws_user.conf file if present). Be carefull to have another option behind it or append -- to the option
 list to make it clear that next argument is not the GROUPNAME argument.
 
 
@@ -129,10 +137,25 @@ create a workspace for 10 days:
 .B ws_allocate
 myworkspace 10
 
+.TP
+this is equivalent to
+.B ws_allocate -d 10 -n myworkspace
+
+.TP
+create a writable group workspace using the current group:
+.B ws_allocate -G -- mygrouworkspace 20
+
+.TP
+add a comment to an existing workspace (without vasting an extension)
+.B ws_allocate -x -c "usefull" myworkspace
+
 .SH FILES
 .B
 ~/.ws_user.conf
-user config file to store some default values. File format is yaml, possible keys are mail, duration, reminder and groupname.
+user config file to store some default values. File format is yaml, possible keys are
+.B mail, duration, reminder
+and
+.B groupname.
 Those values can be overwritten with options on commandline.
 
 .TP
