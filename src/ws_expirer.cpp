@@ -125,11 +125,11 @@ static void setupMinimalLogging() {
 
 // own ws_expirer logging setup,
 // logs in color to console
-// and into a daily rotating file with timestamps
+// and into a daily rotating file with timestamps if name is provided
 static void setupLogging(const std::string pathname) {
     if (pathname.size() == 0) {
-        spdlog::warn("config contains no expirerlogpath, no file logging");
-        return;
+        spdlog::warn("config contains no expirerlogpath, no file logging.");
+        return; // this early return keeps logging setup before in place
     }
 
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -142,6 +142,7 @@ static void setupLogging(const std::string pathname) {
     spdlog::set_level(spdlog::level::trace);
 }
 
+// construct reminder mail (does not send it)
 std::string generateReminderMail(const std::string& mail_from, std::vector<std::string>& mail_to,
                                  const long expirationtime, const std::string& wsname, const std::string& fsname,
                                  const std::string& clustername) {
@@ -177,6 +178,7 @@ std::string generateReminderMail(const std::string& mail_from, std::vector<std::
     return mail.str();
 }
 
+// construct error mail (does not send it)
 std::string generateErrorMail(const std::string& mail_from, std::vector<std::string> mail_to,
                               const std::string& subject) {
     std::stringstream mail;
@@ -208,7 +210,7 @@ std::string generateErrorMail(const std::string& mail_from, std::vector<std::str
     return mail.str();
 }
 
-// clean_stray_directtories
+// clean_stray_directories
 //  finds directories that are not in DB and removes them,
 //  returns numbers of valid and invalid directories
 //  this searches over filesystem and compares with DB, checks if a valid DB is available (using a magic file)
@@ -517,7 +519,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         }
 
         long releasetime;
-        auto expiration = dbentry->getExpiration();
+        // we take the bigger one here, expired is 0 initialized and should remain 0 till expirer touches it
+        auto expiration = std::max(dbentry->getExpiration(), dbentry->getExpired());
         auto keeptime = config.getFsConfig(fs).keeptime;
 
         // get released time from name = id
@@ -658,7 +661,7 @@ int main(int argc, char** argv) {
     }
 
     // read config
-    //   user can change this if no setuid inadd expiration + keeptimestallation OR if root
+    //   user can change this if no setuid installation OR if root
     auto configfilestoread = std::vector<cppfs::path>{"/etc/ws.d", "/etc/ws.conf"};
     if (configfile != "") {
         if (user::isRoot() || caps.isUserMode()) {

@@ -165,6 +165,7 @@ Options:
   -t [ --terse ]                  terse listing
   --config arg                    config file
   -p [ --pattern ] arg            pattern matching name (glob syntax)
+  -P [ --permissions ]            list permissions of workspace directory
   -v [ --verbose ]                verbose listing"
 }
 

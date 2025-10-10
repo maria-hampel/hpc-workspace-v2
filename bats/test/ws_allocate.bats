@@ -207,11 +207,11 @@ setup() {
 }
 
 @test "ws_allocate with group" {
-    run ws_allocate --config bats/ws.conf -g WS2 10
+    run ws_allocate --config bats/ws.conf -g -- WS2 10
     assert_success
     wsdir=$(ws_find --config bats/ws.conf WS2)
     run stat $wsdir
-    assert_output --partial "drwxr-x---"
+    assert_output --partial "drwxr-s---"
     rm -f /tmp/ws/ws2-db/${USER}-WS2
 }
 

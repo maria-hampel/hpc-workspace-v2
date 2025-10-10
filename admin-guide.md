@@ -47,7 +47,8 @@ The workspace tool set offers the possibility to keep expired data for some
 time in a restorable state, and users can restore the data without
 administrator intervention using the ```ws_restore``` command.
 
-Most operations are logged to syslog.
+Most operations are logged to syslog, so the administrator can audit what was done by the user.
+The deletion process also does extensive logging.
 
 ## Basic components
 
@@ -62,10 +63,10 @@ All configuration is in ```/etc/ws.conf``` or - new in v2 - in ```/etc/ws.d``` i
 
 The workspace tools use CMake for configuration and building, make sure it is
 installed, you will also need a C++ compiler for C++17, compiling with GCC and clang is
-tested (on Ubuntu and Redhat).
+tested (on Ubuntu and Redhat compatible distributions).
 
-Furthermore, it uses the boost components ```system program_options```.
-It also needs ```libcurl```.
+Furthermore, it uses the boost components ```system, program_options```, and
+it also needs ```libcurl``` from your distribution.
 You can use ```cd external; ./getexternals.sh; cd..``` to get and compile some additional
 dependencies into the source directory. Using distribution based libraries for those is not supported at the moment.
 
@@ -76,12 +77,12 @@ The complete list of dependencies is:
 - libcap2 (if using capabilities)
 - libcurl
 
-This version has compile time detection if capability version can be built
+This version has compile-time detection if capability version can be built
 and checks at runtime if capabilities are set or setuid bit.
 
 Following tools need privilges to work: `ws_allocate`, `ws_release` and `ws_restore`.
 Be aware that root_squash filesystems (tested with lustre) might require
-the capability version, and some extra settings to allow the required capabilities.
+the capability version, and some extra settings [^1] to allow the required capabilities.
 
 With V2, the setuid version and the capability version are both under regression testing.
 
@@ -104,6 +105,9 @@ Finally, a cron job has to be set up that calls the `ws_expirer` tool at
 regular intervals, only then will old workspaces be cleaned up. The
 `ws_expirer` setup is detailed below.
 
+[^1]: for lustre you might need for newer versions ```lctl set_param -P mdt.<fsname>-*.enable_cap_mask=+cap_dac_read_search,cap_chown,cap_dac_override,cap_fowner```
+to exclode those capabilites from being dropped in root_squash mode as well.
+
 ## Further preparation
 
 You will need a uid and gid which will serve as owner of the directories above
@@ -117,7 +121,7 @@ you could also reuse a user and group of another daemon or tool.
 
 It is good practice to create the ```/etc/ws.conf``` and validate it with
 ```sbin/ws_validate```.
-**TODO** needs work
+**TODO** needs work, no ```ws_validate``` yet in V2.
 
 It is also good practice to use ```ws_prepare``` to create the
 filesystem structure according to the config file.
@@ -128,27 +132,26 @@ A very simple example `ws.conf` file:
 
 ```yaml
 admins: [root]			# users listed here can see all workspaces with ws_list
-adminmail: [root@localhost]      # add somethingmeaningfull here, it is used to alarm of bad confitions
+adminmail: [root@localhost]      #! add somethingmeaningfull here, it is used to alarm of bad confitions
 clustername: My Green Cluster	# some name for the cluster
-smtphost: mail.mydomain.com     # (my smtp server for sending mails)
-dbuid: 85			# a user id, this is the owner of some directories
-dbgid: 85			# a group id, this is the group of some directories
-default: ws1			# (the default workspace location to use for everybody)
-duration: 10                    # (maximum duration in days, default for all workspaces)
-maxextensions: 1                # (maximum number of times a user can ask for an extension)
-filesystems:              # or workspaces for compatibility
-  ws1:				# name of the workspace location
+smtphost: mail.mydomain.com     # my smtp server for sending mais)
+dbuid: 85			#! a user id, this is the owner of some directories
+dbgid: 85			#! a group id, this is the group of some directories
+default: ws1			#! the default workspace location to use for everybody
+duration: 10                    # maximum duration in days, default for all workspaces
+maxextensions: 1                # maximum number of times a user can ask for an extension
+filesystems:              #! or 'workspaces' for compatibility
+  ws1:				#! name of the workspace location
     comment: "for all users"
-    database: /tmp/ws/ws1-db	#default DB directory
-    deleted: .removed		# name of the subdirectory used for expired workspaces
+    database: /tmp/ws/ws1-db	#! default DB directory
+    deleted: .removed		#! name of the subdirectory used for expired workspaces
     duration: 30		# max lifetime of a workspace in days
     keeptime: 7			# days to keep deleted data after expiration
     maxextensions: 3		# maximum number of times a user can ask for an extension
-    spaces: [/tmp/ws/ws1]	# paths where workspaces are created, this is a list and path is picked randomly or based on uid or guid
+    spaces: [/tmp/ws/ws1]	#! paths where workspaces are created, this is a list and path is picked randomly or based on uid or guid
 ```
 
-**Note:** the lines with () around the comment are required by the validator,
-but are not really needed in an otherwise correct and complete file.
+**Note:** the lines with ```#!``` as comment are mandantory for a valid config file.
 
 In this example, any workspace would be created in a directory in
 ```/tmp/ws/ws1``` whenever a user calls ```ws_allocate```, and he would be able
@@ -286,7 +289,7 @@ see ```spaceselection``` for ways to customize this.
 This can be used to distribute load and storage space over several filesystems
 or fileservers or metadata domains like DNE in Lustre.
 
-### `spaceselection`
+#### `spaceselection`
 
 can be `random` which is default, or `uid` or `gid` to select space based on
 modulo operation with uid or gid to select a stable space for user (useful to avoid cross filesystem
@@ -330,7 +333,7 @@ may still manually pick a different workspace location with the ```ws_allocate
 workspace locations, this results in undefined behavior. This condition is not
 tested for, the administrator has to ensure that this does not happen.
 
-##### `userdefault`
+#### `userdefault`
 
 Lists users which use this location by default. Any user in this list will have
 their workspaces allocated in this workspace location. This overrides the
@@ -362,11 +365,6 @@ Extended ACL syntax is only needed in very special sitations, if single users sh
 workspace for all users, this is no longer true in v2. Users have to have access
 to the named workspace.
 
-It is possible to have no global `default` directive, but in
-that case the administrator needs to ensure that every user shows up in the
-`userdefault` or `group default` list of exactly one workspace!
-
-**TODO** verify this is coorect in v2
 **Hint**: To enable access control, at least one of `user_acl` or `group_acl`
 has to be existing and non-empty! An invalid entry can be used to enable access
 control, like a non-existing user or group. An empty list does not enable
@@ -418,10 +416,10 @@ restored to this location anymore.
 
 V2 is the second rewrite of the tools, first version was in python with
 some horrible setuid hacks, second version was partially in C++.
-V2 offers an internal abstraction of the DB, which will allow to have
-a new DB format in the future.
+C++ aims to be fully C++ or shell scripts. V2 offers an internal abstraction of the DB and configuraton, which will allow to have
+a new DB format in the future, and enables easier creation of tools with consistent behaviour.
 
-V2 first implementation is compatible with V1.
+V2 first DB implementation is compatible with V1 DB.
 
 A DB file is currently still a YAML file, this can change in the future.
 
@@ -497,6 +495,8 @@ entry and the directory to the deleted directory if needed. The cleaner is only
 enabled if the `--cleaner` (or `-c`) option is specified when calling
 `ws_expirer`.
 
+**Warning:** anything in a spaces directory can be deleted by the expirer!
+
 ## Setting up the ws_expirer
 
 The `ws_expirer` is the tool which takes care of expired Workspaces. To set
@@ -510,39 +510,11 @@ Note the required `-c` option. This option enables the cleaner. If it were left
 out, `ws_expirer` would be running in "dry-run" mode, which is a testing
 feature, and would not perform any file operations.
 
-However, it might be better to create a dedicated script for the cron job. That
-script, in addition to calling `ws_expirer`, may contain any additional steps
-like creating log files. An example for this is shown below.
+**Note:** It is strongly recommended to test a configuration in dry-run mode first
+and study the output of a manual run before setting up a cronjob!
 
-### Example with logging and cleanup
-
-**TODO** needs work with new logging
-
-You can of course add logging of the `ws_expirer` outputs simply by writing the
-outputs in a log file:
-
-```
-10 1 * * * /usr/sbin/ws_expirer -c > /var/log/workspace/expirer-`date +%d.%m.%y`
-```
-However this will create a lot of log files over time.
-
-The following example consists of a script that logs the `ws_expirer` output
-and cleans up old log files.
-
-#### Content of crontab:
-
-```
-10 1 * * * /usr/sbin/ws-expirer.date
-```
-
-#### Content of `ws-expirer.date` script:
-
-```
-#!/bin/bash
-/usr/sbin/ws_expirer -c > /var/log/workspace/expirer-`date +%d.%m.%y`
-
-find /var/log/workspace -type f -ctime +80 -exec rm {} \;
-```
+v2 introduced a new logging scheme, you can use the ```expirerlogpath``` option in the config file to
+write a daily rotated logfile.
 
 ## Contributing
 

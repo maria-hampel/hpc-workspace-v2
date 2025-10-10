@@ -86,7 +86,7 @@ namespace cppfs = std::filesystem;
 
 // create the workspace directory with the structure of this DB
 string FilesystemDBV1::createWorkspace(const string name, const string user_option, const bool groupflag,
-                                       const string groupname) {
+                                       const bool groupwritable, const string groupname) {
     string wsdir;
 
     std::string username = user::getUsername(); // current user
@@ -191,12 +191,13 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
     mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
 
     // group workspaces can be read and listed by group
-    if (groupflag || groupname != "") {
-        mode |= S_IRGRP | S_IXGRP;
+    if (groupflag) {
+        // SPEC:CHANGE setuid bit is always set, for readable group workspaces as well
+        mode |= S_IRGRP | S_IXGRP | S_ISGID;
     }
     // if a groupname is given make it writable as well
-    if (groupname != "") {
-        mode |= S_IWGRP | S_ISGID;
+    if (groupwritable) {
+        mode |= S_IWGRP;
     }
     if (chmod(wsdir.c_str(), mode)) {
         caps.lower_cap({CAP_FOWNER}, db_uid, utils::SrcPos(__FILE__, __LINE__, __func__));
@@ -211,10 +212,11 @@ string FilesystemDBV1::createWorkspace(const string name, const string user_opti
 
 // create new DB entry
 void FilesystemDBV1::createEntry(const WsID id, const string workspace, const long creation, const long expiration,
-                                 const long reminder, const int extensions, const string group,
+                                 const long reminder, const int extensions, const bool groupflag, const string group,
                                  const string mailaddress, const string comment) {
 
-    DBEntryV1 entry(this, id, workspace, creation, expiration, reminder, extensions, group, mailaddress, comment);
+    DBEntryV1 entry(this, id, workspace, creation, expiration, reminder, extensions, groupflag, group, mailaddress,
+                    comment);
     entry.writeEntry();
 }
 
@@ -329,12 +331,14 @@ void FilesystemDBV1::deleteEntry(const string wsid, const bool deleted) {
 
 // constructor to make new entry to write out
 DBEntryV1::DBEntryV1(FilesystemDBV1* pdb, const WsID _id, const string _workspace, const long _creation,
-                     const long _expiration, const long _reminder, const int _extensions, const string _group,
-                     const string _mailaddress, const string _comment)
+                     const long _expiration, const long _reminder, const int _extensions, const bool _groupflag,
+                     const string _group, const string _mailaddress, const string _comment)
     : parent_db(pdb), id(_id), workspace(_workspace), creation(_creation), expiration(_expiration), reminder(_reminder),
-      extensions(_extensions), group(_group), mailaddress(_mailaddress), comment(_comment) {
+      extensions(_extensions), groupflag(_groupflag), group(_group), mailaddress(_mailaddress), comment(_comment) {
     dbfilepath = pdb->getconfig()->getFsConfig(pdb->getfs()).database + "/" + id;
+    // init extra internals here to avoid problems in release builds
     released = 0;
+    expired = 0;
 }
 
 // read db entry from yaml file
@@ -386,12 +390,17 @@ void DBEntryV1::readFromString(std::string str) {
                                    : 0; // FIXME: c++ tool does not write this field, but takes from stat
     released = dbentry["released"] ? dbentry["released"].as<long>() : 0;
     expiration = dbentry["expiration"] ? dbentry["expiration"].as<long>() : 0;
+    expired = dbentry["expired"] ? dbentry["expired"].as<long>() : 0;
     reminder = dbentry["reminder"] ? dbentry["reminder"].as<long>() : 0;
     workspace = dbentry["workspace"] ? dbentry["workspace"].as<string>() : "";
     extensions = dbentry["extensions"] ? dbentry["extensions"].as<int>() : 0;
     mailaddress = dbentry["mailaddress"] ? dbentry["mailaddress"].as<string>() : "";
     comment = dbentry["comment"] ? dbentry["comment"].as<string>() : "";
     group = dbentry["group"] ? dbentry["group"].as<string>() : "";
+    if (group != "")
+        groupflag = true;
+    else
+        groupflag = false;
 }
 
 #else
@@ -432,6 +441,11 @@ void DBEntryV1::readFromString(std::string str) {
         node >> expiration;
     else
         expiration = 0;
+    node = dbentry["expired"];
+    if (node.has_val())
+        node >> expired;
+    else
+        expired = 0;
     node = dbentry["reminder"];
     if (node.has_val())
         node >> reminder;
@@ -458,51 +472,16 @@ void DBEntryV1::readFromString(std::string str) {
     else
         comment = "";
     node = dbentry["group"];
-    if (node.has_val() && node.val() != "")
+    if (node.has_val() && node.val() != "") {
+        groupflag = true;
         node >> group;
-    else
+    } else {
+        groupflag = false;
         group = "";
+    }
 }
 
 #endif
-
-// print entry to stdout, for ws_list
-//  TODO: unittest
-void DBEntryV1::print(const bool verbose, const bool terse) const {
-    string repr;
-    long remaining = expiration - time(0L);
-
-    if (parent_db->getconfig()->isAdmin(user::getUsername())) {
-        fmt::println("Id: {}", id);
-    } else {
-        fmt::println("Id: {}", utils::getID(user::getUsername(), id));
-    }
-
-    fmt::println("    workspace directory  : {}", workspace);
-    if (remaining < 0) {
-        fmt::println("    remaining time       : {}", "expired");
-    } else {
-        fmt::println("    remaining time       : {} days, {} hours", remaining / (24 * 3600),
-                     (remaining % (24 * 3600)) / 3600);
-    }
-    if (!terse) {
-        if (comment != "")
-            fmt::println("    comment              : {}", comment);
-        if (creation > 0)
-            fmt::println("    creation time        : {}", utils::ctime(&creation));
-        fmt::println("    expiration time      : {}", utils::ctime(&expiration));
-        if (group != "")
-            fmt::println("    group                : {}", group);
-        fmt::println("    filesystem name      : {}", filesystem);
-    }
-    fmt::println("    available extensions : {}", extensions);
-    if (verbose) {
-        long rd = expiration - reminder / (24 * 3600);
-        fmt::println("    reminder             : {}", utils::ctime(&rd));
-        if (mailaddress != "")
-            fmt::println("    mailaddress          : {}", mailaddress);
-    }
-};
 
 // Use extension or update content of entry
 //  unittest: yes
@@ -548,6 +527,8 @@ string DBEntryV1::getMailaddress() const { return mailaddress; }
 
 string DBEntryV1::getComment() const { return comment; }
 
+long DBEntryV1::getExpired() const { return expired; }
+
 long DBEntryV1::getExpiration() const { return expiration; }
 
 long DBEntryV1::getReleaseTime() const { return released; }
@@ -555,6 +536,8 @@ long DBEntryV1::getReleaseTime() const { return released; }
 string DBEntryV1::getFilesystem() const { return filesystem; }
 
 long DBEntryV1::getReminder() const { return reminder; }
+
+string DBEntryV1::getGroup() const { return group; }
 
 // change expiration time
 void DBEntryV1::setExpiration(const time_t timestamp) { expiration = timestamp; }
@@ -616,6 +599,13 @@ void DBEntryV1::expire(const std::string timestamp) {
     if (debugflag)
         spdlog::debug("dbtarget={}", dbtarget.string());
 
+    // DB part
+
+    // update expired entry so we can later see when this was expired by this method
+    expired = time(0L); // insteaf of making long from string again, just get time again as in caller
+    writeEntry();
+
+    // filesystem part
     try {
         if (debugflag)
             spdlog::debug("rename({}, {})", dbfilepath, dbtarget.string());
@@ -660,11 +650,14 @@ void DBEntryV1::writeEntry() {
     entry["workspace"] = workspace;
     entry["creation"] = creation;
     entry["expiration"] = expiration;
+    if (expired > 0) {
+        entry["expired"] = expired;
+    }
     entry["extensions"] = extensions;
     entry["acctcode"] = "";
     entry["reminder"] = reminder;
     entry["mailaddress"] = mailaddress;
-    if (group.length() > 0) {
+    if (groupflag && group.length() > 0) {
         entry["group"] = group;
     }
     if (released > 0) {
@@ -678,11 +671,14 @@ void DBEntryV1::writeEntry() {
     root["workspace"] << workspace;
     root["creation"] << creation;
     root["expiration"] << expiration;
+    if (expired > 0) {
+        root["expired"] << expired;
+    }
     root["extensions"] << extensions;
     root["acctcode"] << "";
     root["reminder"] << reminder;
     root["mailaddress"] << mailaddress;
-    if (group.length() > 0) {
+    if (groupflag && group.length() > 0) {
         root["group"] << group;
     }
     if (released > 0) {

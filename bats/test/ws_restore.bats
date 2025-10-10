@@ -38,3 +38,17 @@ setup() {
     ws_restore_notest --config bats/ws.conf $wsid $ws_name
     assert_file_exists $wsdir/$wsid/TESTFILE
 }
+
+@test "ws_restore workspace with username and - in name" {
+    ws_name=$USER-restore
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    touch $wsdir/TESTFILE
+    run ws_release --config bats/ws.conf $ws_name
+    assert_output --partial "released"
+    assert_success
+    wsid=$(ws_restore --config bats/ws.conf -l | grep $ws_name | head -1)
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    run ws_restore_notest --config bats/ws.conf $wsid $ws_name
+    assert_success
+    assert_file_exists $wsdir/$wsid/TESTFILE
+}

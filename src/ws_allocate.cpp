@@ -71,8 +71,8 @@ template <> struct fmt::formatter<po::options_description> : ostream_formatter {
  *  bad characters
  */
 void commandline(po::variables_map& opt, string& name, int& duration, string& filesystem, bool& extension,
-                 int& reminder, string& mailaddress, string& user, string& groupname, string& comment, int argc,
-                 char** argv, std::string& userconf, std::string& configfile) {
+                 int& reminder, string& mailaddress, string& user, string& groupreadable, string& groupwritable,
+                 string& comment, int argc, char** argv, std::string& userconf, std::string& configfile) {
     // define all options
 
     po::options_description cmd_options("\nOptions");
@@ -85,8 +85,9 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
         ("reminder,r", po::value<int>(&reminder), "reminder to be sent <arg> days before expiration")
         ("mailaddress,m", po::value<string>(&mailaddress), "mailaddress to send reminder to")
         ("extension,x", "extend workspace (can change mailaddress, reminder and comment as well)")
-        ("username,u", po::value<string>(&user), "username")("group,g", "group readable workspace")
-        ("groupname,G", po::value<string>(&groupname)->default_value(""), "for group <arg> writable workspace")
+        ("username,u", po::value<string>(&user), "username")
+        ("groupreadable,g", po::value<string>(&groupreadable)->implicit_value(""), "for group <arg> readable workspace, current group if none given")
+        ("groupwritable,G", po::value<string>(&groupwritable)->implicit_value(""), "for group <arg> writable workspace, current group if none given")
         ("comment,c", po::value<string>(&comment), "comment")("config", po::value<string>(&configfile), "config file");
     // clang-format on
 
@@ -151,6 +152,14 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     // parse user config
     UserConfig userconfig(userconf);
 
+    // if no group given but needed, and there is one in userconfig, take it.
+    if (opt.count("groupreadable") || opt.count("groupwritable")) {
+        if (groupreadable == "" && groupwritable == "" && userconfig.getGroupname() != "") {
+            spdlog::info("taking group {} from ~/.ws_user.conf", userconfig.getGroupname());
+            groupreadable = groupwritable = userconfig.getGroupname();
+        }
+    }
+
     // reminder check, if we have a reminder number, we need either a mailaddress argument or config file
     // with mailaddress in user home
 
@@ -183,7 +192,13 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
 
     // fix duration if none given and there is one in user config
     if (duration == -1) {
-        duration = userconfig.getDuration();
+        if (extension && (mailaddress != "" || comment != "" || reminder != 0)) {
+            spdlog::debug("setting duration to 0");
+            duration = 0;
+        } else {
+            spdlog::debug("reading duration from userconfig");
+            duration = userconfig.getDuration();
+        }
     }
 
     // validate email
@@ -214,8 +229,14 @@ bool validateFsAndGroup(const Config& config, const po::variables_map& opt, cons
     auto groupnames = user::getGrouplist();
 
     // if a group was given, check if a valid group was given
-    if (opt["groupname"].as<string>() != "") {
-        if (find(groupnames.begin(), groupnames.end(), opt["groupname"].as<string>()) == groupnames.end()) {
+    if (opt.count("groupreadable") && opt["groupreadable"].as<string>() != "") {
+        if (find(groupnames.begin(), groupnames.end(), opt["groupreadable"].as<string>()) == groupnames.end()) {
+            spdlog::error("invalid group specified!");
+            return false;
+        }
+    }
+    if (opt.count("groupwritable") && opt["groupwritable"].as<string>() != "") {
+        if (find(groupnames.begin(), groupnames.end(), opt["groupwritable"].as<string>()) == groupnames.end()) {
             spdlog::error("invalid group specified!");
             return false;
         }
@@ -270,10 +291,10 @@ bool validateDuration(const Config& config, const std::string filesystem, int& d
  */
 bool allocate(const Config& config, const po::variables_map& opt, int duration, string filesystem, const string name,
               const bool extensionflag, const int reminder, const string mailaddress, string user_option,
-              const string groupname, const string comment) {
+              const string groupreadable, const string groupwritable, const string comment) {
     if (traceflag)
-        spdlog::trace("allocate({}, {}, {}, {}, {}, {}, {}, {}, {})", duration, filesystem, name, extensionflag,
-                      reminder, mailaddress, user_option, groupname, comment);
+        spdlog::trace("allocate({}, {}, {}, {}, {}, {}, {}, {},{}, {})", duration, filesystem, name, extensionflag,
+                      reminder, mailaddress, user_option, groupreadable, groupwritable, comment);
 
     long exp;
 
@@ -517,7 +538,20 @@ bool allocate(const Config& config, const po::variables_map& opt, int duration, 
             return false;
         }
 
-        auto wsdir = creationDB->createWorkspace(name, user_option, opt.count("group") > 0, groupname);
+        // check which group to use, from commandline or use current group
+        string primarygroup = "";
+        if (groupreadable != "" || groupwritable != "") {
+            primarygroup = (groupreadable != "") ? groupreadable : groupwritable;
+        } else {
+            primarygroup = user::getGroupname();
+        }
+
+        // check if any group option is set
+        bool groupflag = opt.count("groupreadable") || opt.count("groupwritable");
+
+        // create workspace
+        auto wsdir =
+            creationDB->createWorkspace(name, user_option, groupflag, opt.count("groupwritable"), primarygroup);
 
         // now create DB entry
 
@@ -525,17 +559,10 @@ bool allocate(const Config& config, const po::variables_map& opt, int duration, 
 
         auto extensions = config.getFsConfig(newfilesystem).maxextensions;
         auto expiration = time(NULL) + duration * 24 * 3600;
-        string primarygroup = "";
-        if (opt.count("group")) {
-            primarygroup = user::getGroupname();
-        }
-        if (groupname != "") {
-            primarygroup = groupname;
-        }
 
         auto id = fmt::format("{}-{}", username, name);
-        creationDB->createEntry(id, wsdir, time(NULL), expiration, reminder, extensions, primarygroup, mailaddress,
-                                comment);
+        creationDB->createEntry(id, wsdir, time(NULL), expiration, reminder, extensions, groupflag, primarygroup,
+                                mailaddress, comment);
 
         fmt::print("{}\n", wsdir);
         fmt::print(stderr, "remaining extensions  : {}\n", extensions);
@@ -552,7 +579,7 @@ int main(int argc, char** argv) {
     string name;
     string filesystem;
     string mailaddress("");
-    string user_option, groupname;
+    string user_option, groupreadable, groupwritable;
     string comment;
     string configfile;
     int reminder = 0;
@@ -581,8 +608,8 @@ int main(int argc, char** argv) {
     }
 
     // check commandline, get flags which are used to create ws object or for workspace allocation
-    commandline(opt, name, duration, filesystem, extensionflag, reminder, mailaddress, user_option, groupname, comment,
-                argc, argv, user_conf, configfile);
+    commandline(opt, name, duration, filesystem, extensionflag, reminder, mailaddress, user_option, groupreadable,
+                groupwritable, comment, argc, argv, user_conf, configfile);
 
     // find which config files to read
     //   user can change this if no setuid installation OR if root
@@ -610,8 +637,8 @@ int main(int argc, char** argv) {
     openlog("ws_allocate", 0, LOG_USER); // SYSLOG
 
     // allocate workspace
-    if (!allocate(config, opt, duration, filesystem, name, extensionflag, reminder, mailaddress, user_option, groupname,
-                  comment)) {
+    if (!allocate(config, opt, duration, filesystem, name, extensionflag, reminder, mailaddress, user_option,
+                  groupreadable, groupwritable, comment)) {
         return -1;
     }
 }

@@ -70,9 +70,6 @@ class DBEntry {
     // consume an extension (writes entry back)
     virtual void useExtension(const long expiration, const string mail, const int reminder, const string comment) = 0;
 
-    // print for ws_list
-    virtual void print(const bool verbose, const bool terse) const = 0;
-
     // getters
     virtual long getRemaining() const = 0;
     virtual string getId() const = 0;
@@ -82,9 +79,11 @@ class DBEntry {
     virtual string getMailaddress() const = 0;
     virtual string getComment() const = 0;
     virtual long getExpiration() const = 0;
+    virtual long getExpired() const = 0;
     virtual long getReleaseTime() const = 0;
     virtual string getFilesystem() const = 0;
     virtual long getReminder() const = 0;
+    virtual string getGroup() const = 0;
 
     // get config of parent DB
     virtual const Config* getConfig() const = 0;
@@ -102,8 +101,8 @@ class Database {
   public:
     // new DB entry
     virtual void createEntry(const string id, const string workspace, const long creation, const long expiration,
-                             const long reminder, const int extensions, const string group, const string mailaddress,
-                             const string comment) = 0;
+                             const long reminder, const int extensions, const bool groupflag, const string group,
+                             const string mailaddress, const string comment) = 0;
 
     // read specific entry
     virtual std::unique_ptr<DBEntry> readEntry(const WsID id, const bool deleted) = 0;
@@ -118,7 +117,7 @@ class Database {
     // create workspace directory according to the rules of this Db and return the name
     // has to fix all permissions
     virtual std::string createWorkspace(const string name, const string user_option, const bool groupflag,
-                                        const string groupname) = 0;
+                                        const bool groupwritable, const string groupname) = 0;
 
     virtual ~Database() = default; // address-sanitizer needs this
 };
