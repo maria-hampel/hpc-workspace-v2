@@ -56,6 +56,17 @@ setup() {
     assert_file_exists $wsdir/$wsid/TESTFILE
 }
 
+@test "ws_restore delete-data" {
+    ws_name=restore-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf -F ws1 $ws_name)
+    touch $wsdir/TESTFILE
+    ws_release --config bats/ws.conf -F ws1 $ws_name
+    wsid=$( ws_restore --config bats/ws.conf -F ws1 -l | grep $ws_name | head -1)
+    assert_file_exists /tmp/ws/ws1/.removed/$wsid/TESTFILE
+    ws_restore_notest --config bats/ws.conf --delete-data $wsid
+    assert_file_not_exists /tmp/ws/ws1/.removed/$wsid/TESTFILE
+}
+
 @test "ws_restore workspace with username and - in name" {
     ws_name=$USER-restore
     wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
