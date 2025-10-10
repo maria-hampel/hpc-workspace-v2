@@ -28,7 +28,6 @@
  *
  */
 
-
 #ifdef WS_RAPIDYAML_CONFIG
     #define RYML_USE_ASSERT 0
     #include "c4/format.hpp"
@@ -42,9 +41,9 @@
 #include "fmt/base.h"
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
+#include <filesystem>
 #include <iostream>
 #include <string>
-#include <filesystem>
 
 #include "caps.h"
 #include "utils.h"
@@ -65,8 +64,7 @@ int debuglevel = 0;
 // init caps here, when euid!=uid
 Cap caps{};
 
-
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
     std::string filename = "";
     // locals settings to prevent strange effects
     utils::setCLocal();
@@ -78,11 +76,10 @@ int main(int argc, char** argv){
     // define all options
     po::options_description cmd_options("\nOptions");
     //clang-format off
-    cmd_options.add_options()
-        ("help,h", "produce help message")
-        ("filename,f", po::value<string>(&filename), "filename/directory");
+    cmd_options.add_options()("help,h", "produce help message")("filename,f", po::value<string>(&filename),
+                                                                "filename/directory");
     //clang-format on
-    
+
     // define options without names
     po::positional_options_description p;
     p.add("filename", 1);
@@ -92,25 +89,20 @@ int main(int argc, char** argv){
         po::store(po::command_line_parser(argc, argv).options(cmd_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        cerr << "Usage: " << argv[0]
-             << " [filename]"
-             << endl;
+        cerr << "Usage: " << argv[0] << " [filename]" << endl;
         cerr << cmd_options << "\n";
         exit(1);
     }
 
-    if (opt.count("help")){
-        cerr << "Usage: " << argv[0]
-             << " [filename]"
-             << endl;
+    if (opt.count("help")) {
+        cerr << "Usage: " << argv[0] << " [filename]" << endl;
         cerr << cmd_options << "\n";
-        cerr << "this command is used to validate a config file"
-             << endl;
+        cerr << "this command is used to validate a config file" << endl;
         exit(0);
     }
 
     if (filename == "") {
-        filename="/etc/ws.conf";
+        filename = "/etc/ws.conf";
     }
 
     std::string yaml = utils::getFileContents(filename);
@@ -121,18 +113,21 @@ int main(int argc, char** argv){
     std::vector<YAML::Node> wslist;
     std::vector<string> wsnames;
 
+    // see if there are workspaces/filesystems defined
     try {
         if (config["workspaces"] || config["filesystems"]) {
-            for (auto key : std::vector<string>{"workspaces", "filesystems"}){
-                if(config[key]){
-
+            for (auto key : std::vector<string>{"workspaces", "filesystems"}) {
+                if (config[key]) {
                     auto list = config[key];
                     wslist.push_back(list);
-                    for (auto it : list){
+                    for (auto it : list) {
                         wsnames.push_back(it.first.as<string>());
                     }
                 }
             }
+        } else {
+            spdlog::error("No Workspaces defined");
+            exit(1);
         }
     } catch (...) {
         spdlog::error("No Workspaces defined");
@@ -162,16 +157,16 @@ int main(int argc, char** argv){
     }
 
     // default/default_workspace
-    std::string defaultws;
-
     try {
-        if (config["default"] && config["default_workspace"]){
+        std::string defaultws;
+
+        if (config["default"] && config["default_workspace"]) {
             spdlog::error("Both 'default and 'default_workspace defined. Choose one.");
             exit(1);
-        } else if (config["default"]){
+        } else if (config["default"]) {
             defaultws = config["default"].as<string>();
             fmt::println("default: {}", defaultws);
-        } else if (config["default_workspace"]){
+        } else if (config["default_workspace"]) {
             defaultws = config["default_workspace"].as<string>();
             fmt::println("default_workspace: {}", defaultws);
         } else {
@@ -183,22 +178,22 @@ int main(int argc, char** argv){
         exit(1);
     }
     // try if defaultws is actually in the ws
-    if (!(std::find(wsnames.begin(), wsnames.end(), defaultws) != wsnames.end())){
+    if (!(std::find(wsnames.begin(), wsnames.end(), defaultws) != wsnames.end())) {
         spdlog::error("default workspace is not defined as workspace in the file");
         exit(1);
     }
 
-    // duration/maxduration 
+    // duration/maxduration
     try {
         int duration;
 
         if (config["duration"] && config["maxduration"]) {
             spdlog::error("Both 'duration' and 'maxduration' defined, Choose one.");
             exit(1);
-        } else if (config["duration"]){
+        } else if (config["duration"]) {
             duration = config["duration"].as<int>();
             fmt::println("maxduration: {}", duration);
-        } else if (config["maxduration"]){
+        } else if (config["maxduration"]) {
             duration = config["maxduration"].as<int>();
             fmt::println("maxduration: {}", duration);
         } else {
@@ -213,14 +208,21 @@ int main(int argc, char** argv){
         auto durationdefault = config["durationdefault"].as<int>();
         fmt::println("durationdefault: {}", durationdefault);
     } catch (...) {
-        spdlog::warn("No durationdefault found, defaults to 1 day, continuing");
+        spdlog::warn("No durationdefault found, defaults to 30 days, continuing");
+    }
+
+    try {
+        auto reminderdefault = config["reminderdefault"].as<int>();
+        fmt::println("reminderdefault: {}", reminderdefault);
+    } catch (...) {
+        spdlog::warn("No reminderdefault found, defaults to 0 days, continuing");
     }
 
     try {
         auto maxextensions = config["maxextensions"].as<int>();
         fmt::println("maxextensions: {}", maxextensions);
     } catch (...) {
-        spdlog::error("No maxextensions found, please add <\"maxextensions\": number> clause to toplevel");
+        spdlog::warn("No maxextensions found, defaults to 10 days, please add <\"maxextensions\": number> clause to toplevel");
     }
 
     try {
@@ -243,7 +245,8 @@ int main(int argc, char** argv){
         auto admins = config["admins"].as<vector<string>>();
         fmt::println("admins: {}", admins);
     } catch (...) {
-        fmt::println("No admins found, continuing");
+        spdlog::error("No admins found, continuing");
+        exit(1);
     }
 
     try {
@@ -255,39 +258,40 @@ int main(int argc, char** argv){
     }
 
     try {
-        auto expirerlogpath = config["expirerlogpath"].as<string>();
-        fmt::println("expirerlogpath: {}", expirerlogpath);
-    } catch (...) {
-        fmt::println("No expirerlogpath found, continuing");
-    }
-
-    try {
         auto deldirtimeout = config["deldirtimeout"].as<string>();
         fmt::println("deldirtimeout: {}", deldirtimeout);
     } catch (...) {
         fmt::println("No deldirtimeout found, continuing");
     }
 
+    try {
+        auto expirerlogpath = config["expirerlogpath"].as<string>();
+        fmt::println("expirerlogpath: {}", expirerlogpath);
+    } catch (...) {
+        fmt::println("No expirerlogpath found, continuing");
+    }
 
-    for (auto node : wslist){    
-        for (auto it : node){
-            spdlog::info("checking config for filesystem {}", it.first.as<string>());
+    for (auto node : wslist) {
+        for (auto it : node) {
+            auto wsname = it.first.as<string>();
             auto ws = it.second;
-    
+            spdlog::info("checking config for filesystem {}", wsname);
+
             try {
                 auto keeptime = ws["keeptime"].as<int>();
                 fmt::println("    keeptime: {}", keeptime);
             } catch (...) {
-                fmt::println("    No keeptime found, continuing");
+                spdlog::warn("No keeptime found for filesystem {}, continuing", wsname);
             }
 
             try {
                 auto spaces = ws["spaces"].as<vector<string>>();
                 fmt::println("    spaces: {}", spaces);
             } catch (...) {
-                spdlog::error("No spaces found, please add <\"spaces\": []>");
+                spdlog::error("No spaces found for filesystem {}, please add <\"spaces\": []>", wsname);
+                exit(1);
             }
-            
+
             try {
                 auto spaceselection = ws["spaceselection"].as<string>();
                 fmt::println("    spaceselection: {}", spaceselection);
@@ -299,7 +303,10 @@ int main(int argc, char** argv){
                 auto deleted = ws["deleted"].as<string>();
                 fmt::println("    deleted: {}", deleted);
             } catch (...) {
-                spdlog::error("No deleted directory found, please add <\"deleted\": \"dir\"> clause to workspace");
+                spdlog::error("No deleted directory found for filesystem {}, please add <\"deleted\": \"dir\"> clause "
+                              "to workspace",
+                              wsname);
+                exit(1);
             }
 
             try {
@@ -311,21 +318,28 @@ int main(int argc, char** argv){
                 if (!cppfs::exists(database / cppfs::path(".ws_db_magic"))) {
                     spdlog::warn("database directory {} does not contain .ws_db_magic!", database);
                 }
+                auto deleted = ws["deleted"].as<string>();
+                if (!cppfs::exists(database / cppfs::path("deleted"))) {
+                    spdlog::warn("database directory {} does not contain deleted folder {}", database, deleted);
+                }
             } catch (...) {
-                spdlog::error("No database location defined, please add <\"database\": \"dir\"> clause to workspace");
+                spdlog::error("No database location define for filesystem {}, please add <\"database\": \"dir\"> "
+                              "clause to workspace",
+                              wsname);
+                exit(1);
             }
 
-            //todo this is for duration/maxduration 
+            // todo this is for duration/maxduration
             try {
                 int duration;
 
-                if (ws["duration"] && ws["maxduration"]){
+                if (ws["duration"] && ws["maxduration"]) {
                     spdlog::error("Both 'duration' and 'maxduration' defined. Choose one.");
                     exit(1);
-                } else if (ws["duration"]){
+                } else if (ws["duration"]) {
                     duration = ws["duration"].as<int>();
                     fmt::println("    maxduration: {}", duration);
-                } else if (ws["maxduration"]){
+                } else if (ws["maxduration"]) {
                     duration = ws["maxduration"].as<int>();
                     fmt::println("    maxduration: {}", duration);
                 } else {
@@ -391,9 +405,6 @@ int main(int argc, char** argv){
                 fmt::println("    No restorable found, defaults to 'yes', continuing");
             }
         }
-}
+    }
     spdlog::info("config is valid!");
-
-
-
 }
