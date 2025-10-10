@@ -101,7 +101,9 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name", argv[0]);
+        fmt::println(stderr,
+                     "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name",
+                     argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
@@ -109,7 +111,9 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
     // see whats up
 
     if (opt.count("help")) {
-        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name", argv[0]);
+        fmt::println(stderr,
+                     "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name",
+                     argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         fmt::println(stderr,
                      "attention: the workspace_name argument is as printed by {}"
@@ -141,9 +145,11 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
     traceflag = opt.count("trace");
 
     if (opt.count("name")) {
-        if (!opt.count("target") && !opt.count("delete-data") &&  !listflag) {
+        if (!opt.count("target") && !opt.count("delete-data") && !listflag) {
             spdlog::error("no target given.");
-            fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name", argv[0]);
+            fmt::println(stderr,
+                         "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name",
+                         argv[0]);
             fmt::println("{}", cmd_options);
             exit(1);
         }
@@ -164,7 +170,9 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
         }
     } else if (!opt.count("list")) {
         spdlog::error("neither workspace nor -l specified.");
-        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name", argv[0]);
+        fmt::println(stderr,
+                     "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name",
+                     argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }

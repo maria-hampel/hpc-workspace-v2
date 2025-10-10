@@ -545,7 +545,7 @@ void DBEntryV1::setExpiration(const time_t timestamp) { expiration = timestamp; 
 // change release date (mark as released and not expired)
 // write DB entry
 // move DB entry to releases entries
-void DBEntryV1::release(time_t &timestamp_time) {
+void DBEntryV1::release(time_t& timestamp_time) {
 
     // TODO: is this ctrl-c save? should it be ignored for all of this?
     // probably ok, even if there is some partial state, ws_expirer would deal with it
@@ -582,7 +582,7 @@ void DBEntryV1::release(time_t &timestamp_time) {
         timestamp = fmt::format("{}", timestamp_time);
         // create name again with new timestamp
         dbtarget = cppfs::path(wsconfig.database) / cppfs::path(wsconfig.deletedPath) /
-                               cppfs::path(fmt::format("{}-{}", id, timestamp));
+                   cppfs::path(fmt::format("{}-{}", id, timestamp));
     }
 
     // do the rename with collision free name
