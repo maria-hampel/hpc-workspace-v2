@@ -157,8 +157,9 @@ int main(int argc, char** argv) {
     }
 
     // default/default_workspace
+    std::string defaultws;
+    
     try {
-        std::string defaultws;
 
         if (config["default"] && config["default_workspace"]) {
             spdlog::error("Both 'default and 'default_workspace defined. Choose one.");
