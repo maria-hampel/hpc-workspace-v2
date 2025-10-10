@@ -274,7 +274,7 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
     if (ws_exists) {
 
         // timestamp for versioning, has to be identical for DB and workspace DIR
-        string timestamp = fmt::format("{}", time(NULL));
+        time_t timestamp_time = time(NULL);
 
         //
         // first handle DB entry
@@ -287,7 +287,9 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
         // set released flag so released workspaces can be distinguished from expired ones,
         // update DB entry and move it
         try {
-            dbentry->release(timestamp); // timestamp is version information, same as for directory later
+            // timestamp is version information, same as for directory later, can be modified
+            // for collision avoidance!
+            dbentry->release(timestamp_time);
         } catch (const DatabaseException& e) {
             spdlog::error(e.what());
             return -1; // on error we bail out, workspace will still exist and db most probably as well
@@ -297,6 +299,9 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
         //
         // second handle workspace directory
         //
+        // use timestamp_time which can be modified by db->release to avoid collisions
+        // new name is still identical to DB, but does not collide
+        string timestamp = fmt::format("{}", timestamp_time);
 
         auto wsconfig = dbentry->getConfig()->getFsConfig(dbentry->getFilesystem());
         cppfs::path target = cppfs::path(dbentry->getWSPath()).parent_path() / cppfs::path(wsconfig.deletedPath) /
