@@ -101,7 +101,7 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name", argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
@@ -109,7 +109,7 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
     // see whats up
 
     if (opt.count("help")) {
-        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name", argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         fmt::println(stderr,
                      "attention: the workspace_name argument is as printed by {}"
@@ -141,27 +141,30 @@ void commandline(po::variables_map& opt, string& name, string& target, string& f
     traceflag = opt.count("trace");
 
     if (opt.count("name")) {
-        if (!opt.count("target") && !opt.count("delete-data")) {
+        if (!opt.count("target") && !opt.count("delete-data") &&  !listflag) {
             spdlog::error("no target given.");
-            fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+            fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name", argv[0]);
             fmt::println("{}", cmd_options);
             exit(1);
         }
-        // validate workspace name against nasty characters
-        // static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$"); // #77
-        static const std::regex e1(ws::workspace_name_regex);
-        if (!regex_match(name.substr(0, 2), e1)) {
-            spdlog::error("Illegal workspace name, use characters and numbers, -,. and _ only!");
-            exit(1);
-        }
-        static const std::regex e2(R"([^[:alnum:]\._-])");
-        if (regex_search(name, e2)) {
-            spdlog::error("Illegal workspace name, use characters and numbers, -,. and _ only!");
-            exit(1);
+
+        if (!listflag) {
+            // validate workspace name against nasty characters
+            // static const std::regex e("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$"); // #77
+            static const std::regex e1(ws::workspace_name_regex);
+            if (!regex_match(name.substr(0, 2), e1)) {
+                spdlog::error("Illegal workspace name, use characters and numbers, -,. and _ only!");
+                exit(1);
+            }
+            static const std::regex e2(R"([^[:alnum:]\._-])");
+            if (regex_search(name, e2)) {
+                spdlog::error("Illegal workspace name, use characters and numbers, -,. and _ only!");
+                exit(1);
+            }
         }
     } else if (!opt.count("list")) {
         spdlog::error("neither workspace nor -l specified.");
-        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l", argv[0]);
+        fmt::println(stderr, "Usage: {} [options] workspace_name target_name | -l [pattern] | --delete-data workspace-name", argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
@@ -419,6 +422,7 @@ int main(int argc, char** argv) {
     string name, target, filesystem, username;
     string configfile;
     string user_conf;
+    string pattern;
     bool listflag, terse;
 
     // lower capabilities to user, before interpreting any data from user
@@ -498,7 +502,11 @@ int main(int argc, char** argv) {
         // that does not require root here
         caps.raise_cap({CAP_DAC_OVERRIDE, CAP_DAC_READ_SEARCH}, utils::SrcPos(__FILE__, __LINE__, __func__));
 
-        // FIXME: add pattern and sorting as in ws_list?
+        // if not pattern, show all entries
+        if (name == "")
+            pattern = "*";
+        else
+            pattern = name;
 
         // iterate over filesystems
         for (auto const& fs : fslist) {
@@ -514,7 +522,7 @@ int main(int argc, char** argv) {
             }
 
             try {
-                for (auto const& id : db->matchPattern("*", userpattern, grouplist, true, false)) {
+                for (auto const& id : db->matchPattern(pattern, userpattern, grouplist, true, false)) {
                     fmt::println("{}", id);
                     if (!terse) {
                         auto pos = id.rfind("-") + 1;

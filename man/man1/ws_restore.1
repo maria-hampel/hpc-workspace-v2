@@ -1,4 +1,4 @@
-.TH ws_restore 1 "June 2025" "USER COMMANDS"
+.TH ws_restore 1 "October 2025" "USER COMMANDS"
 
 .SH NAME
 ws_restore \- restore a workspace that was removed, but is still in recovery area
@@ -7,6 +7,21 @@ ws_restore \- restore a workspace that was removed, but is still in recovery are
 .B ws_restore
 [\-h] [\-l] [\-b|\-\-brief] [\-n NAME] [\-t TARGET] [\-F FILESYSTEM] [--delete-data] NAME TARGET
 
+valid calls:
+
+.B ws_restore
+[\-b|\-\-brief] [\-F FILESYSTEM] -l [PATTERN]
+
+or
+
+.B ws_restore
+[\-F FILESYSTEM] \-\-delete\-data NAME
+
+or
+
+.B ws_restore
+[\-F FILESYSTEM] NAME TARGET
+
 .SH DESCRIPTION
 After a
 .B workspace
@@ -14,7 +29,7 @@ was released by user or marked unavailable due to expiration, it can be (dependi
 in an unaccessible area of the filesystem before beeing finally deleted to free the diskspace.
 In this case, it can be restored with this command. The decision how long it can be restored is up to administrator.
 
-.B ws_restore \-l
+.B ws_restore \-l [PATTERN]
 has to be used to list the restorable workspaces and to restore a selected workspace into a new
 existing
 .B workspace
@@ -24,6 +39,8 @@ existing
 identical with the name displayed by
 .B ws_list
 !)
+.B PATTERN
+is a shell glob pattern, quote if needed.
 
 .B ws_restore
 can not be automated, it has to be executed in an interactive session
@@ -57,9 +74,25 @@ the name of the workspace which is target of the restoration, it has to exist, c
 .TP
 .B \-\-delete-data
 .B use with care!
-,B This option deletes the data instead of restoring it!
+.B This option deletes the data instead of restoring it!
 This is useful when you are running out of quota and need to free diskspace, it allows you to free diskspace of an expired
 workspace without restoring it first.
+
+.SH EXAMPLES
+
+List restorable workspaces starting with "Data"
+
+.B ws_restore -l "Data*"
+
+Restore a workspace with ID obtained with
+.B ws_restore -l
+into existing workspace SAVED
+
+.B ws_restore charlie-Data2025-1760123101 SAVED
+
+Free data
+
+.B ws_restore --delete-data  charlie-Data2025-1760123101
 
 .SH AUTHOR
 Written by Holger Berger
