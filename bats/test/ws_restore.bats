@@ -28,6 +28,23 @@ setup() {
     assert_success
 }
 
+@test "ws_restore list with pattern" {
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_allocate --config bats/ws.conf DONTSHOW
+    ws_release --config bats/ws.conf $ws_name
+    ws_release --config bats/ws.conf DONTSHOW
+    run ws_restore --config bats/ws.conf -l "bats*"
+    assert_output --partial $ws_name
+    refute_output --partial DONTSHOW
+    assert_success
+    run ws_restore --config bats/ws.conf -l
+    assert_output --partial DONTSHOW
+    assert_output --partial $ws_name
+    assert_success
+    run ws_restore --config bats/ws.conf -l "*SHOW*"
+    assert_output --partial DONTSHOW
+}
+
 @test "ws_restore workspace" {
     ws_name=restore-$RANDOM
     wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
