@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
 
     // default/default_workspace
     std::string defaultws;
-    
+
     try {
 
         if (config["default"] && config["default_workspace"]) {
@@ -223,7 +223,8 @@ int main(int argc, char** argv) {
         auto maxextensions = config["maxextensions"].as<int>();
         fmt::println("maxextensions: {}", maxextensions);
     } catch (...) {
-        spdlog::warn("No maxextensions found, defaults to 10 days, please add <\"maxextensions\": number> clause to toplevel");
+        spdlog::warn(
+            "No maxextensions found, defaults to 10 days, please add <\"maxextensions\": number> clause to toplevel");
     }
 
     try {
