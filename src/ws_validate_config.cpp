@@ -76,8 +76,8 @@ int main(int argc, char** argv) {
     // define all options
     po::options_description cmd_options("\nOptions");
     //clang-format off
-    cmd_options.add_options()("help,h", "produce help message")("filename,f", po::value<string>(&filename),
-                                                                "filename/directory");
+    cmd_options.add_options()("help,h", "produce help message")
+                        ("config", po::value<string>(&filename), "config file");
     //clang-format on
 
     // define options without names
@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
                     spdlog::warn("database directory {} does not contain .ws_db_magic!", database);
                 }
                 auto deleted = ws["deleted"].as<string>();
-                if (!cppfs::exists(database / cppfs::path("deleted"))) {
+                if (!cppfs::exists(database / cppfs::path(deleted))) {
                     spdlog::warn("database directory {} does not contain deleted folder {}", database, deleted);
                 }
             } catch (...) {
