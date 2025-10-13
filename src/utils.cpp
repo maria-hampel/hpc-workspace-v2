@@ -30,6 +30,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <curl/curl.h>
 #include <dirent.h>
@@ -492,7 +493,7 @@ void rmtree(std::string path) {
 
             r = unlinkat(0, path.c_str(), AT_REMOVEDIR);
             if (r) {
-                spdlog::error("unlinkat {} -> {}", path, errno);
+                spdlog::error("unlinkat {} -> {}", path, strerror(errno));
             }
         }
         if (!dirfd_closed)
@@ -761,7 +762,7 @@ static void rmtree_fd(int topfd, std::string path) {
 
                             r = unlinkat(topfd, (const char*)&ent->d_name[0], AT_REMOVEDIR);
                             if (r) {
-                                spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], errno);
+                                spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], strerror(errno));
                             }
                         } else {
                             spdlog::error("rmtree hit a symbolic link!");
@@ -773,7 +774,7 @@ static void rmtree_fd(int topfd, std::string path) {
             } else {
                 int r = unlinkat(topfd, (const char*)&ent->d_name[0], 0);
                 if (r) {
-                    spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], errno);
+                    spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], strerror(errno));
                 }
             }
         }
