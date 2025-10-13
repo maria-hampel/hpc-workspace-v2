@@ -97,7 +97,7 @@ for testing:
 - [x] ws_editdb (new tool)
 - [x] ws_share (will remain a shell script)
 - [x] ws_expirer (will be migrated to C++)
-- [ ] ws_validate_config (might be migrated to C++)
+- [x] ws_validate_config (might be migrated to C++)
 - [x] ws_prepare (new in C++)
 
 
@@ -110,8 +110,8 @@ for testing:
 - [x] build/select a better test framework for the tools
 - [x] debug what is there
 - [x] check debug logic and data leaks
-- [ ] migrate more tools: migrate ws_expirer, ws_validate_config
-- [ ] add tests for new tools
+- [x] migrate more tools: migrate ws_expirer, ws_validate_config
+- [x] add tests for new tools
 - [ ] create tests for ws_expire
 - [x] debug what is there
 - [x] get CMake setup in better shape
@@ -229,13 +229,12 @@ sudo chown -R $USERNAME coverage
 
 note: setcap tests will fail with ASAN error messages if sysctl `fs.suid_dumpable = 2`
 Update: turned out that capability version seems to have restrictions in docker, can only be tested fully in VM
-TODO: remove capabuility tests from docker
+TODO: remove capability tests from docker
 
 ### testing with VM
 
 Vagrant files are provided to allow testing with rocky linux 8 and rocky linux 9.
-this should allow to test capability version as well as setup with root_squash
-filesystems.
+this should allow to test capability version.
 
 ```
 cd vm/rocky-8
