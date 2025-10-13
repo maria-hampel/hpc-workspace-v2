@@ -81,6 +81,7 @@ Vagrant.configure("2") do |config|
 
     export DOCKER_USER=vagrant
     OTHER_USER=userb
+    sudo timedatectl set-timezone Europe/Berlin
     sudo groupadd  $DOCKER_USER 
     sudo adduser --home-dir /home/$DOCKER_USER -m -G sudo,$DOCKER_USER --system $DOCKER_USER  
     sudo groupadd  $OTHER_USER 
