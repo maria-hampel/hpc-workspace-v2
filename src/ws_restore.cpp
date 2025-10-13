@@ -306,11 +306,16 @@ void restore(const string name, const string target, const string username, cons
         if (debugflag) {
             spdlog::debug("remove_all({})", cppfs::path(wssourcename).string());
         }
+
+        utils::rmtree(wssourcename);
+
+        /*
         cppfs::remove_all(cppfs::path(wssourcename), ec); // we ignore return wert as we expect an error return anyhow
 
         if (ec.value() != 0) {
             spdlog::error("unexpected error {}", ec.message());
         }
+        */
 
         if (caps.isSetuid()) {
             // get root so we can drop again

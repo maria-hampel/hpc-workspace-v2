@@ -349,20 +349,9 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
             // remove the directory
             std::error_code ec;
             if (debugflag) {
-                spdlog::debug("remove_all({})", cppfs::path(target).string());
+                spdlog::debug("rmtree({})", target.string());
             }
-            cppfs::remove_all(cppfs::path(target), ec); // we ignore return value as we expect an error return anyhow
-
-            // FIXME: https://github.com/holgerBerger/hpc-workspace-v2/issues/66
-            // std::filesystem::remove_all() seems to do early exit on first error at least with gcc version 14.2.0
-            // (Ubuntu 14.2.0-19ubuntu2) so if there is files that can not be deleted in here, there is a chance that
-            // other files will not get deleted neither, depending on order. Switch to utils::rmtree() ? Needs
-            // verification if that has same issue.
-
-            // we expect an error 13 for the topmost directory
-            if (ec.value() != 13) {
-                spdlog::error("unexpected error {}", ec.message());
-            }
+            utils::rmtree(target); // #66
 
             if (caps.isSetuid()) {
                 // get root so we can drop again
@@ -370,13 +359,11 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
                     spdlog::error("can not setuid, bad installation?");
                 }
             }
+
             caps.lower_cap({CAP_FOWNER}, dbentry->getConfig()->dbuid(), utils::SrcPos(__FILE__, __LINE__, __func__));
 
-            // remove what is left as DB user (could be done by ws_expirer)
-            if (debugflag) {
-                spdlog::debug("remove_all({})", cppfs::path(target).string());
-            }
-            cppfs::remove_all(cppfs::path(target), ec);
+            // call again with different user
+            utils::rmtree(target); // #66
 
             syslog(LOG_INFO, "delete-data for user <%s> from <%s>.", user::getUsername().c_str(), target.c_str());
 
