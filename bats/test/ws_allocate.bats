@@ -263,6 +263,28 @@ setup() {
     rm -f /tmp/ws/ws2-db/${USER}-extensiontest
 }
 
+@test "ws_allocate change comment (no extension)" {
+    run ws_allocate --config bats/ws.conf -F ws1 TESTCOMMENT 10
+    assert_success
+    run ws_allocate --config bats/ws.conf -x -c "a comment" TESTCOMMENT
+    assert_output --partial "changed comment"
+    assert_output --partial "remaining extensions  : 3"
+    run ws_list --config bats/ws.conf TESTCOMMENT
+    assert_output --partial "a comment"
+    ws_release --config bats/ws.conf TESTCOMMENT
+}
+
+@test "ws_allocate change mail (no extension)" {
+    run ws_allocate --config bats/ws.conf -F ws1 TESTMAIL 10
+    assert_success
+    run ws_allocate --config bats/ws.conf -x -m "mymail@mail.com" TESTMAIL
+    assert_output --partial "changed mail"
+    assert_output --partial "remaining extensions  : 3"
+    run ws_list --config bats/ws.conf -v TESTMAIL
+    assert_output --partial "mymail"
+    ws_release --config bats/ws.conf TESTMAIL
+}
+
 @test "ws_allocate -x with non-unique name" {
     ws_allocate --config bats/ws.conf -F ws1 TESTUNIQUE 10
     ws_allocate --config bats/ws.conf -F ws2 TESTUNIQUE 10

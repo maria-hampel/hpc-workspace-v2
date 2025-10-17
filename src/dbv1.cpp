@@ -497,7 +497,7 @@ void DBEntryV1::useExtension(const long _expiration, const string _mailaddress, 
         comment = _comment;
 
     // if root does this, we do not use an extension
-    if ((getuid() != 0) && (_expiration != -1) && (_expiration > expiration)) {
+    if ((getuid() != 0) && (_expiration != -1) && (_expiration >= expiration)) {
         extensions--;
     }
     if ((extensions < 0) && (getuid() != 0)) {
@@ -545,10 +545,12 @@ void DBEntryV1::setExpiration(const time_t timestamp) { expiration = timestamp; 
 // change release date (mark as released and not expired)
 // write DB entry
 // move DB entry to releases entries
-void DBEntryV1::release(const std::string timestamp) {
+void DBEntryV1::release(time_t& timestamp_time) {
 
     // TODO: is this ctrl-c save? should it be ignored for all of this?
     // probably ok, even if there is some partial state, ws_expirer would deal with it
+
+    string timestamp = fmt::format("{}", timestamp_time);
 
     released = time(NULL); // now
     writeEntry();
@@ -571,6 +573,19 @@ void DBEntryV1::release(const std::string timestamp) {
         }
     }
 
+    // check if target exists, as std::filesystem::rename does delete target if it exists
+    // in case of collision, delay and wait for 1s resolution (but increment to avoid glitches)
+    if (cppfs::exists(dbtarget)) {
+        spdlog::info("delaying to avoid name collision");
+        sleep(1);
+        timestamp_time++;
+        timestamp = fmt::format("{}", timestamp_time);
+        // create name again with new timestamp
+        dbtarget = cppfs::path(wsconfig.database) / cppfs::path(wsconfig.deletedPath) /
+                   cppfs::path(fmt::format("{}-{}", id, timestamp));
+    }
+
+    // do the rename with collision free name
     try {
         if (debugflag)
             spdlog::debug("rename({}, {})", dbfilepath, dbtarget.string());

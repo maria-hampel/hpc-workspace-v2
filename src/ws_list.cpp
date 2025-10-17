@@ -94,7 +94,7 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
     }
     fmt::println("    available extensions : {}", entry->getExtension());
     if (verbose) {
-        long rd = entry->getExpiration() - entry->getReminder() / (24 * 3600);
+        long rd = (entry->getExpiration() - (entry->getReminder() * 24 * 3600));
         fmt::println("    reminder             : {}", utils::ctime(&rd));
         if (entry->getMailaddress() != "")
             fmt::println("    mailaddress          : {}", entry->getMailaddress());

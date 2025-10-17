@@ -164,7 +164,10 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     // with mailaddress in user home
 
     if (reminder == 0) {
-        reminder = userconfig.getReminder();
+        auto user_conf_reminder = userconfig.getReminder();
+        if (user_conf_reminder != -1) {
+            reminder = user_conf_reminder;
+        }
     }
 
     if (reminder > 0) {

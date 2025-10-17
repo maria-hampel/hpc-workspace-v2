@@ -117,6 +117,16 @@ You can change reminder and email address of an existing workspace using ```ws_a
 
 You can also generate a calender entry via email with ``ws_send_ical``, see manpage for more details.
 
+## changing a workspace
+
+some attributes can be changed after creation, those are the comment, the reminder time and the mailaddress for the reminder.
+
+This is achieved with ```ws_allocate -x```. If no duration is given this does not consume an extension.
+
+example:
+```
+$ ws_allocate -x -c "new shiny comment" myworkspace
+```
 
 ## cooperative usage (group workspaces and sharing with other users)
 

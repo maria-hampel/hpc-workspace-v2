@@ -17,6 +17,7 @@ including internals.
 `/etc/ws.conf` is read
 - `ws_release --delete-data` to wipe data while releasing a workspace (also in v1 since a while)
 - `ws_restore --delete-data` to wipe data from an released or expired workspaces to reclaim disk space
+- `ws_restore -l` takes an optional globbing pattern argument
 - in config file: `filesystems` can be used as alias for `workspaces`, to match `-F` option of tools
 - in config file: `default_workspace` is an alias for `default`
 - in config file: `maxduration` is an alias for `duration`
