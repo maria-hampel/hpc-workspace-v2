@@ -66,15 +66,12 @@ int debuglevel = 0;
 // init caps here, when euid!=uid
 Cap caps{};
 
-cppfs::perms perm0755 = cppfs::perms::owner_read | cppfs::perms::owner_write | cppfs::perms::owner_exec | 
-                    cppfs::perms::group_read | cppfs::perms::group_exec | 
-                    cppfs::perms::others_read | cppfs::perms::others_exec;
+cppfs::perms perm0755 = cppfs::perms::owner_read | cppfs::perms::owner_write | cppfs::perms::owner_exec |
+                        cppfs::perms::group_read | cppfs::perms::group_exec | cppfs::perms::others_read |
+                        cppfs::perms::others_exec;
 
-cppfs::perms perm0644 = cppfs::perms::owner_read | cppfs::perms::owner_write | 
-                    cppfs::perms::group_read | 
-                    cppfs::perms::others_read;
-                    
-
+cppfs::perms perm0644 =
+    cppfs::perms::owner_read | cppfs::perms::owner_write | cppfs::perms::group_read | cppfs::perms::others_read;
 
 int main(int argc, char** argv) {
     std::string configfile = "";
@@ -87,10 +84,12 @@ int main(int argc, char** argv) {
     po::variables_map opt;
     // define all options
     po::options_description cmd_options("\nOptions");
-    //clang-format off
-    cmd_options.add_options()("help,h", "produce help message")
-                        ("config", po::value<string>(&configfile), "config file");
-    //clang-format on
+
+    // clang-format off
+    cmd_options.add_options()
+        ("help,h", "produce help message")
+        ("config", po::value<string>(&configfile), "config file");
+    // clang-format on
 
     // define options without names
     po::positional_options_description p;
@@ -132,7 +131,7 @@ int main(int argc, char** argv) {
     if (wsnames.empty()) {
         spdlog::error("No Workspaces defined");
         exit(1);
-    } 
+    }
 
     auto clustername = config.clustername();
     if (clustername != "") {
@@ -146,14 +145,16 @@ int main(int argc, char** argv) {
     if (smtphost != "") {
         fmt::println("smtphost: {}", smtphost);
     } else {
-        spdlog::warn("No smtphost found, beware: no reminder and error mails can be send. Please add \"smtphost: <name>\" clause to toplevel");
+        spdlog::warn("No smtphost found, beware: no reminder and error mails can be send. Please add \"smtphost: "
+                     "<name>\" clause to toplevel");
     }
 
     auto mail_from = config.mailfrom();
-    if (mail_from != ""){
+    if (mail_from != "") {
         fmt::println("mail_from: {}", mail_from);
     } else {
-        spdlog::warn("No mail_from found, beware: no reminder and error mails can be send. Please add \"mail_from: <mail>\" clause to toplevel");
+        spdlog::warn("No mail_from found, beware: no reminder and error mails can be send. Please add \"mail_from: "
+                     "<mail>\" clause to toplevel");
     }
 
     // default/default_workspace
@@ -188,9 +189,9 @@ int main(int argc, char** argv) {
 
     auto dbgid = config.dbgid();
     fmt::println("dbgid: {}", dbgid);
-    
+
     auto admins = config.admins();
-    if (!admins.empty()){
+    if (!admins.empty()) {
         fmt::println("admins: {}", admins);
     } else {
         spdlog::error("No admins found, please add \"admins:: <[List]>\" clause to toplevel");
@@ -198,7 +199,7 @@ int main(int argc, char** argv) {
     }
 
     auto adminmail = config.adminmail();
-    if (!adminmail.empty()){
+    if (!adminmail.empty()) {
         fmt::println("adminmail: {}", adminmail);
     } else {
         spdlog::error("No adminmail found, please add \"adminmail: <[List]>\" clause to toplevel");
@@ -206,9 +207,9 @@ int main(int argc, char** argv) {
     }
 
     auto expirerlogpath = config.expirerlogpath();
-    if (expirerlogpath != ""){
+    if (expirerlogpath != "") {
         fmt::println("expirerlogpath: {}", expirerlogpath);
-        if (!cppfs::exists(expirerlogpath)){
+        if (!cppfs::exists(expirerlogpath)) {
             spdlog::warn("expirer directory {} does not exist", expirerlogpath);
         }
     } else {
@@ -219,7 +220,7 @@ int main(int argc, char** argv) {
         auto ws = config.getFsConfig(name);
 
         std::string wsname = ws.name;
-        if (wsname != ""){
+        if (wsname != "") {
             spdlog::info("checking config for filesystem {}", wsname);
         } else {
             spdlog::error("Invalid Filesystem Name");
@@ -231,36 +232,36 @@ int main(int argc, char** argv) {
             fmt::println("    deleted: {}", deleted);
         } else {
             spdlog::error("No deleted directory found for filesystem {}, please add \"deleted: <dir>\" clause "
-                            "to workspace",
-                            wsname);
+                          "to workspace",
+                          wsname);
             exit(1);
         }
 
         auto spaces = ws.spaces;
         if (!spaces.empty()) {
             fmt::println("    spaces: {}", spaces);
-            for (auto space : spaces){
+            for (auto space : spaces) {
                 cppfs::path deletedpath = space + "/" + deleted;
 
-                if (!cppfs::exists(space)){
+                if (!cppfs::exists(space)) {
                     spdlog::warn("spaces directory {} does not exist", space);
                 }
-                if (!cppfs::exists(deletedpath)){
+                if (!cppfs::exists(deletedpath)) {
                     spdlog::warn("spaces directory {} does not contain deleted folder {}", space, deleted);
                 }
 
                 cppfs::perms perms;
                 perms = cppfs::status(space).permissions();
-                if (perms != perm0755){
+                if (perms != perm0755) {
                     spdlog::warn("spaces path {} has incorrect permissions", space);
                 }
                 perms = cppfs::status(deletedpath).permissions();
-                if (perms != perm0755){
+                if (perms != perm0755) {
                     spdlog::warn("deleted directory {} in space {} has incorrect permissions", deleted, space);
                 }
             }
         } else {
-            spdlog::error("No spaces found for filesystem {}, please add <\"spaces\": []>", wsname);
+            spdlog::error("No spaces found for filesystem {}, please add \"spaces: <[List]>\"", wsname);
             exit(1);
         }
 
@@ -270,7 +271,6 @@ int main(int argc, char** argv) {
         } else {
             fmt::println("    No spaceselection found, defaults to 'random', continuing");
         }
-
 
         auto database = ws.database;
 
@@ -296,17 +296,17 @@ int main(int argc, char** argv) {
                 spdlog::warn("database path {} has incorrect permissions", database);
             }
             perms = cppfs::status(wsdbmagicpath).permissions();
-            if (perms != perm0644){
+            if (perms != perm0644) {
                 spdlog::warn(".ws_db_magic in database directory {} has incorrect permissions", database);
             }
             perms = cppfs::status(deletedpath).permissions();
-            if (perms != perm0755){
+            if (perms != perm0755) {
                 spdlog::warn("deleted directory {} in database {} has incorrect permissions", deleted, database);
             }
         } else {
             spdlog::error("No database location define for filesystem {}, please add \"database: <dir>\" "
-                            "clause to workspace",
-                            wsname);
+                          "clause to workspace",
+                          wsname);
             exit(1);
         }
 
@@ -349,13 +349,12 @@ int main(int argc, char** argv) {
 
         auto allocatable = ws.allocatable;
         fmt::println("    allocatable: {}", allocatable);
-        
+
         auto extendable = ws.extendable;
         fmt::println("    extendable: {}", extendable);
 
         auto restorable = ws.restorable;
         fmt::println("    restorable: {}", restorable);
-
     }
     spdlog::info("config is valid!");
 }
