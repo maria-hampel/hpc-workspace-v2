@@ -371,8 +371,9 @@ bool allocate(const Config& config, const po::variables_map& opt, int duration, 
                 foundfs = cfilesystem;
                 ws_exists = true;
             } catch (DatabaseException& e) {
-                spdlog::error("workspace does not exist, can not be extended!");
-                exit(-1); // FIXME: is exit good here?
+                // silently ignore non existiong entries
+                if (debugflag)
+                    spdlog::debug("existence check failed for {}/{}", cfilesystem, dbid);
             }
         } else {
             // check if entry exists
