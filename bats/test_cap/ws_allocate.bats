@@ -11,7 +11,7 @@ setup() {
 
 @test "ws_allocate print version" {
     run ws_allocate  --version
-    assert_output --partial "workspace"
+    assert_output --partial "ws_allocate"
     assert_output --partial "hascaps=true"
 }
 
@@ -34,7 +34,7 @@ setup() {
 }
 
 @test "ws_allocate with reminder, valid email" {
-    run ws_allocate  -r 1 -m a@b.c REMINDER 10 
+    run ws_allocate  -r 1 -m a@b.c REMINDER 10
     assert_output --partial "remaining time in days: 10"
     assert_success
     run ws_list  -v REMINDER
@@ -60,7 +60,7 @@ setup() {
     assert_success
     wsdir=$(ws_find  WS2)
     run stat $wsdir
-    assert_output --partial "drwxr-s---" 
+    assert_output --partial "drwxr-s---"
     ws_release WS2
 }
 
@@ -74,7 +74,7 @@ setup() {
     # create as userb a workspace
     export WS_ALLOCATE=$(which ws_allocate)
     run sudo -u userb --preserve-env=ASAN_OPTIONS $WS_ALLOCATE -G userb WS3 10
-    assert_success 
+    assert_success
 
     run ws_allocate  -u userb -x WS3 20
     assert_failure
