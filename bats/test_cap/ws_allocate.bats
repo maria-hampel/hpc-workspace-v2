@@ -56,7 +56,7 @@ setup() {
 }
 
 @test "ws_allocate with group" {
-    run ws_allocate  -g WS2 10
+    run ws_allocate  -g -- WS2 10
     assert_success
     wsdir=$(ws_find  WS2)
     run stat $wsdir
