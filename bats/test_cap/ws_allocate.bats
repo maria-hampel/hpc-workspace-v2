@@ -60,7 +60,7 @@ setup() {
     assert_success
     wsdir=$(ws_find  WS2)
     run stat $wsdir
-    assert_output --partial "drwxr-x---" 
+    assert_output --partial "drwxr-s---" 
     ws_release WS2
 }
 
