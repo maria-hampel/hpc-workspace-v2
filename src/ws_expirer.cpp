@@ -253,8 +253,9 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     // workspaces getting created while this is running
     for (const auto& space : spaces) {
         // NOTE: *-* for compatibility with old expirer
-        for (const auto& dir : utils::dirEntries(space, "*-*")) {
-            if (cppfs::is_directory(dir)) {
+        // FIXME: this does NOT delete directories not matching this pattern!
+        for (const auto& dir : utils::dirEntries(space, "*-*", true)) {
+            if (cppfs::is_directory(cppfs::path(space) / dir)) {
                 dirs.push_back({space, dir});
             }
         }
@@ -310,16 +311,16 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
             if (!dryrun) {
                 try {
                     spdlog::info(
-                        "      move {} to {}", founddir.dir,
-                        (cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs) / timestamp).string());
-                    cppfs::rename(founddir.dir, cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs));
+                        "      move {} to {}", (cppfs::path(founddir.space) / founddir.dir).string(),
+                        (cppfs::path(founddir.space) / config.deletedPath(fs) / timestamp).string());
+                    cppfs::rename(cppfs::path(founddir.space) / founddir.dir, cppfs::path(founddir.space) / config.deletedPath(fs));
                 } catch (cppfs::filesystem_error& e) {
                     spdlog::error("      failed to move to deleted: {} ({})", founddir.dir, e.what());
                 }
             } else {
                 spdlog::info(
-                    "      would move {} to {}", founddir.dir,
-                    (cppfs::path(founddir.space).remove_filename() / config.deletedPath(fs) / timestamp).string());
+                    "      would move {} to {}", (cppfs::path(founddir.space) /  founddir.dir).string(),
+                    (cppfs::path(cppfs::path(founddir.space) / founddir.space) / config.deletedPath(fs) / timestamp).string());
             }
             result.invalid_ws++;
         } else {
@@ -338,7 +339,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     // directory entries first
     for (auto const& space : spaces) {
         // NOTE: *-* for compatibility with old expirer
-        for (const auto& dir : utils::dirEntries(cppfs::path(space) / config.deletedPath(fs), "*-*")) {
+        for (const auto& dir : utils::dirEntries(cppfs::path(space) / config.deletedPath(fs), "*-*",true)) {
             if (cppfs::is_directory(dir)) {
                 dirs.push_back({space, dir});
             }

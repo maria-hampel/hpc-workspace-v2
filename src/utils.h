@@ -68,7 +68,7 @@ inline std::string getFileContents(const std::string filename) { return getFileC
 void writeFile(const std::string filename, const std::string content);
 
 // retrurn list of filesnames mit unix name globbing
-std::vector<std::string> dirEntries(const std::string path, const std::string pattern);
+std::vector<std::string> dirEntries(const std::string path, const std::string pattern, const bool dirs);
 
 // set C local in every thinkable way
 void setCLocal();

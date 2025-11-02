@@ -114,8 +114,8 @@ void writeFile(const std::string filename, const std::string content) {
     }
 }
 
-// get file names matching glob pattern from path, ("/etc", "p*d") -> passwd
-std::vector<string> dirEntries(const string path, const string pattern) {
+// get file names matching glob pattern from path, ("/etc", "p*d") -> passwd, match dirs if dirs==true
+std::vector<string> dirEntries(const string path, const string pattern, const bool dirs) {
     if (traceflag)
         spdlog::trace("dirEntries({},{})", path, pattern);
     vector<string> fl;
@@ -124,7 +124,7 @@ std::vector<string> dirEntries(const string path, const string pattern) {
         return fl;
     }
     for (const auto& entry : fs::directory_iterator(path)) {
-        if (entry.is_regular_file() || entry.is_symlink())
+        if (entry.is_regular_file() || entry.is_symlink() || (dirs && entry.is_directory()))
             if (glob_match(pattern.c_str(), entry.path().filename().string().c_str())) {
                 fl.push_back(entry.path().filename().string());
             }

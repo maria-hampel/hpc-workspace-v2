@@ -236,7 +236,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
         try {
             // in case of groupworkspace, read entry
             if (groupworkspaces) {
-                auto filelist = utils::dirEntries(pathname, filepattern);
+                auto filelist = utils::dirEntries(pathname, filepattern, false);
                 vector<string> list;
                 utils::HasGroupIntersection groupintersection(user::getUsername());
 
@@ -273,7 +273,7 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
                 }
                 return list;
             } else { // simple file match, no group workspace
-                return utils::dirEntries(pathname, filepattern);
+                return utils::dirEntries(pathname, filepattern, false);
             }
         } catch (cppfs::filesystem_error const& e) {
             throw DatabaseException(e.what());
