@@ -43,7 +43,9 @@
 #include "build_info.h"
 #include "db.h"
 #include "fmt/base.h"
+#include "fmt/format.h"
 #include "fmt/ostream.h"
+#include "fmt/color.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include "user.h"
 
@@ -66,6 +68,7 @@ int debuglevel = 0;
 // helper for fmt::
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
+// print entry in traditional format, one below each other, multiline
 void print_entry(const DBEntry* entry, const bool verbose, const bool terse, const bool permissions) {
     long remaining = entry->getExpiration() - time(0L);
 
@@ -106,6 +109,60 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
     }
 }
 
+void print_entry_tableformat(const DBEntry* entry, const bool verbose, const bool terse, const bool permissions) {
+    static bool headerprinted = false;
+    static bool color_checked = false;
+    static bool color_output = true;
+
+    long remaining = entry->getExpiration() - time(0L);
+
+    std::string ID;
+    if (entry->getConfig()->isAdmin(user::getUsername())) {
+        ID = entry->getId();
+    } else {
+        ID = utils::getID(user::getUsername(), entry->getId());
+    }
+
+    if (!color_checked) {
+        color_checked = true;
+        const char *no_color = std::getenv("NO_COLOR");
+        if (no_color != nullptr && no_color[0] != '\0') color_output = false;
+        if (!isatty(STDOUT_FILENO)) color_output = false;
+    }
+
+    fmt::color remaincolor;
+    if (color_output) {
+        if (remaining / ( 24 * 3600 ) < 3)
+            remaincolor = fmt::color::red;
+        else if (remaining  / ( 24 * 3600 ) < 7)
+            remaincolor = fmt::color::orange;
+        else
+            remaincolor = fmt::color::green;
+    }
+
+    if (terse) {
+        if (!headerprinted) {
+            headerprinted = true;
+            fmt::println("{:<30} {:<50} {:<9}", "ID", "PATH",  "REMAINING");
+            fmt::println("{:=<30} {:=<50} {:=<9}", "", "", "");
+        }
+        if (color_output)
+            fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(), fmt::styled( remaining / (24 * 3600), fg(remaincolor)));
+        else
+            fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(), remaining / (24 * 3600));
+    } else {
+        if (!headerprinted) {
+            headerprinted = true;
+            fmt::println("{:<30} {:<50} {:<25} {:10} {:<9}", "ID", "PATH", "EXPIRATION", "EXTENSIONS", "REMAINING");
+            fmt::println("{:=<30} {:=<50} {:=<25} {:=<10} {:=<9}", "", "", "", "", "");
+        }
+        if (color_output)
+            fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(), utils::ctime(entry->getExpiration()), entry->getExtension(), fmt::styled(remaining / (24 * 3600), fg(remaincolor)));
+        else
+            fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(), utils::ctime(entry->getExpiration()), entry->getExtension(), remaining / (24 * 3600));
+    }
+}
+
 int main(int argc, char** argv) {
 
     // options and flags
@@ -123,6 +180,7 @@ int main(int argc, char** argv) {
     bool sortbyremaining = false;
     bool sortreverted = false;
     bool terselisting = false;
+    bool tableformat = false;
     bool permissions = false;
     bool verbose = false;
 
@@ -152,6 +210,7 @@ int main(int argc, char** argv) {
         ("remaining,R", "sort by remaining time")
         ("reverted,r", "revert sort")
         ("terse,t", "terse listing")
+        ("table,T", "table format")
         ("config", po::value<string>(&configfile), "config file")
         ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
         ("permissions,P", "list permissions of workspace directory")
@@ -190,6 +249,7 @@ int main(int argc, char** argv) {
     sortbyremaining = opts.count("remaining");
     sortreverted = opts.count("reverted");
     terselisting = opts.count("terse");
+    tableformat = opts.count("table");
     permissions = opts.count("permissions");
     verbose = opts.count("verbose");
 
@@ -295,13 +355,14 @@ int main(int argc, char** argv) {
         }
 
         vector<std::unique_ptr<DBEntry>> entrylist;
+        vector<std::unique_ptr<Database>> dblist;
+        std::unique_ptr<Database> db;
 
         // iterate over filesystems and print or create list to be sorted
         for (auto const& fs : fslist) {
             if (debugflag)
                 spdlog::debug("loop over fslist {} in {}", fs, fslist);
 
-            std::unique_ptr<Database> db;
             try {
                 db = std::unique_ptr<Database>(config.openDB(fs));
             } catch (DatabaseException& e) {
@@ -323,9 +384,12 @@ int main(int argc, char** argv) {
                             // if no sorting, print, otherwise append to list
                             if (!sort) {
                                 if (shortlisting) {
-                                    fmt::println(entry->getId()); // FIXME:: cortecy for root/admin?
+                                    fmt::println(entry->getId()); // FIXME:: correct for root/admin?
                                 } else {
-                                    print_entry(entry.get(), verbose, terselisting, permissions);
+                                    if (!tableformat)
+                                        print_entry(entry.get(), verbose, terselisting, permissions);
+                                    else
+                                        print_entry_tableformat(entry.get(), verbose, terselisting, permissions);
                                 }
                             } else {
                                 entrylist.push_back(std::move(entry));
@@ -336,6 +400,8 @@ int main(int argc, char** argv) {
                     spdlog::error(e.what());
                 }
             }
+
+            dblist.push_back(std::move(db));
 
         } // loop over fs
 
@@ -360,9 +426,12 @@ int main(int argc, char** argv) {
 
             for (const auto& entry : entrylist) {
                 if (shortlisting) {
-                    fmt::println(entry->getId()); // FIXME:: cortecy for root/admin?
+                    fmt::println(entry->getId()); // FIXME:: correct for root/admin?
                 } else {
-                    print_entry(entry.get(), verbose, terselisting, permissions);
+                    if (!tableformat)
+                        print_entry(entry.get(), verbose, terselisting, permissions);
+                    else
+                        print_entry_tableformat(entry.get(), verbose, terselisting, permissions);
                 }
             }
         }

@@ -145,7 +145,7 @@ ws1"
 }
 
 @test "ws_list invalid option" {
-    run ws_list --config bats/ws.conf -T
+    run ws_list --config bats/ws.conf -X
     assert_output "Usage: ws_list [options] [pattern]
 
 Options:
@@ -163,6 +163,7 @@ Options:
   -R [ --remaining ]              sort by remaining time
   -r [ --reverted ]               revert sort
   -t [ --terse ]                  terse listing
+  -T [ --table ]                  table format
   --config arg                    config file
   -p [ --pattern ] arg            pattern matching name (glob syntax)
   -P [ --permissions ]            list permissions of workspace directory
