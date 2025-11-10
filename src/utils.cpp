@@ -34,7 +34,6 @@
 #include <ctime>
 #include <curl/curl.h>
 #include <dirent.h>
-#include <sys/wait.h>
 #include <fcntl.h>
 #include <filesystem>
 #include <fstream>
@@ -45,6 +44,7 @@
 #include <stdexcept>
 #include <string>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <vector>
 
 #include "user.h"
@@ -706,13 +706,13 @@ std::string permstring(const fs::perms p) {
  * we do not use system() as we are in setuid
  * and it would fail, and it sucks anyhow
  */
-int mv(const char * source, const char *target) {
+int mv(const char* source, const char* target) {
     pid_t pid;
     int status;
     pid = fork();
-    if (pid==0) {
+    if (pid == 0) {
         execl("/bin/mv", "mv", source, target, NULL);
-    } else if (pid<0) {
+    } else if (pid < 0) {
         //
     } else {
         waitpid(pid, &status, 0);
@@ -783,7 +783,8 @@ static void rmtree_fd(int topfd, std::string path) {
 
                             r = unlinkat(topfd, (const char*)&ent->d_name[0], AT_REMOVEDIR);
                             if (r) {
-                                spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], strerror(errno));
+                                spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0],
+                                              strerror(errno));
                             }
                         } else {
                             spdlog::error("rmtree hit a symbolic link!");

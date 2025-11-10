@@ -179,7 +179,7 @@ std::string ctime(const time_t timer);
 std::string permstring(std::filesystem::perms p);
 
 // move a file/directory to another location using /bin/mv, fallback for rename EXDEV
-int mv(const char * source, const char *target);
+int mv(const char* source, const char* target);
 
 } // namespace utils
 
