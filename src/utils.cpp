@@ -34,6 +34,7 @@
 #include <ctime>
 #include <curl/curl.h>
 #include <dirent.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <filesystem>
 #include <fstream>
@@ -698,6 +699,26 @@ std::string permstring(const fs::perms p) {
     string ret;
     str >> ret;
     return ret;
+}
+
+/*
+ * fallback for rename in case of EXDEV
+ * we do not use system() as we are in setuid
+ * and it would fail, and it sucks anyhow
+ */
+int mv(const char * source, const char *target) {
+    pid_t pid;
+    int status;
+    pid = fork();
+    if (pid==0) {
+        execl("/bin/mv", "mv", source, target, NULL);
+    } else if (pid<0) {
+        //
+    } else {
+        waitpid(pid, &status, 0);
+        return WEXITSTATUS(status);
+    }
+    return 0;
 }
 
 } // end of namespace utils

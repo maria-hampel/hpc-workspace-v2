@@ -178,6 +178,9 @@ std::string ctime(const time_t timer);
 // get a string like rwx------ for permissions
 std::string permstring(std::filesystem::perms p);
 
+// move a file/directory to another location using /bin/mv, fallback for rename EXDEV
+int mv(const char * source, const char *target);
+
 } // namespace utils
 
 #endif
