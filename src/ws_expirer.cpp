@@ -142,6 +142,18 @@ static void setupLogging(const std::string pathname) {
     spdlog::set_level(spdlog::level::trace);
 }
 
+// file rename that falls back to utils::mv in case of EXDEV
+void robust_rename(const cppfs::path src, const cppfs::path dest) {
+    try {
+        cppfs::rename(src, dest);
+    } catch (cppfs::filesystem_error& e) {
+        if (e.code() == std::errc::cross_device_link) {
+            spdlog::info("cross device rename, falling back to 'mv'");
+            utils::mv(src.c_str(), dest.c_str());
+        }
+    }
+}
+
 // construct reminder mail (does not send it)
 std::string generateReminderMail(const std::string& mail_from, std::vector<std::string>& mail_to,
                                  const long expirationtime, const std::string& wsname, const std::string& fsname,
@@ -310,17 +322,18 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
             string timestamp = fmt::format("{}", time(NULL));
             if (!dryrun) {
                 try {
-                    spdlog::info(
-                        "      move {} to {}", (cppfs::path(founddir.space) / founddir.dir).string(),
-                        (cppfs::path(founddir.space) / config.deletedPath(fs) / timestamp).string());
-                    cppfs::rename(cppfs::path(founddir.space) / founddir.dir, cppfs::path(founddir.space) / config.deletedPath(fs));
+                    spdlog::info("      move {} to {}", (cppfs::path(founddir.space) / founddir.dir).string(),
+                                 (cppfs::path(founddir.space) / config.deletedPath(fs) / timestamp).string());
+                    robust_rename(cppfs::path(founddir.space) / founddir.dir,
+                                  cppfs::path(founddir.space) / config.deletedPath(fs));
                 } catch (cppfs::filesystem_error& e) {
                     spdlog::error("      failed to move to deleted: {} ({})", founddir.dir, e.what());
                 }
             } else {
                 spdlog::info(
-                    "      would move {} to {}", (cppfs::path(founddir.space) /  founddir.dir).string(),
-                    (cppfs::path(cppfs::path(founddir.space) / founddir.space) / config.deletedPath(fs) / timestamp).string());
+                    "      would move {} to {}", (cppfs::path(founddir.space) / founddir.dir).string(),
+                    (cppfs::path(cppfs::path(founddir.space) / founddir.space) / config.deletedPath(fs) / timestamp)
+                        .string());
             }
             result.invalid_ws++;
         } else {
@@ -339,7 +352,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     // directory entries first
     for (auto const& space : spaces) {
         // NOTE: *-* for compatibility with old expirer
-        for (const auto& dir : utils::dirEntries(cppfs::path(space) / config.deletedPath(fs), "*-*",true)) {
+        for (const auto& dir : utils::dirEntries(cppfs::path(space) / config.deletedPath(fs), "*-*", true)) {
             if (cppfs::is_directory(dir)) {
                 dirs.push_back({space, dir});
             }
@@ -466,7 +479,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                     if (debugflag) {
                         spdlog::debug("mv ", wspath, " -> ", tgt.string());
                     }
-                    cppfs::rename(wspath, tgt);
+                    robust_rename(wspath, tgt);
                 } catch (cppfs::filesystem_error& e) {
                     spdlog::error("failed to move workspace: {} ({})", wspath, e.what());
                 }
