@@ -43,9 +43,9 @@
 #include "build_info.h"
 #include "db.h"
 #include "fmt/base.h"
+#include "fmt/color.h"
 #include "fmt/format.h"
 #include "fmt/ostream.h"
-#include "fmt/color.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include "user.h"
 
@@ -125,16 +125,18 @@ void print_entry_tableformat(const DBEntry* entry, const bool verbose, const boo
 
     if (!color_checked) {
         color_checked = true;
-        const char *no_color = std::getenv("NO_COLOR");
-        if (no_color != nullptr && no_color[0] != '\0') color_output = false;
-        if (!isatty(STDOUT_FILENO)) color_output = false;
+        const char* no_color = std::getenv("NO_COLOR");
+        if (no_color != nullptr && no_color[0] != '\0')
+            color_output = false;
+        if (!isatty(STDOUT_FILENO))
+            color_output = false;
     }
 
     fmt::color remaincolor;
     if (color_output) {
-        if (remaining / ( 24 * 3600 ) < 3)
+        if (remaining / (24 * 3600) < 3)
             remaincolor = fmt::color::red;
-        else if (remaining  / ( 24 * 3600 ) < 7)
+        else if (remaining / (24 * 3600) < 7)
             remaincolor = fmt::color::orange;
         else
             remaincolor = fmt::color::green;
@@ -143,11 +145,12 @@ void print_entry_tableformat(const DBEntry* entry, const bool verbose, const boo
     if (terse) {
         if (!headerprinted) {
             headerprinted = true;
-            fmt::println("{:<30} {:<50} {:<9}", "ID", "PATH",  "REMAINING");
+            fmt::println("{:<30} {:<50} {:<9}", "ID", "PATH", "REMAINING");
             fmt::println("{:=<30} {:=<50} {:=<9}", "", "", "");
         }
         if (color_output)
-            fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(), fmt::styled( remaining / (24 * 3600), fg(remaincolor)));
+            fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(),
+                         fmt::styled(remaining / (24 * 3600), fg(remaincolor)));
         else
             fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(), remaining / (24 * 3600));
     } else {
@@ -157,9 +160,12 @@ void print_entry_tableformat(const DBEntry* entry, const bool verbose, const boo
             fmt::println("{:=<30} {:=<50} {:=<25} {:=<10} {:=<9}", "", "", "", "", "");
         }
         if (color_output)
-            fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(), utils::ctime(entry->getExpiration()), entry->getExtension(), fmt::styled(remaining / (24 * 3600), fg(remaincolor)));
+            fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(),
+                         utils::ctime(entry->getExpiration()), entry->getExtension(),
+                         fmt::styled(remaining / (24 * 3600), fg(remaincolor)));
         else
-            fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(), utils::ctime(entry->getExpiration()), entry->getExtension(), remaining / (24 * 3600));
+            fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(),
+                         utils::ctime(entry->getExpiration()), entry->getExtension(), remaining / (24 * 3600));
     }
 }
 
