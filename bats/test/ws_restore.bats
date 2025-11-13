@@ -69,6 +69,7 @@ setup() {
 
 @test "ws_restore workspace with username and - in name" {
     ws_name=$USER-restore
+    run ws_release --config bats/ws.conf $ws_name
     wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
     touch $wsdir/TESTFILE
     run ws_release --config bats/ws.conf $ws_name

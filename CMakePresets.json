@@ -15,6 +15,9 @@
         "dev": true,
         "deprecated": true,
         "uninitialized": false
+      },
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE"
       }
     },
     {

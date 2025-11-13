@@ -107,7 +107,42 @@ setup() {
 @test "ws_expirer does not delete directly" {
     ws_allocate --config bats/ws.conf -F ws1 TestWS 1
     ws_editdb --config bats/ws.conf --add-time -20 -p "*TestWS*" --not-kidding
-    run ws_expirer --config bats/ws.conf -c 
+    run ws_expirer --config bats/ws.conf -c
     assert_output --regexp "keeping restorable.*-TestWS"
 }
 
+@test "ws_expirer clean stray directories" {
+    mkdir -p /tmp/ws/ws1/stray-dir
+    run ws_expirer --config bats/ws.conf -c
+    assert_output --regexp "move .*stray-dir"
+    assert_success
+    #rm -rf /tmp/ws/ws1/stray-dir
+}
+
+#@test "ws_expirer send reminder mail" {
+#    ws_allocate --config bats/ws.conf REMINDER_TEST 1
+#    ws_editdb --config bats/ws.conf --not-kidding --add-time -2 REMINDER_TEST
+#    run ws_expirer --config bats/ws.conf -c
+#    assert_output --regexp "sending reminder mail"
+#    assert_success
+#    ws_release --config bats/ws.conf REMINDER_TEST
+#}
+
+@test "ws_expirer handle bad database entries" {
+    echo "invalid_entry" > /tmp/ws/ws1-db/${USER}-BAD_ENTRY
+    run ws_expirer --config bats/ws.conf
+    assert_output --partial "Empty file?"
+    assert_failure
+    rm -f /tmp/ws/ws1-db/${USER}-BAD_ENTRY
+}
+
+@test "ws_expirer process multiple workspaces" {
+    ws_allocate --config bats/ws.conf MULTI_TEST1 1
+    ws_allocate --config bats/ws.conf MULTI_TEST2 1
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -5 MULTI_TEST1
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -5 MULTI_TEST2
+    run ws_expirer --config bats/ws.conf -c
+    assert_output --regexp "expiring .*-MULTI_TEST1"
+    assert_output --regexp "expiring .*-MULTI_TEST2"
+    assert_success
+}

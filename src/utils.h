@@ -68,7 +68,7 @@ inline std::string getFileContents(const std::string filename) { return getFileC
 void writeFile(const std::string filename, const std::string content);
 
 // retrurn list of filesnames mit unix name globbing
-std::vector<std::string> dirEntries(const std::string path, const std::string pattern);
+std::vector<std::string> dirEntries(const std::string path, const std::string pattern, const bool dirs);
 
 // set C local in every thinkable way
 void setCLocal();
@@ -177,6 +177,9 @@ std::string ctime(const time_t timer);
 
 // get a string like rwx------ for permissions
 std::string permstring(std::filesystem::perms p);
+
+// move a file/directory to another location using /bin/mv, fallback for rename EXDEV
+int mv(const char* source, const char* target);
 
 } // namespace utils
 

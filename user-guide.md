@@ -69,6 +69,9 @@ See ```man ws_allocate``` for a description of all options.
 
 *-l* shows the available locations, and *-F* limits the locations of the listing.
 
+A short overview of the workspaces in table format listed for remaining time can be displayd
+with ```ws_list -RTt```.
+
 See ```man ws_list``` for a description of all options.
 
 ## releasing workspaces

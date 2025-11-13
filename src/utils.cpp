@@ -44,6 +44,7 @@
 #include <stdexcept>
 #include <string>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <vector>
 
 #include "user.h"
@@ -114,8 +115,8 @@ void writeFile(const std::string filename, const std::string content) {
     }
 }
 
-// get file names matching glob pattern from path, ("/etc", "p*d") -> passwd
-std::vector<string> dirEntries(const string path, const string pattern) {
+// get file names matching glob pattern from path, ("/etc", "p*d") -> passwd, match dirs if dirs==true
+std::vector<string> dirEntries(const string path, const string pattern, const bool dirs) {
     if (traceflag)
         spdlog::trace("dirEntries({},{})", path, pattern);
     vector<string> fl;
@@ -124,7 +125,7 @@ std::vector<string> dirEntries(const string path, const string pattern) {
         return fl;
     }
     for (const auto& entry : fs::directory_iterator(path)) {
-        if (entry.is_regular_file() || entry.is_symlink())
+        if (entry.is_regular_file() || entry.is_symlink() || (dirs && entry.is_directory()))
             if (glob_match(pattern.c_str(), entry.path().filename().string().c_str())) {
                 fl.push_back(entry.path().filename().string());
             }
@@ -700,6 +701,26 @@ std::string permstring(const fs::perms p) {
     return ret;
 }
 
+/*
+ * fallback for rename in case of EXDEV
+ * we do not use system() as we are in setuid
+ * and it would fail, and it sucks anyhow
+ */
+int mv(const char* source, const char* target) {
+    pid_t pid;
+    int status;
+    pid = fork();
+    if (pid == 0) {
+        execl("/bin/mv", "mv", source, target, NULL);
+    } else if (pid < 0) {
+        //
+    } else {
+        waitpid(pid, &status, 0);
+        return WEXITSTATUS(status);
+    }
+    return 0;
+}
+
 } // end of namespace utils
 
 // static functions local to this unit, not exposed
@@ -762,7 +783,8 @@ static void rmtree_fd(int topfd, std::string path) {
 
                             r = unlinkat(topfd, (const char*)&ent->d_name[0], AT_REMOVEDIR);
                             if (r) {
-                                spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0], strerror(errno));
+                                spdlog::error("unlinkat {}/{} -> {}", path, (const char*)&ent->d_name[0],
+                                              strerror(errno));
                             }
                         } else {
                             spdlog::error("rmtree hit a symbolic link!");

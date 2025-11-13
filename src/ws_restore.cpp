@@ -31,6 +31,7 @@
 #include "fmt/base.h"
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
+#include <cerrno>
 #include <regex>
 #include <string>
 
@@ -391,6 +392,9 @@ void restore(const string name, const string target, const string username, cons
 
         // do the move
         int ret = rename(wssourcename.c_str(), targetpathname.c_str());
+        if ((ret == -1) && (errno == EXDEV)) {
+            ret = utils::mv(wssourcename.c_str(), targetpathname.c_str());
+        }
 
         // FIXME: move this to deleteEntry?
         if (caps.isSetuid()) {

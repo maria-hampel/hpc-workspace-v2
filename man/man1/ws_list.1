@@ -85,6 +85,11 @@ short listing, only workspace names will be listed.
 \-t
 terse listing, less information is shown
 .TP
+\-T
+table listing, supports -t and sorting. Remaining time in color, red for less than 3 days, orange for less than 7 days.
+Most usefull as
+.B -RTt
+.TP
 \-v
 verbose listing, all information is shown
 .TP
@@ -118,8 +123,11 @@ list all workspaces, sorted by creation time, oldest last:
 .B ws_list -R -r
 list a specific workspace
 .B ws_list my_workspace
-list workspaces staring with "experiment"
+list workspaces starting with "experiment"
 .B ws_list "experiment*"
+.TP
+list workspaces in terse table format, shortest remaining days first (with color coding of remaining days)
+.B ws_list -RTt
 .TP
 
 .SH AUTHOR

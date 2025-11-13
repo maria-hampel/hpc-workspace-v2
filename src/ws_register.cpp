@@ -188,7 +188,7 @@ int main(int argc, char** argv) {
         }
 
         // delete links not beeing workspaces anymore
-        for (auto const& f : utils::dirEntries(cppfs::path(directory) / fs, username + "-*")) {
+        for (auto const& f : utils::dirEntries(cppfs::path(directory) / fs, username + "-*", false)) {
             auto fullpath = cppfs::path(directory) / fs / f;
             if (cppfs::is_symlink(fullpath)) {
                 if (canFind(keeplist, fullpath)) {
