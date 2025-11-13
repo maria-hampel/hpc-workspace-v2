@@ -30,6 +30,7 @@
 
 #include <ctime>
 #include <memory>
+#include <optional>
 #include <sstream>
 
 #include "config.h"
