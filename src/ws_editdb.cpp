@@ -28,8 +28,8 @@
  *
  */
 
-#include <memory>
 #include <ctime>
+#include <memory>
 #include <sstream>
 
 #include "config.h"
@@ -187,16 +187,16 @@ int main(int argc, char** argv) {
 
     if (!expireby.empty() || !ensureuntil.empty()) {
         const std::string& datestr = !expireby.empty() ? expireby : ensureuntil;
-        
+
         std::tm tm = {};
         std::istringstream ss(datestr);
         ss >> std::get_time(&tm, "%Y-%m-%d");
-        
+
         if (ss.fail()) {
             spdlog::error("Date parsing failed for: {}", datestr);
             exit(-2);
         }
-        
+
         date = std::mktime(&tm);
         if (date == -1) {
             spdlog::error("Invalid date: {}", datestr);
@@ -271,18 +271,18 @@ int main(int argc, char** argv) {
 
     for (const auto& entry : entrylist) {
         fmt::println("Id: {} ({})", entry->getId(), entry->getWSPath());
-        // TODO logic here 
+        // TODO logic here
         auto expiration = entry->getExpiration();
         std::optional<time_t> new_expiration;
 
         if (addtime != 0) {
-            new_expiration = expiration + (addtime*DAYS);
-        } else if ( !ensureuntil.empty()) {
-            if (expiration<date) {
+            new_expiration = expiration + (addtime * DAYS);
+        } else if (!ensureuntil.empty()) {
+            if (expiration < date) {
                 new_expiration = date;
             }
         } else if (!expireby.empty()) {
-            if (expiration>date) {
+            if (expiration > date) {
                 new_expiration = date;
             }
         }
