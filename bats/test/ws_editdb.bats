@@ -33,5 +33,23 @@ setup() {
     run ws_list --config bats/ws.conf  EDITTEST
     assert_output --regexp "(2 days)|1 days, 23"
     assert_success
+}
+
+@test "ws_editdb ensure-until" {
+    run ws_editdb --config bats/ws.conf --not-kidding --ensure-until 2050-12-31 EDITTEST
+    assert_output --partial "change expiration"
+    assert_success
+    run ws_list --config bats/ws.conf EDITTEST
+    assert_output --partial "expiration time      : Sat Dec 31 00:00:00 2050"
+    assert_success
+}
+
+@test "ws_editdb expire-by" {
+    run ws_editdb --config bats/ws.conf --not-kidding --expire-by 2049-12-31 EDITTEST
+    assert_output --partial "change expiration"
+    assert_success
+    run ws_list --config bats/ws.conf EDITTEST
+    assert_output --partial "expiration time      : Fri Dec 31 00:00:00 2049"
+    assert_success
     ws_release --config bats/ws.conf EDITTEST
 }

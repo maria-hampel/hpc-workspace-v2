@@ -28,7 +28,10 @@
  *
  */
 
+#include <ctime>
 #include <memory>
+#include <optional>
+#include <sstream>
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -68,9 +71,12 @@ int main(int argc, char** argv) {
     string user;
     string configfile;
     string pattern;
+    string ensureuntil;
+    string expireby;
     int addtime = 0;
     bool listexpired = false;
     bool dryrun = true;
+    std::time_t date;
     // bool verbose = false;
 
     po::variables_map opts;
@@ -94,6 +100,8 @@ int main(int argc, char** argv) {
         ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
         ("dry-run", "dry-run (default), do nothing, just show what would be done")
         ("add-time", po::value<int>(&addtime), "add time to selected workspace expiration time, in days")
+        ("ensure-until", po::value<string>(&ensureuntil), "extend workspaces so that they expire not earlier than specified date (YYYY-MM-DD)")
+        ("expire-by", po::value<string>(&expireby), "limit workspaces so that they expire no later than the specified date (YYYY-MM-DD)")
         ("not-kidding", "execute the actions")
         ("verbose,v", "verbose listing");
     // clang-format on
@@ -173,6 +181,30 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
+    if ((addtime != 0) + !expireby.empty() + !ensureuntil.empty() > 1) {
+        spdlog::error("Only one of add-time, expire-by, or ensure-until can be specified!");
+        exit(-2);
+    }
+
+    if (!expireby.empty() || !ensureuntil.empty()) {
+        const std::string& datestr = !expireby.empty() ? expireby : ensureuntil;
+
+        std::tm tm = {};
+        std::istringstream ss(datestr);
+        ss >> std::get_time(&tm, "%Y-%m-%d");
+
+        if (ss.fail()) {
+            spdlog::error("Date parsing failed for: {}", datestr);
+            exit(-2);
+        }
+
+        date = std::mktime(&tm);
+        if (date == -1) {
+            spdlog::error("Invalid date: {}", datestr);
+            exit(-2);
+        }
+    }
+
     // root and admins can choose usernames
     string username = user::getUsername(); // used for rights checks
     string userpattern;                    // used for pattern matching in DB
@@ -240,17 +272,32 @@ int main(int argc, char** argv) {
 
     for (const auto& entry : entrylist) {
         fmt::println("Id: {} ({})", entry->getId(), entry->getWSPath());
+        // TODO logic here
+        auto expiration = entry->getExpiration();
+        std::optional<time_t> new_expiration;
+
         if (addtime != 0) {
-            auto expiration = entry->getExpiration();
-            auto newexpiration = expiration + (addtime * DAYS);
+            new_expiration = expiration + (addtime * DAYS);
+        } else if (!ensureuntil.empty()) {
+            if (expiration < date) {
+                new_expiration = date;
+            }
+        } else if (!expireby.empty()) {
+            if (expiration > date) {
+                new_expiration = date;
+            }
+        }
+
+        if (new_expiration.has_value()) {
+            time_t new_exp_value = new_expiration.value();
             auto olddate = utils::ctime(&expiration);
-            auto newdate = utils::ctime(&newexpiration);
-            fmt::println("    change expiration: {} ({}) -> {} ({})", olddate, expiration, newdate, newexpiration);
+            auto newdate = utils::ctime(&new_exp_value);
+            fmt::println("    change expiration: {} ({}) -> {} ({})", olddate, expiration, newdate, new_exp_value);
             if (!dryrun) {
                 if (debugflag) {
                     spdlog::debug("updating entry");
                 }
-                entry->setExpiration(newexpiration);
+                entry->setExpiration(new_exp_value);
                 entry->writeEntry();
             }
         }
