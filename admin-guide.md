@@ -266,6 +266,12 @@ If this time is exceeded, the workspace might be not be fully deleted, but
 deletion will be resumed in the next instance of the ```ws_expirer```.
 **remark** This timeout is not hard and might be missed in current implementation.
 
+### `maxuserworkspaces`
+
+A maximal number of workspaces a user can create in total in all workspaces.
+This is to prevent e.g. endless creation of workspaces by malformed loops.
+If this is 0, it is ignored.
+
 ### filesystem specific options
 
 In the config entry `filesystems` (alias for compatibility is `workspaces`), multiple workspace location entries may be

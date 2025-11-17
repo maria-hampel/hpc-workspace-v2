@@ -285,6 +285,41 @@ bool validateDuration(const Config& config, const std::string filesystem, int& d
     return true;
 }
 
+// count workspaces of user, in all valid filesystems
+int countWorkspaces(const Config& config, const std::string username, const std::vector<std::string>&grouplist) {
+    int counter = 0;
+
+    // where to list from?
+    vector<string> fslist;
+    vector<string> validfs = config.validFilesystems(username, grouplist, ws::LIST);
+    fslist = validfs;
+
+    vector<std::unique_ptr<DBEntry>> entrylist;
+    vector<std::unique_ptr<Database>> dblist;
+    std::unique_ptr<Database> db;
+
+    // iterate over filesystems and print or create list to be sorted
+    for (auto const& fs : fslist) {
+        if (debugflag)
+            spdlog::debug("loop over fslist {} in {}", fs, fslist);
+
+        try {
+            db = std::unique_ptr<Database>(config.openDB(fs));
+        } catch (DatabaseException& e) {
+            spdlog::error(e.what());
+            continue;
+        }
+
+        // get list before loop to prevent matching per thread
+        auto matchlist = db->matchPattern("*", "*", grouplist, false, false);
+        counter += matchlist.size();
+    }
+
+    spdlog::debug("countWorkspaces: counter={}", counter);
+
+    return counter;
+}
+
 /*
  *  allocate or extend or modify the workspace
  *  file accesses and config access are hidden in DB and config handling
@@ -331,6 +366,18 @@ bool allocate(const Config& config, const po::variables_map& opt, int duration, 
             searchlist =
                 config.validFilesystems(user::getUsername(), user::getGrouplist(),
                                         ws::CREATE); // FIXME: getUsername or user_option? getGrouplist uses current uid
+    }
+
+    //
+    // check if there is already too many workspaces
+    //
+    if (config.maxuserworkspaces()>0) {
+        auto grouplist = user::getGrouplist();
+        if (countWorkspaces(config, username, grouplist) > config.maxuserworkspaces()) {
+            spdlog::error("too many workspaces, exceeding global user limit, failing.");
+            syslog(LOG_ERR, "user <%s> exceeding workspace number limit", username.c_str());
+            return false;
+        }
     }
 
     //
@@ -639,6 +686,8 @@ int main(int argc, char** argv) {
     }
 
     openlog("ws_allocate", 0, LOG_USER); // SYSLOG
+
+    // spdlog::info("maxuserworkspaces = {}", config.maxuserworkspaces());
 
     // allocate workspace
     if (!allocate(config, opt, duration, filesystem, name, extensionflag, reminder, mailaddress, user_option,

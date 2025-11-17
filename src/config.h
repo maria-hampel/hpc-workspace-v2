@@ -57,6 +57,7 @@ struct Global_config {
     int durationdefault;     // default duration
     int reminderdefault;     // when to send a reminder, 0 no default reminder
     int maxextensions;       // max extensions a user gets
+    int maxuserworkspaces;   // max number of workspaces a user can create
     int dbuid;               // uid of DB user
     int dbgid;               // gid of DB user
     int deldirtimeout;       // timeout for directory deletion in seconds
@@ -145,6 +146,7 @@ class Config {
     vector<string> admins() const { return global.admins; };
     vector<string> adminmail() const { return global.adminmail; };
     string expirerlogpath() const { return global.expirerlogpath; };
+    int maxuserworkspaces() const { return global.maxuserworkspaces; };
 
   private:
     // read config from YAML string

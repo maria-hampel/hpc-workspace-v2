@@ -213,6 +213,7 @@ void Config::readYAML(string yamlstr) {
 
     readRyamlSequence(config, "deldirtimeout", global.deldirtimeout);
     readRyamlSequence(config, "expirerlogpath", global.expirerlogpath);
+    readRyamlSequence(config, "maxuserworkspaces", global.maxuserworkspaces);
 
     readRyamlSequence(config, "admins", global.admins);
     readRyamlSequence(config, "adminmail", global.adminmail);
@@ -319,6 +320,8 @@ void Config::readYAML(const string yaml) {
         global.deldirtimeout = config["deldirtimeout"].as<int>();
     if (config["expirerlogpath"])
         global.expirerlogpath = config["expirerlogpath"].as<string>();
+    if (config["maxuserworkspaces"])
+        global.maxuserworkspaces = config["maxuserworkspaces"].as<int>();
 
     // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
     if (config["workspaces"] || config["filesystems"]) {

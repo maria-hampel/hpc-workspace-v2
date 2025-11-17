@@ -295,6 +295,12 @@ setup() {
     ws_release --config bats/ws.conf -F ws2 TESTUNIQUE
 }
 
+@test "ws_allocate with user limit" {
+    run ws_allocate --config bats/ws-with-userlimit.conf -F ws1 TESTLIMIT 1
+    assert_failure
+    assert_output --partial "too many workspaces"
+}
+
 cleanup() {
     ws_release --config bats/ws.conf $ws_name
     ws_release --config bats/ws.conf TEST
