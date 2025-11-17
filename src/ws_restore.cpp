@@ -392,6 +392,9 @@ void restore(const string name, const string target, const string username, cons
 
         // do the move
         int ret = rename(wssourcename.c_str(), targetpathname.c_str());
+        // some filesystems can not rename across some borders, examples are lustre DNE1 and NEC ScateFS for metadata targets
+        // and WEKA for directories with quotas, for those, fall back to /bin/mv which does a copy + delete
+        // under the hood
         if ((ret == -1) && (errno == EXDEV)) {
             ret = utils::mv(wssourcename.c_str(), targetpathname.c_str());
         }
