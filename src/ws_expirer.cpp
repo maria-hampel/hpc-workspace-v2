@@ -696,7 +696,7 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
-    spdlog::info("deldirtimeout = {}", config.deldirtimeout());
+    // spdlog::info("deldirtimeout = {}", config.deldirtimeout());
 
     // now we can add file logging
     setupLogging(config.expirerlogpath());
