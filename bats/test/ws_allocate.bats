@@ -301,6 +301,13 @@ setup() {
     assert_output --partial "too many workspaces"
 }
 
+@test "ws_allocate without user limit" {
+    ws_release --config bats/ws.conf -F ws1 TESTLIMIT
+    run ws_allocate --config bats/ws.conf -F ws1 TESTLIMIT 1
+    assert_success
+    assert_output --partial "creating workspace"
+}
+
 cleanup() {
     ws_release --config bats/ws.conf $ws_name
     ws_release --config bats/ws.conf TEST
