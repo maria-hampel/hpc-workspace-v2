@@ -33,9 +33,9 @@ Functional extension and change of DB format is possible after this is achieved.
 
 at the moment main development platform is
 
-- Ubuntu 25.04
+- Ubuntu 25.10
   - CMake 3.31
-  - gcc 14.2.0
+  - gcc 15.2.0
 
 future test platforms:
 
