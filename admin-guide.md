@@ -262,9 +262,9 @@ The logfile contains additional timestamps compared to normal output.
 ### `deldirtimeout`
 
 A timeout value in seconds that a single workspace is allowed to last.
-If this time is exceeded, the workspace will not be fully deleted, but
+If this time is exceeded, the workspace might be not be fully deleted, but
 deletion will be resumed in the next instance of the ```ws_expirer```.
-**Remark** not yet implemented in v2.
+**remark** This timeout is not hard and might be missed in current implementation.
 
 ### filesystem specific options
 

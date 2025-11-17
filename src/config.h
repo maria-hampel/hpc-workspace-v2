@@ -59,7 +59,7 @@ struct Global_config {
     int maxextensions;       // max extensions a user gets
     int dbuid;               // uid of DB user
     int dbgid;               // gid of DB user
-    int deldirtimeout;       // timeout for directory deletion
+    int deldirtimeout;       // timeout for directory deletion in seconds
     string expirerlogpath;   // path where ws_expirer should place logfiles
 };
 

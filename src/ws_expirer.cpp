@@ -372,8 +372,10 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
             spdlog::warn("    stray removed workspace ", founddir.dir);
             if (!dryrun) {
                 try {
-                    // TODO: add timeout
-                    utils::rmtree(cppfs::path(founddir.space) / config.deletedPath(fs));
+                    // timeout is now + deldirtimeout
+                    std::time_t deadline = std::time_t((std::time_t*)0L) + config.deldirtimeout();
+
+                    utils::rmtree(cppfs::path(founddir.space) / config.deletedPath(fs), deadline);
                     spdlog::info("      remove ", founddir.dir);
                 } catch (cppfs::filesystem_error& e) {
                     spdlog::error("      failed to remove: {} ({})", founddir.dir, e.what());
@@ -577,7 +579,10 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             spdlog::info("   deleting directory: {}", wspath.string());
             if (cleanermode) {
                 try {
-                    utils::rmtree(wspath.string());
+                    // timeout is now + deldirtimeout;
+                    std::time_t deadline = std::time_t((std::time_t*)0L) + config.deldirtimeout();
+
+                    utils::rmtree(wspath.string(), deadline);
                 } catch (cppfs::filesystem_error& e) {
                     spdlog::error("  failed to remove: {} ({})", wspath.string(), e.what());
                 }
@@ -690,6 +695,8 @@ int main(int argc, char** argv) {
         spdlog::error("No valid config file found!");
         exit(-2);
     }
+
+    spdlog::info("deldirtimeout = {}", config.deldirtimeout());
 
     // now we can add file logging
     setupLogging(config.expirerlogpath());

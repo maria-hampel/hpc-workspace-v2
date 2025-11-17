@@ -92,6 +92,12 @@ bool new_ruh();
 // parse a ACL
 auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::pair<std::string, std::vector<int>>>;
 
+// delete a directory and its contents, should be temper safe, with a deadline (epoch time)
+// after the deadline is passed, no new recursion will be started,
+// so the deadline is not hard but soft and can be missed significantly
+// deadline==0 disables the deadline
+void rmtree(std::string path, const std::time_t deadline);
+
 // delete a directory and its contents, should be temper safe
 void rmtree(std::string path);
 

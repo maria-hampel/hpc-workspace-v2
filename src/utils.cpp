@@ -85,7 +85,7 @@ extern int debuglevel;
 extern Cap caps;
 
 // fwd
-static void rmtree_fd(int topfd, std::string path);
+static void rmtree_fd(int topfd, std::string path, const std::time_t deadline);
 static size_t readEmailCallback(void* ptr, size_t size, size_t nmemb, void* userp);
 
 namespace utils {
@@ -471,7 +471,7 @@ auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::
 }
 
 // delete path be deleting contents and deleting path itself
-void rmtree(std::string path) {
+void rmtree(std::string path, std::time_t deadline) {
     if (traceflag) {
         spdlog::trace("rmtree({})", path);
     }
@@ -488,7 +488,7 @@ void rmtree(std::string path) {
         int dirfd = openat(0, path.c_str(), O_RDONLY | O_CLOEXEC);
         r = fstatat(dirfd, "", &new_stat, AT_EMPTY_PATH);
         if (r == 0 && memcmp(&new_stat, &orig_stat, sizeof(struct stat)) == 0) {
-            rmtree_fd(dirfd, path);
+            rmtree_fd(dirfd, path, deadline);
             close(dirfd);
             dirfd_closed = true;
 
@@ -501,6 +501,10 @@ void rmtree(std::string path) {
             close(dirfd);
     }
 }
+
+// delete path be deleting contents and deleting path itself
+// without deadline
+void rmtree(std::string path) { rmtree(path, (std::time_t)0L); }
 
 // pretty print a size in bytes
 string prettyBytes(const uint64_t size) {
@@ -742,10 +746,21 @@ static size_t readEmailCallback(void* ptr, size_t size, size_t nmemb, void* user
 }
 
 // internal recursive functions, based on file handles
-static void rmtree_fd(int topfd, std::string path) {
+// delete a directory and its contents, should be temper safe, with a deadline (epoch time)
+// after the deadline is passed, no new recursion will be started,
+// so the deadline is not hard but soft and can be missed significantly
+// deadline==0 disables the deadline
+static void rmtree_fd(int topfd, std::string path, const std::time_t deadline) {
     if (traceflag) {
         spdlog::trace("rmtree_fd({}, {})", topfd, path);
     }
+
+    // check for deadline
+    if (deadline != 0 && std::time((long*)0L) >= deadline) {
+        spdlog::info("rmtree_fd deadline passed, exiting.");
+        return;
+    }
+
     auto dir = fdopendir(topfd);
     if (dir != nullptr) {
         std::vector<struct dirent*> entries;
@@ -777,7 +792,7 @@ static void rmtree_fd(int topfd, std::string path) {
                         bool dirfd_closed = false;
                         r = fstatat(dirfd, "", &new_stat, AT_EMPTY_PATH);
                         if (r == 0 && memcmp(&new_stat, &orig_stat, sizeof(struct stat)) == 0) {
-                            rmtree_fd(dirfd, fs::path(path) / (const char*)&ent->d_name[0]);
+                            rmtree_fd(dirfd, fs::path(path) / (const char*)&ent->d_name[0], deadline);
                             close(dirfd);
                             dirfd_closed = true;
 
