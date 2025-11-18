@@ -302,7 +302,7 @@ setup() {
 }
 
 @test "ws_allocate without user limit" {
-    ws_release --config bats/ws.conf -F ws1 TESTLIMIT
+    ws_release --config bats/ws.conf -F ws1 TESTLIMIT >/dev/null 2>/dev/null
     run ws_allocate --config bats/ws.conf -F ws1 TESTLIMIT 1
     assert_success
     assert_output --partial "creating workspace"
