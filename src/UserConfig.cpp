@@ -54,7 +54,7 @@ UserConfig::UserConfig(std::string userconf) {
     // get first line, this is either a mailaddress or something like key: value
     //  this is for compatibility with very old tools, which did not have a yaml file here
     // check if file looks like yaml
-    if (userconf.find(":", 0) != string::npos) {
+    if ((userconf.find(":", 0) != string::npos) || (userconf[0] == '#')) {
 
         ryml::Tree config = ryml::parse_in_place(ryml::to_substr(userconf)); // FIXME: error check?
         ryml::NodeRef node;
@@ -99,7 +99,7 @@ UserConfig::UserConfig(std::string userconf) {
     // get first line, this is either a mailaddress or something like key: value
     // std::getline(userconf, mailaddress);
     // check if file looks like yaml
-    if (userconf.find(":", 0) != std::string::npos) {
+    if ((userconf.find(":", 0) != std::string::npos) || (userconf[0] == '#')) {
         user_home_config = YAML::Load(userconf);
         if (user_home_config["mail"])
             mailaddress = user_home_config["mail"].as<std::string>();

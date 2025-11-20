@@ -28,6 +28,24 @@ duration: 10
         REQUIRE(uc.getReminder() == 1);
     }
 
+    SECTION("user config with comment")
+    {
+        std::string userconf =
+            R"yaml(#comment test
+mail: address@mail.com
+reminder: 1
+groupname: beatles
+duration: 10
+)yaml";
+
+        UserConfig uc(userconf);
+
+        REQUIRE(uc.getMailaddress() == "address@mail.com");
+        REQUIRE(uc.getGroupname() == "beatles");
+        REQUIRE(uc.getDuration() == 10);
+        REQUIRE(uc.getReminder() == 1);
+    }
+
     SECTION("user config check defaults for empty config")
     {
         std::string userconf =

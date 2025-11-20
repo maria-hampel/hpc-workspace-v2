@@ -286,7 +286,7 @@ bool validateDuration(const Config& config, const std::string filesystem, int& d
 }
 
 // count workspaces of user, in all valid filesystems
-int countWorkspaces(const Config& config, const std::string username, const std::vector<std::string>&grouplist) {
+int countWorkspaces(const Config& config, const std::string username, const std::vector<std::string>& grouplist) {
     int counter = 0;
 
     // where to list from?
@@ -371,7 +371,7 @@ bool allocate(const Config& config, const po::variables_map& opt, int duration, 
     //
     // check if there is already too many workspaces
     //
-    if (config.maxuserworkspaces()>0) {
+    if (config.maxuserworkspaces() > 0) {
         auto grouplist = user::getGrouplist();
         if (countWorkspaces(config, username, grouplist) > config.maxuserworkspaces()) {
             spdlog::error("too many workspaces, exceeding global user limit, failing.");
