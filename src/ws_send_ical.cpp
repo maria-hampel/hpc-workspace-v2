@@ -151,7 +151,11 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
             }
         }
     } else {
-        cerr << "Error  : Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!" << endl;
+        if (opt.count("workspace")) {
+            spdlog::error("Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!");
+        } else {
+            spdlog::error("no workspace name!");
+        }
         cerr << "Usage:" << argv[0]
              << ": [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress"
              << endl;
@@ -423,7 +427,7 @@ int main(int argc, char** argv) {
         spdlog::warn("no workspace {} found, if you think there should be such a workspace, please check the output "
                      "of 'ws_restore -l' for removed workspaces which are possible to recover",
                      name);
-        exit(0);
+        exit(1);
     } else {
         std::string mail_from = config.mailfrom();
         if (mail_from == "") {
@@ -450,9 +454,9 @@ int main(int argc, char** argv) {
             spdlog::debug("{}", completeMail);
         }
         if (utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
-            fmt::println("Success: Calendar invitation sent to {}", mailaddress);
+            spdlog::info("Success: Calendar invitation sent to {}", mailaddress);
         } else {
-            spdlog::debug("Failed to send calendar invitation to {}", mailaddress);
+            spdlog::error("Failed to send calendar invitation to {}", mailaddress);
             exit(1);
         }
 
