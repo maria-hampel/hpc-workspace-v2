@@ -208,6 +208,13 @@ Options:
     assert_success
 }
 
+@test "ws_list group workspace" {
+    run ws_allocate --config bats/ws.conf -g "" -F ws1 WS1TESTGROUP
+    assert_success
+    run ws_list --config bats/ws.conf -g 
+    assert_output  --partial  "WS1TESTGROUP"
+    assert_success
+}
 
 
 cleanup() {
