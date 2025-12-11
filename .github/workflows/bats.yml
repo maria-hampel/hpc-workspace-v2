@@ -35,7 +35,10 @@ jobs:
           libboost-system-dev \
           libboost-program-options-dev \
           libcurl4t64 libcurl4-openssl-dev \
+          postfix s-nail \
           libcap-dev
+        sudo sed -i 's/^inet_interfaces = localhost$/inet_interfaces = loopback-only/' /etc/postfix/main.cf
+        sudo systemctl enable --now postfix
 
     - name: Install Bats and its support libraries for testing
       # for the moment continue if we fail installing the support libraries bats-assert and bats-file
