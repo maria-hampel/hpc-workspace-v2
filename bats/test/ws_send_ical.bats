@@ -15,7 +15,7 @@ setup() {
 }
 
 @test "ws_send_ical no valid config file" {
-    run ws_send_ical --config bats/bad_ws.conf lala
+    run ws_send_ical --config bats/bad_ws.conf -m $USER@localhost lala
     assert_output --partial "No adminmail in config!"
     assert_failure
 }
