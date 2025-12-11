@@ -14,7 +14,7 @@
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
  *  hpc-workspace-v2 is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
+ *  it under the terms of the GNU General Public Lice//nse as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
@@ -253,7 +253,10 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
                         spdlog::error("Could not read db entry {}: {}", f, e.what());
                     }
 
-                    string group = dbentry["group"].as<string>();
+                    string group = "";
+                    if (dbentry["group"]) {
+                        group = dbentry["group"].as<string>();
+                    }
 #else
                     string filecontent = utils::getFileContents((cppfs::path(pathname) / f).string().c_str());
                     ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(filecontent)); // FIXME: error check?
@@ -383,6 +386,11 @@ void DBEntryV1::readFromString(std::string str) {
         dbentry = YAML::Load(str);
     } catch (const YAML::BadFile& e) {
         throw DatabaseException("could not read db entry");
+    }
+
+    if (dbentry.size() == 0) {
+        fmt::println(">>>", str);
+        throw DatabaseException("Invalid DB entry! Empty file?");
     }
 
     dbversion = dbentry["dbversion"] ? dbentry["dbversion"].as<int>() : 0; // 0 = legacy
