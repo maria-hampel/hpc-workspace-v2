@@ -21,13 +21,13 @@ setup() {
 }
 
 @test "ws_send_ical invalid WORKSPACE" {
-    run ws_send_ical --config bats/ws.conf ICALTEST$$
+    run ws_send_ical --config bats/ws.conf -m tester@localhost ICALTEST$$
     assert_output --partial "no workspace"
     assert_failure
 }
 
 @test "ws_send_ical valid WORKSPACE" {
-    run ws_allocate --config bats/ws.conf ICALTEST
+    run ws_allocate --config bats/ws.conf -m tester@localhost ICALTEST
     assert_success
     run ws_send_ical --config bats/ws.conf ICALTEST
     assert_output --partial "Calendar invitation sent"
