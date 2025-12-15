@@ -504,7 +504,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
                     std::string completeMail =
                         generateReminderMail(mail_from, mail_to, expiration, id, fs, clustername);
-                    fmt::println(" send mail to {}", id);
+                    spdlog::info(" sending reminder mail to {}", id);
                     // fmt::print("{}", completeMail);
                     try {
                         if (!utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
