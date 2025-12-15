@@ -119,14 +119,14 @@ setup() {
     #rm -rf /tmp/ws/ws1/stray-dir
 }
 
-#@test "ws_expirer send reminder mail" {
-#    ws_allocate --config bats/ws.conf REMINDER_TEST 1
-#    ws_editdb --config bats/ws.conf --not-kidding --add-time -2 REMINDER_TEST
-#    run ws_expirer --config bats/ws.conf -c
-#    assert_output --regexp "sending reminder mail"
-#    assert_success
-#    ws_release --config bats/ws.conf REMINDER_TEST
-#}
+@test "ws_expirer send reminder mail" {
+    ws_allocate --config bats/ws.conf -m $USER@localhost -r 1 REMINDER_TEST 2
+    #ws_editdb --config bats/ws.conf --not-kidding --add-time -2 REMINDER_TEST
+    run ws_expirer --config bats/ws.conf -c
+    assert_output --regexp "sending reminder mail"
+    assert_success
+    ws_release --config bats/ws.conf REMINDER_TEST
+}
 
 @test "ws_expirer handle bad database entries" {
     echo "invalid_entry" > /tmp/ws/ws1-db/${USER}-BAD_ENTRY
