@@ -313,8 +313,8 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
     // compare filesystem with DB
     for (auto const& founddir : dirs) { // (2)
-        if (!canFind(workspacesInDB, founddir.dir)) {
-            spdlog::warn("    stray workspace ", founddir.dir);
+        if (!canFind(workspacesInDB, (cppfs::path(founddir.space) / cppfs::path(founddir.dir)).string())) {
+            spdlog::warn("    stray workspace {}", founddir.dir);
 
             // FIXME: a stray workspace will be moved to deleted here, and will be deleted in
             // the same run in (3). Is this intended? dangerous with datarace #87
@@ -323,17 +323,20 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
             if (!dryrun) {
                 try {
                     spdlog::info("      move {} to {}", (cppfs::path(founddir.space) / founddir.dir).string(),
-                                 (cppfs::path(founddir.space) / config.deletedPath(fs) / timestamp).string());
+                                 (cppfs::path(founddir.space) / config.deletedPath(fs) /
+                                  (cppfs::path(founddir.dir).filename().string() + "-" + timestamp))
+                                     .string());
                     robust_rename(cppfs::path(founddir.space) / founddir.dir,
-                                  cppfs::path(founddir.space) / config.deletedPath(fs));
+                                  cppfs::path(founddir.space) / config.deletedPath(fs) /
+                                      (cppfs::path(founddir.dir).filename().string() + "-" + timestamp));
                 } catch (cppfs::filesystem_error& e) {
                     spdlog::error("      failed to move to deleted: {} ({})", founddir.dir, e.what());
                 }
             } else {
-                spdlog::info(
-                    "      would move {} to {}", (cppfs::path(founddir.space) / founddir.dir).string(),
-                    (cppfs::path(cppfs::path(founddir.space) / founddir.space) / config.deletedPath(fs) / timestamp)
-                        .string());
+                spdlog::info("      would move {} to {}", (cppfs::path(founddir.space) / founddir.dir).string(),
+                             (cppfs::path(cppfs::path(founddir.space) / founddir.space) / config.deletedPath(fs) /
+                              (cppfs::path(founddir.dir).filename().string() + "-" + timestamp))
+                                 .string());
             }
             result.invalid_ws++;
         } else {
@@ -718,6 +721,8 @@ int main(int argc, char** argv) {
         spdlog::debug("fslist: {}", fslist);
     }
 
+    spdlog::info("==== WS_EXPIRER RUN START {} =====", utils::ctime(std::time(nullptr)));
+
     if (cleanermode) {
         spdlog::warn("expirer - really cleaning!");
     } else {
@@ -750,6 +755,8 @@ int main(int argc, char** argv) {
 
     // Cleanup curl
     utils::cleanupCurl();
+
+    spdlog::info("==== WS_EXPIRER RUN END {} =====", utils::ctime(std::time(nullptr)));
 
     return 0;
 }
