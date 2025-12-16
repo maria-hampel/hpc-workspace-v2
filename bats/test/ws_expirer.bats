@@ -120,8 +120,8 @@ setup() {
 }
 
 @test "ws_expirer send reminder mail" {
-    ws_allocate --config bats/ws.conf -m $USER@localhost -r 1 REMINDER_TEST 2
-    #ws_editdb --config bats/ws.conf --not-kidding --add-time -2 REMINDER_TEST
+    ws_allocate --config bats/ws.conf -m $USER@localhost -r 2 REMINDER_TEST 2
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -1 REMINDER_TEST
     run ws_expirer --config bats/ws.conf -c
     assert_output --regexp "sending reminder mail"
     assert_success
