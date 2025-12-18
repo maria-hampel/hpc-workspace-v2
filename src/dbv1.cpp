@@ -550,6 +550,9 @@ string DBEntryV1::getGroup() const { return group; }
 // change expiration time
 void DBEntryV1::setExpiration(const time_t timestamp) { expiration = timestamp; }
 
+// change expired time
+void DBEntryV1::setExpired(const time_t timestamp) { expired = timestamp; }
+
 // change release date (mark as released and not expired)
 // write DB entry
 // move DB entry to releases entries

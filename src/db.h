@@ -62,6 +62,8 @@ class DBEntry {
 
     // change expiration time
     virtual void setExpiration(const time_t timestamp) = 0;
+    // change expired time
+    virtual void setExpired(const time_t timestamp) = 0;
     // change release date (mark as released and not expired) and write updated entry and move entry
     virtual void release(time_t& timestamp) = 0;
     // set expired (not released) can be called by root only

@@ -74,6 +74,7 @@ int main(int argc, char** argv) {
     string ensureuntil;
     string expireby;
     int addtime = 0;
+    int addtimeexpired = 0;
     bool listexpired = false;
     bool dryrun = true;
     std::time_t date;
@@ -100,6 +101,7 @@ int main(int argc, char** argv) {
         ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
         ("dry-run", "dry-run (default), do nothing, just show what would be done")
         ("add-time", po::value<int>(&addtime), "add time to selected workspace expiration time, in days")
+        ("add-time-expired", po::value<int>(&addtimeexpired), "add time to selected workspace expired time, in days")
         ("ensure-until", po::value<string>(&ensureuntil), "extend workspaces so that they expire not earlier than specified date (YYYY-MM-DD)")
         ("expire-by", po::value<string>(&expireby), "limit workspaces so that they expire no later than the specified date (YYYY-MM-DD)")
         ("not-kidding", "execute the actions")
@@ -181,8 +183,8 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
-    if ((addtime != 0) + !expireby.empty() + !ensureuntil.empty() > 1) {
-        spdlog::error("Only one of add-time, expire-by, or ensure-until can be specified!");
+    if ((addtime != 0) + (addtimeexpired !=0) + !expireby.empty() + !ensureuntil.empty() > 1) {
+        spdlog::error("Only one of add-time, add-time-expired, expire-by, or ensure-until can be specified!");
         exit(-2);
     }
 
@@ -275,6 +277,8 @@ int main(int argc, char** argv) {
         // TODO logic here
         auto expiration = entry->getExpiration();
         std::optional<time_t> new_expiration;
+        auto expired = entry->getExpired();
+        std::optional<time_t> new_expired;
 
         if (addtime != 0) {
             new_expiration = expiration + (addtime * DAYS);
@@ -288,6 +292,10 @@ int main(int argc, char** argv) {
             }
         }
 
+        if (addtimeexpired !=0) {
+            new_expired = expired + (addtimeexpired * DAYS);
+        }
+
         if (new_expiration.has_value()) {
             time_t new_exp_value = new_expiration.value();
             auto olddate = utils::ctime(&expiration);
@@ -298,6 +306,20 @@ int main(int argc, char** argv) {
                     spdlog::debug("updating entry");
                 }
                 entry->setExpiration(new_exp_value);
+                entry->writeEntry();
+            }
+        }
+
+        if (new_expired.has_value()) {
+            time_t new_exp_value = new_expired.value();
+            auto olddate = utils::ctime(&expired);
+            auto newdate = utils::ctime(&new_exp_value);
+            fmt::println("    change expired: {} ({}) -> {} ({})", olddate, expired, newdate, new_exp_value);
+            if (!dryrun) {
+                if (debugflag) {
+                    spdlog::debug("updating entry");
+                }
+                entry->setExpired(new_exp_value);
                 entry->writeEntry();
             }
         }

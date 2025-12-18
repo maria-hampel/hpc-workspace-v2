@@ -87,6 +87,8 @@ class DBEntryV1 : public DBEntry {
     void useExtension(const long expiration, const string mail, const int reminder, const string comment);
     // change expiration time
     void setExpiration(const time_t timestamp);
+    // change expired time
+    void setExpired(const time_t timestamp);
     // change release date (mark as released and not expired) and write updated entry and move entry
     void release(time_t& timestamp);
     // set expired (not released) can be called by root only

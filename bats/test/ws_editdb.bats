@@ -53,3 +53,11 @@ setup() {
     assert_success
     ws_release --config bats/ws.conf EDITTEST
 }
+
+# TODO  add tests for --add-time-exipred
+
+@test "ws_editdb multiple adds" {
+    run ws_editdb --config bats/ws.conf --not-kidding --expire-by 2049-12-31 --add-time 1 EDITTEST
+    assert_output --partial "Only one"
+    assert_failure
+}
