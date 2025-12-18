@@ -91,6 +91,8 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
         if (entry->getCreation() > 0)
             fmt::println("    creation time        : {}", utils::ctime(entry->getCreation()));
         fmt::println("    expiration time      : {}", utils::ctime(entry->getExpiration()));
+        if (entry->getExpired() > 0)
+            fmt::println("    expired time         : {}", utils::ctime(entry->getExpired()));
         if (entry->getGroup() != "")
             fmt::println("    group                : {}", entry->getGroup());
         fmt::println("    filesystem name      : {}", entry->getFilesystem());
