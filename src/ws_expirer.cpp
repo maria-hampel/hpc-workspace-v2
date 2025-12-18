@@ -356,11 +356,13 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     for (auto const& space : spaces) {
         // NOTE: *-* for compatibility with old expirer
         for (const auto& dir : utils::dirEntries(cppfs::path(space) / config.deletedPath(fs), "*-*", true)) {
-            if (cppfs::is_directory(dir)) {
+            if (cppfs::is_directory( cppfs::path(space) / config.deletedPath(fs) / dir)) {
                 dirs.push_back({space, dir});
             }
         }
     }
+
+
 
     // get all workspace names from DB, this contains the timestamp
     wsIDs = db->matchPattern("*", "*", {}, true, false);
@@ -371,20 +373,20 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
     // compare filesystem with DB
     for (auto const& founddir : dirs) {
-        if (!canFind(workspacesInDB, cppfs::path(founddir.dir).filename())) {
-            spdlog::warn("    stray removed workspace ", founddir.dir);
+        if (!canFind(workspacesInDB, founddir.dir)) {
+            spdlog::warn("    stray removed workspace {}", founddir.dir);
             if (!dryrun) {
                 try {
                     // timeout is now + deldirtimeout
                     std::time_t deadline = std::time_t((std::time_t*)0L) + config.deldirtimeout();
 
-                    utils::rmtree(cppfs::path(founddir.space) / config.deletedPath(fs), deadline);
-                    spdlog::info("      remove ", founddir.dir);
+                    utils::rmtree(cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir, deadline);
+                    spdlog::info("      remove {}", (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string());
                 } catch (cppfs::filesystem_error& e) {
-                    spdlog::error("      failed to remove: {} ({})", founddir.dir, e.what());
+                    spdlog::error("      failed to remove: {} ({})", (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string(), e.what());
                 }
             } else {
-                spdlog::info("      would remove ", founddir.dir);
+                spdlog::info("      would remove {}", (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string());
             }
             result.invalid_deleted++;
         } else {
@@ -724,9 +726,9 @@ int main(int argc, char** argv) {
     spdlog::info("==== WS_EXPIRER RUN START {} =====", utils::ctime(std::time(nullptr)));
 
     if (cleanermode) {
-        spdlog::warn("expirer - really cleaning!");
+        spdlog::warn("Expirer - really cleaning!");
     } else {
-        spdlog::info("expirer - simulating cleaning - dryrun");
+        spdlog::info("Expirer - simulating cleaning - dryrun");
     }
 
     // go through filesystem and
@@ -737,9 +739,9 @@ int main(int argc, char** argv) {
     for (auto const& fs : fslist) {
         total_stray += clean_stray_directories(config, fs, single_space, dryrun);
     }
-    spdlog::info("stray removal summary: {} valid, {} invalid, {} valid deleted, {} invalid", total_stray.valid_ws,
+    spdlog::info("Stray removal summary: {} valid, {} invalid, {} valid deleted, {} invalid", total_stray.valid_ws,
                  total_stray.invalid_ws, total_stray.valid_deleted, total_stray.invalid_deleted);
-    spdlog::info("end of stray removal");
+    spdlog::info("End of stray removal");
 
     // go through database and
     // - expire workspaces beyond expiration age and
@@ -748,10 +750,10 @@ int main(int argc, char** argv) {
     for (auto const& fs : fslist) {
         total_expire += expire_workspaces(config, fs, dryrun);
     }
-    spdlog::info("expiration summary: {} kept, {} expired, {} deleted, {} reminders sent, {} bad db entries",
+    spdlog::info("Expiration summary: {} kept, {} expired, {} deleted, {} reminders sent, {} bad db entries",
                  total_expire.kept_ws, total_expire.expired_ws, total_expire.deleted_ws, total_expire.sent_mails,
                  total_expire.bad_db);
-    spdlog::info("end of expiration");
+    spdlog::info("End of expiration");
 
     // Cleanup curl
     utils::cleanupCurl();
