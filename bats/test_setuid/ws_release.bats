@@ -24,18 +24,18 @@ setup() {
 
 @test "ws_release releases directory" {
     wsdir=$(ws_allocate  -F ws1 $ws_name)
-    assert_dir_exist $wsdir
+    assert_dir_exists $wsdir
     ws_release  -F ws1 $ws_name
-    assert_dir_not_exist $wsdir
+    assert_dir_not_exists $wsdir
 }
 
 @test "ws_release delete directory with data" {
     wsdir=$(ws_allocate -F ws1  $ws_name2)
-    assert_dir_exist $wsdir
+    assert_dir_exists $wsdir
     mkdir $wsdir/DATA
     touch $wsdir/DATA/file
     ws_release --delete-data -F ws1 $ws_name2
-    assert_dir_not_exist $wsdir
+    assert_dir_not_exists $wsdir
 }
 
 cleanup() {
