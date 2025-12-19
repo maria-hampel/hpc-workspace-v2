@@ -2,7 +2,7 @@
 
 This is the construction site of next major version of hpc-workspace++ tool.
 
-**DO NOT USE - unless you know what you do and want to test**
+**DO NOT USE IN PRODUCTION - unless you know what you do and want to test**
 
 This version now has reached a usable state, it offers some tools
 and features not present in v1.
@@ -94,10 +94,10 @@ for testing:
 - [x] ws_release (C++)
 - [x] ws_restore (C++)
 - [x] ws_send_ical (new in C++)
-- [x] ws_editdb (new tool)
+- [x] ws_editdb (new tool in C++)
 - [x] ws_share (will remain a shell script)
-- [x] ws_expirer (will be migrated to C++)
-- [x] ws_validate_config (might be migrated to C++)
+- [x] ws_expirer (migrated to C++)
+- [x] ws_validate_config (migrated to C++)
 - [x] ws_prepare (new in C++)
 
 
@@ -112,7 +112,7 @@ for testing:
 - [x] check debug logic and data leaks
 - [x] migrate more tools: migrate ws_expirer, ws_validate_config
 - [x] add tests for new tools
-- [ ] create tests for ws_expire
+- [x] create tests for ws_expire
 - [x] debug what is there
 - [x] get CMake setup in better shape
 - [x] remove tbb dependency
