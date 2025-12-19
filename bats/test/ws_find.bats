@@ -25,7 +25,7 @@ setup() {
 @test "ws_find finds directory" {
     rm -f /tmp/ws/ws2-db/${USER}-$ws_name
     wsdir1=$(ws_allocate --config bats/ws.conf $ws_name)
-    assert_dir_exist $wsdir1
+    assert_dir_exists $wsdir1
     wsdir2=$(ws_find --config bats/ws.conf $ws_name)
     assert_equal "$wsdir1" "$wsdir2"
 }

@@ -23,7 +23,7 @@ setup() {
 
 @test "ws_allocate creates directory" {
     wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
-    assert_dir_exist $wsdir
+    assert_dir_exists $wsdir
 }
 
 @test "ws_allocate rejects dangerous workspace names" {
