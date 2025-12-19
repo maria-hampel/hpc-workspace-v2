@@ -1,6 +1,10 @@
 setup() {
     load 'test_helper/common-setup'
     _common_setup
+    if [ ! -e ~/.ws_user.conf ]
+    then
+        echo "mail: $USER@localhost" > ~/.ws_user.conf
+    fi
 }
 
 
