@@ -186,7 +186,7 @@ setup() {
     run ws_expirer --config bats/ws.conf -c
     assert_output --regexp 'expiring .*-MOVED_TEST'
     # Original workspace should not exist
-    assert_file_not_exist $ws_path
+    assert_dir_not_exists $ws_path
     # Should exist in deleted directory
     [ -d /tmp/ws/ws2/*/.removed/*MOVED_TEST* ]
     assert_success
