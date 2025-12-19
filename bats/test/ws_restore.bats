@@ -81,3 +81,250 @@ setup() {
     assert_success
     assert_file_exists $wsdir/$wsid/TESTFILE
 }
+
+@test "ws_restore list with brief flag" {
+    ws_name=brief-test-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    run ws_restore --config bats/ws.conf -l -b "$ws_name*"
+    assert_output --partial $ws_name
+    refute_output --partial "unavailable since"
+    refute_output --partial "restorable until"
+    assert_success
+}
+
+@test "ws_restore list shows timestamps" {
+    ws_name=timestamp-test-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    run ws_restore --config bats/ws.conf -l "$ws_name*"
+    assert_output --partial $ws_name
+    assert_output --partial "unavailable since"
+    assert_output --partial "restorable until"
+    assert_output --partial "in filesystem"
+    assert_success
+}
+
+@test "ws_restore list on specific filesystem" {
+    ws_name=fs-list-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf -F ws1 $ws_name)
+    ws_release --config bats/ws.conf -F ws1 $ws_name
+    run ws_restore --config bats/ws.conf -F ws1 -l "$ws_name*"
+    assert_output --partial $ws_name
+    assert_success
+}
+
+@test "ws_restore list with invalid filesystem" {
+    run ws_restore --config bats/ws.conf -F invalidfs -l
+    assert_output --partial "invalid filesystem given"
+    assert_success
+}
+
+@test "ws_restore list empty result" {
+    run ws_restore --config bats/ws.conf -l "nonexistent-pattern-$RANDOM"
+    refute_output --partial "unavailable since"
+    assert_success
+}
+
+@test "ws_restore without target argument" {
+    ws_name=notarget-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -l | grep $ws_name | head -1)
+    run ws_restore_notest --config bats/ws.conf $wsid
+    assert_output --partial "no target given"
+    assert_failure
+}
+
+@test "ws_restore non-existent workspace" {
+    ws_name=target-for-nonexist-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    run ws_restore_notest --config bats/ws.conf fake-workspace-id-12345 $ws_name
+    assert_output --partial "invalid workspace name"
+    assert_success
+    ws_release --config bats/ws.conf $ws_name
+}
+
+@test "ws_restore to non-existent target" {
+    ws_name=source-ws-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -l | grep $ws_name | head -1)
+    run ws_restore_notest --config bats/ws.conf $wsid nonexistent-target-$RANDOM
+    assert_output --partial "target does not exist"
+    assert_success
+}
+
+@test "ws_restore invalid workspace name with slash" {
+    run ws_restore_notest --config bats/ws.conf "invalid/name" sometarget
+    assert_output --partial "Illegal workspace name"
+    assert_failure
+}
+
+@test "ws_restore invalid workspace name with special chars" {
+    run ws_restore_notest --config bats/ws.conf "invalid@name" sometarget
+    assert_output --partial "Illegal workspace name"
+    assert_failure
+}
+
+@test "ws_restore pattern matching with asterisk" {
+    ws_name1=pattern-match-a-$RANDOM
+    ws_name2=pattern-match-b-$RANDOM
+    ws_allocate --config bats/ws.conf $ws_name1
+    ws_allocate --config bats/ws.conf $ws_name2
+    ws_release --config bats/ws.conf $ws_name1
+    ws_release --config bats/ws.conf $ws_name2
+    run ws_restore --config bats/ws.conf -l "pattern-match-*"
+    assert_output --partial $ws_name1
+    assert_output --partial $ws_name2
+    assert_success
+}
+
+@test "ws_restore pattern matching single character" {
+    ws_name1=match-a
+    ws_name2=match-b
+    ws_allocate --config bats/ws.conf $ws_name1
+    ws_allocate --config bats/ws.conf $ws_name2
+    ws_release --config bats/ws.conf $ws_name1
+    ws_release --config bats/ws.conf $ws_name2
+    run ws_restore --config bats/ws.conf -l "match-?-*"
+    assert_output --partial $ws_name1
+    assert_output --partial $ws_name2
+    assert_success
+}
+
+@test "ws_restore with filesystem option restores correctly" {
+    ws_name=fs-restore-$RANDOM
+    target_name=fs-target-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf -F ws1 $ws_name)
+    echo "test data" > $wsdir/datafile
+    ws_release --config bats/ws.conf -F ws1 $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -F ws1 -l | grep $ws_name | head -1)
+    target_dir=$(ws_allocate --config bats/ws.conf -F ws1 $target_name)
+    ws_restore_notest --config bats/ws.conf -F ws1 $wsid $target_name
+    assert_file_exists $target_dir/$wsid/datafile
+    assert_equal "$(cat $target_dir/$wsid/datafile)" "test data"
+    ws_release --config bats/ws.conf -F ws1 $target_name
+}
+
+@test "ws_restore preserves file content" {
+    ws_name=content-test-$RANDOM
+    target_name=content-target-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    echo "important content" > $wsdir/important.txt
+    mkdir -p $wsdir/subdir
+    echo "nested content" > $wsdir/subdir/nested.txt
+    ws_release --config bats/ws.conf $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -l | grep $ws_name | head -1)
+    target_dir=$(ws_allocate --config bats/ws.conf $target_name)
+    ws_restore_notest --config bats/ws.conf $wsid $target_name
+    assert_file_exists $target_dir/$wsid/important.txt
+    assert_file_exists $target_dir/$wsid/subdir/nested.txt
+    assert_equal "$(cat $target_dir/$wsid/important.txt)" "important content"
+    assert_equal "$(cat $target_dir/$wsid/subdir/nested.txt)" "nested content"
+    ws_release --config bats/ws.conf $target_name
+}
+
+@test "ws_restore removed from list after restoration" {
+    ws_name=removal-test-$RANDOM
+    target_name=removal-target-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -l | grep $ws_name | head -1)
+    target_dir=$(ws_allocate --config bats/ws.conf $target_name)
+    ws_restore_notest --config bats/ws.conf $wsid $target_name
+    run ws_restore --config bats/ws.conf -l "$wsid"
+    refute_output --partial "$wsid"
+    assert_success
+    ws_release --config bats/ws.conf $target_name
+}
+
+@test "ws_restore delete-data removes from list" {
+    ws_name=delete-list-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -l | grep $ws_name | head -1)
+    ws_restore_notest --config bats/ws.conf --delete-data $wsid
+    run ws_restore --config bats/ws.conf -l "$wsid"
+    refute_output --partial "$wsid"
+    assert_success
+}
+
+@test "ws_restore list shows correct filesystem" {
+    ws_name=fs-display-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf -F ws1 $ws_name)
+    ws_release --config bats/ws.conf -F ws1 $ws_name
+    run ws_restore --config bats/ws.conf -l "$ws_name*"
+    assert_output --partial "in filesystem"
+    assert_output --partial "ws1"
+    assert_success
+}
+
+@test "ws_restore short form list option" {
+    ws_name=shortlist-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    run ws_restore --config bats/ws.conf -l "$ws_name*"
+    assert_output --partial $ws_name
+    assert_success
+}
+
+@test "ws_restore short form brief option" {
+    ws_name=shortbrief-$RANDOM
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    run ws_restore --config bats/ws.conf -b -l "$ws_name*"
+    assert_output --partial $ws_name
+    refute_output --partial "unavailable since"
+    assert_success
+}
+
+@test "ws_restore workspace with dots in name" {
+    ws_name=restore.with.dots
+    target_name=target.with.dots
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -l | grep "$ws_name" | head -1)
+    target_dir=$(ws_allocate --config bats/ws.conf $target_name)
+    run ws_restore_notest --config bats/ws.conf $wsid $target_name
+    assert_success
+    ws_release --config bats/ws.conf $target_name
+}
+
+@test "ws_restore workspace with underscores in name" {
+    ws_name=restore_with_underscores
+    target_name=target_with_underscores
+    wsdir=$(ws_allocate --config bats/ws.conf $ws_name)
+    ws_release --config bats/ws.conf $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -l | grep "$ws_name" | head -1)
+    target_dir=$(ws_allocate --config bats/ws.conf $target_name)
+    run ws_restore_notest --config bats/ws.conf $wsid $target_name
+    assert_success
+    ws_release --config bats/ws.conf $target_name
+}
+
+@test "ws_restore list all without pattern" {
+    ws_name1=listall-a-$RANDOM
+    ws_name2=listall-b-$RANDOM
+    ws_allocate --config bats/ws.conf $ws_name1
+    ws_allocate --config bats/ws.conf $ws_name2
+    ws_release --config bats/ws.conf $ws_name1
+    ws_release --config bats/ws.conf $ws_name2
+    run ws_restore --config bats/ws.conf -l
+    assert_output --partial $ws_name1
+    assert_output --partial $ws_name2
+    assert_success
+}
+
+@test "ws_restore help shows attention message" {
+    run ws_restore --config bats/ws.conf --help
+    assert_output --partial "attention"
+    assert_output --partial "workspace_name argument"
+    assert_success
+}
+
+@test "ws_restore missing both workspace and list option" {
+    run ws_restore_notest --config bats/ws.conf
+    assert_output --partial "neither workspace nor -l specified"
+    assert_failure
+}
