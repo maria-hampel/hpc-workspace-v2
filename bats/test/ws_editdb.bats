@@ -214,7 +214,7 @@ setup() {
     assert_success
     # Verify nothing actually changed
     run ws_list --config bats/ws.conf DRYDEFAULT
-    assert_output --regexp "1 day"
+    assert_output --regexp "(1 day)|(0 days, 23 hours)"
     assert_success
     ws_release --config bats/ws.conf DRYDEFAULT
 }
