@@ -42,7 +42,6 @@
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include <filesystem>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -73,6 +72,9 @@ cppfs::perms perm0755 = cppfs::perms::owner_read | cppfs::perms::owner_write | c
 cppfs::perms perm0644 =
     cppfs::perms::owner_read | cppfs::perms::owner_write | cppfs::perms::group_read | cppfs::perms::others_read;
 
+// helper for fmt::
+template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
+
 int main(int argc, char** argv) {
     std::string configfile = "";
     // locals settings to prevent strange effects
@@ -100,15 +102,15 @@ int main(int argc, char** argv) {
         po::store(po::command_line_parser(argc, argv).options(cmd_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        cerr << "Usage: " << argv[0] << " [filename]" << endl;
-        cerr << cmd_options << "\n";
+        fmt::println(stderr, "Usage: {} [filename]", argv[0]);
+        fmt::println("{}", cmd_options);
         exit(1);
     }
 
     if (opt.count("help")) {
-        cerr << "Usage: " << argv[0] << " [filename]" << endl;
-        cerr << cmd_options << "\n";
-        cerr << "this command is used to validate a config file" << endl;
+        fmt::println(stderr, "Usage: {} [filename]", argv[0]);
+        fmt::println("{}", cmd_options);
+        fmt::println("this command is used to validate a config file");
         exit(0);
     }
 
