@@ -66,8 +66,12 @@ else()
 endif()
 
 
-list(APPEND BOOST_COMPONENTS system program_options)
-find_package(Boost COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
+list(APPEND BOOST_COMPONENTS program_options)
+list(APPEND BOOST_OPTIONAL_COMPONENTS BOOST OPTIONAL_COMPONENTS system)
+find_package(Boost
+    COMPONENTS ${BOOST_COMPONENTS}
+    OPTIONAL_COMPONENTS ${BOOST_OPTIONAL_COMPONENTS}
+    REQUIRED)
 
 
 # find terminfo for "are you human" checker
