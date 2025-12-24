@@ -87,12 +87,6 @@ find_package(Boost
 ##set(LIBTINFO ${CURSES_LIBRARIES})
 #endif()
 
-
-# for parallel ws_list
-add_compile_options(-fopenmp)
-# add_compile_options(-fopenmp=libomp)
-add_link_options(-fopenmp)
-
 set(YAML_CPP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(${workspace_SOURCE_DIR}/external/yaml-cpp)
 add_subdirectory(${workspace_SOURCE_DIR}/external/rapidyaml ryml)
