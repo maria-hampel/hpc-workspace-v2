@@ -1,4 +1,5 @@
 find_package(CURL)
+find_package(OpenMP)
 
 add_library(ws_common
     build_info.h
@@ -39,6 +40,9 @@ target_link_libraries(ws_list
         fmt::fmt
         spdlog
 )
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(ws_list PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 add_executable(ws_find
     ws_find.cpp
@@ -136,6 +140,9 @@ target_link_libraries(ws_stat
         fmt::fmt
         spdlog
 )
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(ws_stat PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 add_executable(ws_editdb
     ws_editdb.cpp
@@ -147,6 +154,9 @@ target_link_libraries(ws_editdb
         fmt::fmt
         spdlog
 )
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(ws_editdb PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 add_executable(ws_send_ical
     ws_send_ical.cpp
