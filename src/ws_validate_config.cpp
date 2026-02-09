@@ -48,7 +48,6 @@
 #include "caps.h"
 #include "config.h"
 #include "utils.h"
-#include "ws.h"
 
 #include "spdlog/spdlog.h"
 
