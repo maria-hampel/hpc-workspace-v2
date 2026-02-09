@@ -35,7 +35,7 @@
     #include "ryml.hpp"
     #include "ryml_std.hpp"
 #else
-    #include "yaml-cpp/yaml.h"
+    #include "yaml-cpp/yaml.h"  // IWYU pragma: keep
 #endif
 
 #include "fmt/base.h"
