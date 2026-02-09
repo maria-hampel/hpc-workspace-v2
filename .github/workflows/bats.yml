@@ -32,7 +32,7 @@ jobs:
     - name: Install additional OS package dependencies to build hpc-workspace
       run: |
         sudo apt-get update --fix-missing
-        sudo apt install \
+        sudo apt-get install --fix-missing  \
           libboost-system-dev \
           libboost-program-options-dev \
           libcurl4t64 libcurl4-openssl-dev \
