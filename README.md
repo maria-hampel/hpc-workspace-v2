@@ -23,7 +23,7 @@ is the first goal.
 - It is likely that all python tools will be replaced with C++ tools on the long run.
 
 - backwards compatibility will be maintained, might have some restrictions (e.g. old config files will need some
-  flags to be added)
+  flags to be added, some minor changes to commands semantics)
 
 - some tools might have slightly different options, when it adds functionality
 
@@ -37,23 +37,18 @@ at the moment main development platform is
   - CMake 3.31
   - gcc 15.2.0
 
-future test platforms:
+test platforms:
 
 - Ubuntu 22.04.5 LTS
   - CMake 3.22.1
   - gcc 11.4.0
   - clang 14.0.0
 
-- Ubuntu 24.4 LTS
-  - CMake 3.28.3
-  - gcc 13.3.0
-  - clang 18.1.3
-
 - Rocky Linux 8.10
   - CMake 3.26.5
   - gcc 14
 
-- Rocky Linux 9.5
+- Rocky Linux 9.6
   - Cmake 3.26.5
   - gcc 11.5
 
@@ -61,9 +56,9 @@ this list can be extended.
 
 no intention to support old platforms like centos7, but it might work.
 
-language level might evolve from c++17 to c++20 if there is reasons.
+language level requirement might evolve from c++17 to c++20 if there is reasons.
 
-ws_list and ws_stat have a dependency to -fopenmp, can be removed from CMakeList.txt
+ws_list and ws_stat have a dependency to OpenMP, can be removed from CMakeList.txt
 if not available.
 
 ## Dependencies
