@@ -356,13 +356,11 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     for (auto const& space : spaces) {
         // NOTE: *-* for compatibility with old expirer
         for (const auto& dir : utils::dirEntries(cppfs::path(space) / config.deletedPath(fs), "*-*", true)) {
-            if (cppfs::is_directory( cppfs::path(space) / config.deletedPath(fs) / dir)) {
+            if (cppfs::is_directory(cppfs::path(space) / config.deletedPath(fs) / dir)) {
                 dirs.push_back({space, dir});
             }
         }
     }
-
-
 
     // get all workspace names from DB, this contains the timestamp
     wsIDs = db->matchPattern("*", "*", {}, true, false);
@@ -381,12 +379,16 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
                     std::time_t deadline = std::time_t((std::time_t*)0L) + config.deldirtimeout();
 
                     utils::rmtree(cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir, deadline);
-                    spdlog::info("      remove {}", (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string());
+                    spdlog::info("      remove {}",
+                                 (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string());
                 } catch (cppfs::filesystem_error& e) {
-                    spdlog::error("      failed to remove: {} ({})", (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string(), e.what());
+                    spdlog::error("      failed to remove: {} ({})",
+                                  (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string(),
+                                  e.what());
                 }
             } else {
-                spdlog::info("      would remove {}", (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string());
+                spdlog::info("      would remove {}",
+                             (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string());
             }
             result.invalid_deleted++;
         } else {

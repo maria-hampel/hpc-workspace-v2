@@ -31,7 +31,7 @@
 #include "fmt/base.h"
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
-//#include <iostream>
+// #include <iostream>
 #include <regex>
 #include <string>
 
@@ -95,16 +95,23 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        fmt::println(stderr, "Usage: {} [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress", argv[0]);
+        fmt::println(stderr,
+                     "Usage: {} [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] "
+                     "mailadress",
+                     argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
     // help section
     if (opt.count("help")) {
-        fmt::println(stderr, "Usage: [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress", argv[0]);
+        fmt::println(
+            stderr,
+            "Usage: [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress",
+            argv[0]);
         fmt::println(stderr, "{}", cmd_options);
-        fmt::println(stderr, "this command is used to send a calendar invitation by Email to ensure users do not forget\n the expiration date of a workspace");
+        fmt::println(stderr, "this command is used to send a calendar invitation by Email to ensure users do not "
+                             "forget\n the expiration date of a workspace");
         exit(0);
     }
 
@@ -149,9 +156,13 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
         } else {
             spdlog::error("no workspace name!");
         }
-        fmt::println(stderr, "Usage: [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress", argv[0]);
+        fmt::println(
+            stderr,
+            "Usage: [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress",
+            argv[0]);
         fmt::println(stderr, "{}", cmd_options);
-        fmt::println(stderr, "this command is used to send a calendar invitation by Email to ensure users do not forget\n the expiration date of a workspace");
+        fmt::println(stderr, "this command is used to send a calendar invitation by Email to ensure users do not "
+                             "forget\n the expiration date of a workspace");
         exit(1);
     }
 }

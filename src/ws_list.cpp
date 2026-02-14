@@ -111,7 +111,8 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
     }
 }
 
-void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool verbose, const bool terse, [[maybe_unused]] const bool permissions) {
+void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool verbose, const bool terse,
+                             [[maybe_unused]] const bool permissions) {
     static bool headerprinted = false;
     static bool color_checked = false;
     static bool color_output = true;

@@ -130,7 +130,8 @@ void parallel_stat(struct stat_result& result, string path) {
 
     if (cppfs::is_directory(path)) {
         for (const auto& entry : cppfs::directory_iterator(path)) {
-            fmt::println("entry - {} {} {} {}", entry.path().string(), entry.is_regular_file(), entry.is_directory(), entry.is_symlink());
+            fmt::println("entry - {} {} {} {}", entry.path().string(), entry.is_regular_file(), entry.is_directory(),
+                         entry.is_symlink());
 
             if (entry.is_symlink()) {
                 softlinks++;

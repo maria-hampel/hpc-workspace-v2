@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
-    if ((addtime != 0) + (addtimeexpired !=0) + !expireby.empty() + !ensureuntil.empty() > 1) {
+    if ((addtime != 0) + (addtimeexpired != 0) + !expireby.empty() + !ensureuntil.empty() > 1) {
         spdlog::error("Only one of add-time, add-time-expired, expire-by, or ensure-until can be specified!");
         exit(-2);
     }
@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
             }
         }
 
-        if (addtimeexpired !=0) {
+        if (addtimeexpired != 0) {
             new_expired = expired + (addtimeexpired * DAYS);
         }
 
