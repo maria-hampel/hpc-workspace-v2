@@ -212,7 +212,7 @@ int main(int argc, char** argv) {
         ("listfilesystems,l", "list available filesystems")
         ("listfilesystemdetails,L", "list available filesystems with details")
         ("short,s", "short listing, only workspace names")
-        ("user,u", po::value<string>(&user), "only show workspaces for selected user")
+        ("username,u", po::value<string>(&user), "only show workspaces for selected user")
         ("expired,e", "show expired workspaces")
         ("name,N", "sort by name")
         ("creation,C", "sort by creation date")

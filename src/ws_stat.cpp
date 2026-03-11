@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
         ("help,h", "produce help message")
         ("version,V", "show version")
         ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
-        ("user,u", po::value<string>(&user), "only show workspaces for selected user")
+        ("username,u", po::value<string>(&user), "only show workspaces for selected user")
         ("group,g", "enable listing of group workspaces")
         ("config", po::value<string>(&configfile), "config file")
         ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")

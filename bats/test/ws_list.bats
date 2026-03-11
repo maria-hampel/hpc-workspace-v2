@@ -188,7 +188,7 @@ Options:
   -l [ --listfilesystems ]        list available filesystems
   -L [ --listfilesystemdetails ]  list available filesystems with details
   -s [ --short ]                  short listing, only workspace names
-  -u [ --user ] arg               only show workspaces for selected user
+  -u [ --username ] arg           only show workspaces for selected user
   -e [ --expired ]                show expired workspaces
   -N [ --name ]                   sort by name
   -C [ --creation ]               sort by creation date
@@ -295,7 +295,7 @@ Options:
     run ws_list --config bats/ws.conf fsname
     assert_output --partial "filesystem name"
     assert_success
-    ws_release --config bats/ws.conf fsname
+    ws_release --config bats/ws.conf fsname 
 }
 
 @test "ws_list shows available extensions" {
