@@ -1,5 +1,13 @@
 find_package(CURL)
 find_package(OpenMP)
+find_package(Threads REQUIRED)
+
+# Check for C++17 thread support
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++17" COMPILER_SUPPORTS_CXX17)
+if(NOT COMPILER_SUPPORTS_CXX17)
+    message(FATAL_ERROR "Compiler does not support C++17")
+endif()
 
 add_library(ws_common
     build_info.h
@@ -33,16 +41,15 @@ target_link_libraries(ws_common
 add_executable(ws_list
     ws_list.cpp
 )
+target_include_directories(ws_list PRIVATE ${CMAKE_SOURCE_DIR}/external/thread-pool/include)
 target_link_libraries(ws_list
     PRIVATE
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
         spdlog
+        Threads::Threads
 )
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(ws_list PRIVATE OpenMP::OpenMP_CXX)
-endif()
 
 add_executable(ws_find
     ws_find.cpp
@@ -91,10 +98,10 @@ target_link_libraries(ws_restore
 # create copy with different name for tests
 # this file should not get installed!
 add_custom_command(
-	TARGET ws_restore
-	POST_BUILD
-	COMMAND cp ${CMAKE_BINARY_DIR}/bin/ws_restore ${CMAKE_BINARY_DIR}/bin/ws_restore_notest
-	COMMENT "cp ${CMAKE_BINARY_DIR}/ws_restore ${CMAKE_BINARY_DIR}/ws_restore_notest"
+ TARGET ws_restore
+ POST_BUILD
+ COMMAND cp ${CMAKE_BINARY_DIR}/bin/ws_restore ${CMAKE_BINARY_DIR}/bin/ws_restore_notest
+ COMMENT "cp ${CMAKE_BINARY_DIR}/ws_restore ${CMAKE_BINARY_DIR}/ws_restore_notest"
 )
 
 add_executable(ws_prepare
@@ -133,16 +140,15 @@ target_link_libraries(ws_expirer
 add_executable(ws_stat
     ws_stat.cpp
 )
+target_include_directories(ws_stat PRIVATE ${CMAKE_SOURCE_DIR}/external/thread-pool/include)
 target_link_libraries(ws_stat
     PRIVATE
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
         spdlog
+        Threads::Threads
 )
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(ws_stat PRIVATE OpenMP::OpenMP_CXX)
-endif()
 
 add_executable(ws_editdb
     ws_editdb.cpp
