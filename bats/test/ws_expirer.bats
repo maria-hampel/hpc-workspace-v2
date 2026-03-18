@@ -374,3 +374,114 @@ setup() {
     ws_release --config bats/ws.conf COUNT_KEEP1
     ws_release --config bats/ws.conf COUNT_KEEP2
 }
+
+@test "ws_expirer handles multiple bad DB entries" {
+    echo "invalid1" > /tmp/ws/ws1-db/${USER}-BAD_MULTI1
+    echo "invalid2" > /tmp/ws/ws1-db/${USER}-BAD_MULTI2
+    echo "invalid3" > /tmp/ws/ws1-db/${USER}-BAD_MULTI3
+    run ws_expirer --config bats/ws.conf
+    assert_output --partial "Empty file?"
+    assert_output --partial "skipping db entry"
+    assert_success
+    rm -f /tmp/ws/ws1-db/${USER}-BAD_MULTI1
+    rm -f /tmp/ws/ws1-db/${USER}-BAD_MULTI2
+    rm -f /tmp/ws/ws1-db/${USER}-BAD_MULTI3
+}
+
+@test "ws_expirer debug flag produces debug output" {
+    ws_allocate --config bats/ws.conf DEBUG_TEST 1
+    run ws_expirer --config bats/ws.conf --debug -c
+    # Should see debug output when debugflag is set
+    assert_output --regexp "expiring|keeping"
+    assert_success
+    ws_release --config bats/ws.conf DEBUG_TEST
+}
+
+@test "ws_expirer trace flag produces trace output" {
+    run ws_expirer --config bats/ws.conf --trace
+    # Trace should produce more verbose output
+    assert_success
+}
+
+@test "ws_expirer handles corrupted YAML DB entry" {
+    ws_allocate --config bats/ws.conf CORRUPT_TEST 1
+    local db_file=$(find /tmp/ws/ws1-db -name "*CORRUPT_TEST" | head -1)
+    # Inject corrupted YAML
+    echo "invalid: yaml: content: without: proper: structure" > "$db_file"
+    run ws_expirer --config bats/ws.conf
+    assert_output --partial "skipping"
+    assert_success
+    ws_release --config bats/ws.conf CORRUPT_TEST
+}
+
+@test "ws_expirer error mail on database failure" {
+    # Temporarily move the DB to trigger DatabaseException
+    mv /tmp/ws/ws1-db /tmp/ws/ws1-db.tmp
+    mkdir -p /tmp/ws/ws1-db
+    run ws_expirer --config bats/ws.conf
+    assert_output --partial "skipping, to avoid data loss"
+    assert_success
+    rm -rf /tmp/ws/ws1-db
+    mv /tmp/ws/ws1-db.tmp /tmp/ws/ws1-db
+}
+
+@test "ws_expirer email sending failure handled gracefully" {
+    ws_allocate --config bats/ws.conf -m $USER@localhost EMAIL_FAIL_TEST 1
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -1 EMAIL_FAIL_TEST
+    run ws_expirer --config bats/ws.conf -c
+    # Should continue processing even if email sending fails
+    assert_output --partial "Failed to send email"
+    assert_success
+    ws_release --config bats/ws.conf EMAIL_FAIL_TEST
+}
+
+@test "ws_expirer zero expiration marked as bad" {
+    ws_allocate --config bats/ws.conf ZERO_EXP_TEST 1
+    local db_file=$(find /tmp/ws/ws1-db -name "*ZERO_EXP_TEST" | head -1)
+    # Set expiration to 0 (invalid)
+    sed -i 's/expiration: [0-9]*/expiration: 0/' "$db_file"
+    run ws_expirer --config bats/ws.conf
+    assert_output --partial "bad expiration"
+    assert_success
+    ws_release --config bats/ws.conf ZERO_EXP_TEST
+}
+
+@test "ws_expirer negative expiration marked as bad" {
+    ws_allocate --config bats/ws.conf NEG_EXP_TEST 1
+    local db_file=$(find /tmp/ws/ws1-db -name "*NEG_EXP_TEST" | head -1)
+    # Set expiration to negative value
+    sed -i 's/expiration: [0-9]*/expiration: -1/' "$db_file"
+    run ws_expirer --config bats/ws.conf
+    assert_output --partial "bad expiration"
+    assert_success
+    ws_release --config bats/ws.conf NEG_EXP_TEST
+}
+
+@test "ws_expirer handles empty email configuration gracefully" {
+    ws_allocate --config bats/ws.conf -m $USER@localhost NO_EMAIL_CONFIG 1
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -1 NO_EMAIL_CONFIG
+    run ws_expirer --config bats/ws.conf -c
+    # Should warn about missing mail settings
+    assert_output --partial "No smtphost or mailfrom available"
+    assert_success
+    ws_release --config bats/ws.conf NO_EMAIL_CONFIG
+}
+
+@test "ws_expirer expired workspace moved to deleted with timestamp" {
+    ws_allocate --config bats/ws.conf TIMESTAMP_MOVE_TEST 1
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -5 TIMESTAMP_MOVE_TEST
+    run ws_expirer --config bats/ws.conf -c
+    assert_output --regexp 'expiring .*-TIMESTAMP_MOVE_TEST'
+    # Check that the workspace was moved with a timestamp suffix
+    run ls /tmp/ws/ws1/.removed/*TIMESTAMP_MOVE_TEST-*
+    assert_success
+}
+
+@test "ws_expirer handles workspace with username containing dash" {
+    ws_allocate --config bats/ws.conf -F ws1 test-user-dash 1
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -5 test-user-dash
+    run ws_expirer --config bats/ws.conf -c
+    assert_output --regexp 'expiring.*test-user-dash'
+    assert_success
+    ws_release --config bats/ws.conf test-user-dash
+}
