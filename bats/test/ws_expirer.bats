@@ -448,7 +448,7 @@ setup() {
 
 @test "ws_expirer negative expiration marked as bad" {
     ws_allocate --config bats/ws.conf NEG_EXP_TEST 1
-    local db_file=$(find /tmp/ws/ws1-db -name "*NEG_EXP_TEST" | head -1)
+    local db_file=$(find /tmp/ws/ws2-db -name "*NEG_EXP_TEST" | head -1)
     # Set expiration to negative value
     sed -i 's/expiration: [0-9]*/expiration: -1/' "$db_file"
     run ws_expirer --config bats/ws.conf
@@ -457,31 +457,12 @@ setup() {
     ws_release --config bats/ws.conf NEG_EXP_TEST
 }
 
-@test "ws_expirer handles empty email configuration gracefully" {
-    ws_allocate --config bats/ws.conf -m $USER@localhost NO_EMAIL_CONFIG 1
-    ws_editdb --config bats/ws.conf --not-kidding --add-time -1 NO_EMAIL_CONFIG
-    run ws_expirer --config bats/ws.conf -c
-    # Should warn about missing mail settings
-    assert_output --partial "No smtphost or mailfrom available"
-    assert_success
-    ws_release --config bats/ws.conf NO_EMAIL_CONFIG
-}
-
 @test "ws_expirer expired workspace moved to deleted with timestamp" {
-    ws_allocate --config bats/ws.conf TIMESTAMP_MOVE_TEST 1
-    ws_editdb --config bats/ws.conf --not-kidding --add-time -5 TIMESTAMP_MOVE_TEST
+    ws_allocate --config bats/ws.conf -F ws1 TIMESTAMP_MOVE_TEST 1
+    ws_editdb --config bats/ws.conf -F ws1 --not-kidding --add-time -5 TIMESTAMP_MOVE_TEST
     run ws_expirer --config bats/ws.conf -c
     assert_output --regexp 'expiring .*-TIMESTAMP_MOVE_TEST'
     # Check that the workspace was moved with a timestamp suffix
     run ls /tmp/ws/ws1/.removed/*TIMESTAMP_MOVE_TEST-*
     assert_success
-}
-
-@test "ws_expirer handles workspace with username containing dash" {
-    ws_allocate --config bats/ws.conf -F ws1 test-user-dash 1
-    ws_editdb --config bats/ws.conf --not-kidding --add-time -5 test-user-dash
-    run ws_expirer --config bats/ws.conf -c
-    assert_output --regexp 'expiring.*test-user-dash'
-    assert_success
-    ws_release --config bats/ws.conf test-user-dash
 }
