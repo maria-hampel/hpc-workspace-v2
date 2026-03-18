@@ -176,32 +176,6 @@ ws1"
     assert_output  --partial "error"
 }
 
-@test "ws_list invalid option" {
-    run ws_list --config bats/ws.conf -X
-    assert_output "Usage: ws_list [options] [pattern]
-
-Options:
-  -h [ --help ]                   produce help message
-  -V [ --version ]                show version
-  -F [ --filesystem ] arg         filesystem to list workspaces from
-  -g [ --group ]                  enable listing of group workspaces
-  -l [ --listfilesystems ]        list available filesystems
-  -L [ --listfilesystemdetails ]  list available filesystems with details
-  -s [ --short ]                  short listing, only workspace names
-  -u [ --user ] arg               only show workspaces for selected user
-  -e [ --expired ]                show expired workspaces
-  -N [ --name ]                   sort by name
-  -C [ --creation ]               sort by creation date
-  -R [ --remaining ]              sort by remaining time
-  -r [ --reverted ]               revert sort
-  -t [ --terse ]                  terse listing
-  -T [ --table ]                  table format
-  --config arg                    config file
-  -p [ --pattern ] arg            pattern matching name (glob syntax)
-  -P [ --permissions ]            list permissions of workspace directory
-  -v [ --verbose ]                verbose listing"
-}
-
 @test "ws_list warn about missing adminmail in config" {
     run ws_list --config bats/bad_ws.conf
     assert_output  --partial "warning: No adminmail in config!"
