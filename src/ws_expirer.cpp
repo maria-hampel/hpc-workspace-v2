@@ -31,6 +31,7 @@
  */
 
 #include <algorithm>
+#include <exception>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -307,8 +308,11 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
     workspacesInDB.reserve(wsIDs.size());
     for (auto const& wsid : wsIDs) {
-        // FIXME: this can throw in cases of bad config
-        workspacesInDB.push_back(db->readEntry(wsid, false)->getWSPath());
+        try {
+            workspacesInDB.push_back(db->readEntry(wsid, false)->getWSPath());
+        } catch (const std::exception& e) {
+            spdlog::warn("    failed to read DB entry {}: {}", wsid, e.what());
+        }
     }
 
     // compare filesystem with DB
