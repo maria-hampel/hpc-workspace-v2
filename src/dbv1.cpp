@@ -420,7 +420,27 @@ void DBEntryV1::readFromString(std::string str) {
     if (traceflag)
         spdlog::trace("readFromString_RAPIDYAML");
 
-    ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(str)); // FIXME: error check?
+    // Set up temporary error handler for parsing
+    ryml::Callbacks const prev_callbacks = ryml::get_callbacks();
+    ryml::Callbacks callbacks = {};
+
+    // Error handler that throws DatabaseException on parse errors
+    callbacks.m_error_parse = [](ryml::csubstr msg, ryml::ErrorDataParse const&, void* user_data) {
+        throw DatabaseException("YAML parse error: " + std::string(msg.str, msg.len));
+    };
+    callbacks.set_user_data(nullptr);
+
+    // Also set basic error handler as fallback
+    callbacks.m_error_basic = [](ryml::csubstr msg, ryml::ErrorDataBasic const&, void* user_data) {
+        throw DatabaseException("YAML error: " + std::string(msg.str, msg.len));
+    };
+
+    ryml::set_callbacks(callbacks);
+
+    ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(str));
+
+    // Restore previous callbacks
+    ryml::set_callbacks(prev_callbacks);
 
     // error check, see if the file looks like yaml and is a map
     ryml::NodeRef node;
