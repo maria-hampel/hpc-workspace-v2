@@ -58,6 +58,15 @@ else
 	git pull
 	cd $OPWD
 fi
+echo thread-pool
+if [ ! -d thread-pool ]
+then
+	git clone https://github.com/bshoshany/thread-pool.git
+else
+	cd thread-pool
+	git pull
+	cd $OPWD
+fi
 #echo curl
 #if [ ! -d curl ]
 #then
@@ -67,3 +76,4 @@ fi
 	#git pull
 	#cd $OPWD
 #fi
+
