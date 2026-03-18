@@ -170,6 +170,7 @@ void parallel_stat(struct stat_result& result, string path) {
 #pragma omp task shared(result)
         parallel_stat(result, dir);
     }
+#pragma omp taskwait
 }
 
 // dive into parallel decent, create parallel region
