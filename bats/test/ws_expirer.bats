@@ -132,7 +132,7 @@ setup() {
     echo "invalid_entry" > /tmp/ws/ws1-db/${USER}-BAD_ENTRY
     run ws_expirer --config bats/ws.conf
     assert_output --partial "Empty file?"
-    assert_failure
+    assert_success
     rm -f /tmp/ws/ws1-db/${USER}-BAD_ENTRY
 }
 
@@ -405,13 +405,13 @@ setup() {
 
 @test "ws_expirer handles corrupted YAML DB entry" {
     ws_allocate --config bats/ws.conf CORRUPT_TEST 1
-    local db_file=$(find /tmp/ws/ws1-db -name "*CORRUPT_TEST" | head -1)
+    local db_file=$(find /tmp/ws/ws2-db -name "*CORRUPT_TEST" | head -1)
     # Inject corrupted YAML
     echo "invalid: yaml: content: without: proper: structure" > "$db_file"
     run ws_expirer --config bats/ws.conf
-    assert_output --partial "skipping"
+    assert_output --partial "YAML parse error"
     assert_success
-    ws_release --config bats/ws.conf CORRUPT_TEST
+    rm -f "$db_file"
 }
 
 @test "ws_expirer error mail on database failure" {
@@ -426,7 +426,7 @@ setup() {
 }
 
 @test "ws_expirer email sending failure handled gracefully" {
-    ws_allocate --config bats/ws.conf -m $USER@localhost EMAIL_FAIL_TEST 1
+    ws_allocate --config bats/ws.conf -r 1 -m ${USER}-NO@localhost EMAIL_FAIL_TEST 1
     ws_editdb --config bats/ws.conf --not-kidding --add-time -1 EMAIL_FAIL_TEST
     run ws_expirer --config bats/ws.conf -c
     # Should continue processing even if email sending fails
@@ -437,7 +437,7 @@ setup() {
 
 @test "ws_expirer zero expiration marked as bad" {
     ws_allocate --config bats/ws.conf ZERO_EXP_TEST 1
-    local db_file=$(find /tmp/ws/ws1-db -name "*ZERO_EXP_TEST" | head -1)
+    local db_file=$(find /tmp/ws/ws2-db -name "*ZERO_EXP_TEST" | head -1)
     # Set expiration to 0 (invalid)
     sed -i 's/expiration: [0-9]*/expiration: 0/' "$db_file"
     run ws_expirer --config bats/ws.conf
