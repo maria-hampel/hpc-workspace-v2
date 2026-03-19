@@ -425,13 +425,13 @@ void DBEntryV1::readFromString(std::string str) {
     ryml::Callbacks callbacks = {};
 
     // Error handler that throws DatabaseException on parse errors
-    callbacks.m_error_parse = [](ryml::csubstr msg, ryml::ErrorDataParse const&, void* user_data) {
+    callbacks.m_error_parse = [](ryml::csubstr msg, ryml::ErrorDataParse const&, void*) {
         throw DatabaseException("YAML parse error: " + std::string(msg.str, msg.len));
     };
     callbacks.set_user_data(nullptr);
 
     // Also set basic error handler as fallback
-    callbacks.m_error_basic = [](ryml::csubstr msg, ryml::ErrorDataBasic const&, void* user_data) {
+    callbacks.m_error_basic = [](ryml::csubstr msg, ryml::ErrorDataBasic const&, void*) {
         throw DatabaseException("YAML error: " + std::string(msg.str, msg.len));
     };
 
