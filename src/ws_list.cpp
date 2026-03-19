@@ -33,10 +33,10 @@
  *
  */
 
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <mutex>
-#include <cstdlib>
 
 // Include bshoshany thread-pool
 #define BS_THREAD_POOL_NATIVE_EXTENSIONS
@@ -49,7 +49,7 @@
 #include "db.h"
 #include "fmt/base.h"
 #include "fmt/color.h"
-#include "fmt/format.h"  // IWYU pragma: keep
+#include "fmt/format.h" // IWYU pragma: keep
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include "user.h"
@@ -71,11 +71,10 @@ using namespace std;
 bool debugflag = false;
 bool traceflag = false;
 int debuglevel = 0;
-unsigned int thread_count = 0;  // 0 = default (hardware_concurrency)
+unsigned int thread_count = 0; // 0 = default (hardware_concurrency)
 
 // ThreadPool type alias
 using ThreadPool = BS::thread_pool<BS::tp::none>;
-
 
 // Mutex for synchronizing output from multiple threads
 static mutex print_entry_mtx;
@@ -156,8 +155,8 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
         }
     }
 
-    #pragma GCC diagnostic push                             // save the actual diag context
-    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"  // disable maybe warnings
+#pragma GCC diagnostic push                            // save the actual diag context
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized" // disable maybe warnings
     fmt::color remaincolor;
 
     if (color_output) {
@@ -196,7 +195,7 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
             fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(),
                          utils::ctime(entry->getExpiration()), entry->getExtension(), remaining / (24 * 3600));
     }
-    #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 }
 
 int main(int argc, char** argv) {
@@ -300,18 +299,21 @@ int main(int argc, char** argv) {
         if (env_threads != nullptr && std::string(env_threads) != "") {
             try {
                 thread_count = std::stoul(env_threads);
-                if (thread_count == 0) thread_count = 1;
+                if (thread_count == 0)
+                    thread_count = 1;
                 if (debugflag) {
                     spdlog::debug("Using WS_THREADS={} from environment", thread_count);
                 }
             } catch (...) {
                 spdlog::warn("Invalid WS_THREADS value '{}', using default", env_threads);
                 thread_count = std::thread::hardware_concurrency();
-                if (thread_count == 0) thread_count = 1;
+                if (thread_count == 0)
+                    thread_count = 1;
             }
         } else {
             thread_count = std::thread::hardware_concurrency();
-            if (thread_count == 0) thread_count = 1;  // fallback if hardware_concurrency fails
+            if (thread_count == 0)
+                thread_count = 1; // fallback if hardware_concurrency fails
         }
     }
 
