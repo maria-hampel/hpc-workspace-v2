@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
     int addtimeexpired = 0;
     bool listexpired = false;
     bool dryrun = true;
-    std::time_t date;
+    std::time_t date = 0;
     // bool verbose = false;
 
     po::variables_map opts;
@@ -275,7 +275,7 @@ int main(int argc, char** argv) {
         // Use thread pool to collect entries in parallel
         global_pool
             .submit_loop(0, matchlist.size(),
-                         [db = db.get(), &matchlist, &entrylist](size_t i) {
+                         [db = db.get(), &matchlist, &entrylist, listexpired](size_t i) {
                              try {
                                  std::unique_ptr<DBEntry> entry(db->readEntry(matchlist[i], listexpired));
                                  // if entry is valid
