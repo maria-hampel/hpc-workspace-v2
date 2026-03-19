@@ -153,16 +153,15 @@ target_link_libraries(ws_stat
 add_executable(ws_editdb
     ws_editdb.cpp
 )
+target_include_directories(ws_editdb PRIVATE ${CMAKE_SOURCE_DIR}/external/thread-pool/include)
 target_link_libraries(ws_editdb
     PRIVATE
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
         spdlog
+        Threads::Threads
 )
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(ws_editdb PRIVATE OpenMP::OpenMP_CXX)
-endif()
 
 add_executable(ws_send_ical
     ws_send_ical.cpp
