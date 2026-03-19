@@ -141,7 +141,8 @@ bool Config::validate() {
         spdlog::warn("No adminmail in config!");
     }
     if (global.maxuserworkspaces == 0) {
-        spdlog::debug("maxuserworkspaces not set, using 0 (no limit)");
+        if (debugflag)
+            spdlog::debug("maxuserworkspaces not set, using 0 (no limit)");
     }
     // SPEC:CHANGE: require default workspace
     if (global.defaultWorkspace.empty()) {
