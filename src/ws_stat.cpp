@@ -77,7 +77,7 @@ bool debugflag = false;
 bool traceflag = false;
 bool verbose = false;
 int debuglevel = 0;
-unsigned int thread_count = 0;  // 0 = default (hardware_concurrency)
+unsigned int thread_count = 0; // 0 = default (hardware_concurrency)
 
 // result type for stat collection
 struct stat_result {
@@ -110,9 +110,7 @@ struct stat_return getfilesize(const cppfs::path& path) {
     }
 }
 
-// Global bshoshany thread pool instances
-// global_pool: used for internal parallel operations (database processing, etc.)
-// workspace_pool: used for workspace-level parallelization
+// Global bshoshany thread pool instance for workspace-level parallelization
 using ThreadPool = BS::thread_pool<BS::tp::none>;
 
 // Mutex for synchronizing output from multiple threads
@@ -186,7 +184,6 @@ void parallel_stat(AtomicStatResult& result, const cppfs::path& path) {
         process_files_batch(all_files, result);
     }
 
-    result.files.fetch_add(all_files.size(), std::memory_order_relaxed);
     result.directories.fetch_add(total_directories, std::memory_order_relaxed);
     result.softlinks.fetch_add(total_softlinks, std::memory_order_relaxed);
 }
@@ -286,18 +283,21 @@ int main(int argc, char** argv) {
         if (env_threads != nullptr && std::string(env_threads) != "") {
             try {
                 thread_count = std::stoul(env_threads);
-                if (thread_count == 0) thread_count = 1;
+                if (thread_count == 0)
+                    thread_count = 1;
                 if (debugflag) {
                     spdlog::debug("Using WS_THREADS={} from environment", thread_count);
                 }
             } catch (...) {
                 spdlog::warn("Invalid WS_THREADS value '{}', using default", env_threads);
                 thread_count = std::thread::hardware_concurrency();
-                if (thread_count == 0) thread_count = 1;
+                if (thread_count == 0)
+                    thread_count = 1;
             }
         } else {
             thread_count = std::thread::hardware_concurrency();
-            if (thread_count == 0) thread_count = 1;  // fallback if hardware_concurrency fails
+            if (thread_count == 0)
+                thread_count = 1; // fallback if hardware_concurrency fails
         }
     }
 
@@ -416,16 +416,14 @@ int main(int argc, char** argv) {
 
     std::locale::global(std::locale("en_US.UTF-8"));
 
-    // Initialize thread pools with custom thread count
-    if (debugflag) {
-        spdlog::debug("Creating thread pools with {} threads", thread_count);
-    }
-    ThreadPool global_pool(thread_count);
-    ThreadPool workspace_pool(thread_count);
-
     // Process workspaces - parallel at workspace level, serial within each workspace
     // This avoids nested parallelism deadlock while providing good performance
     if (!sort && entrylist.size() > 1) {
+        // Initialize thread pools with custom thread count
+        ThreadPool workspace_pool(thread_count);
+        if (debugflag) {
+            spdlog::debug("Creating thread pool with {} threads", thread_count);
+        }
         // Use workspace_pool for parallel workspace processing
         workspace_pool
             .submit_loop(0, entrylist.size(),
