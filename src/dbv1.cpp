@@ -368,9 +368,9 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
     }
 
     if (debugflag) {
-        spdlog::debug("creation={} released={} expiration={} reminder={} workspace={} extensions={} "
+        spdlog::debug("  id={} creation={} released={} expiration={} reminder={} workspace={} extensions={} "
                       "mailaddress={} comment={} group={}",
-                      creation, released, expiration, reminder, workspace, extensions, mailaddress, comment, group);
+                      id, creation, released, expiration, reminder, workspace, extensions, mailaddress, comment, group);
     }
 }
 
