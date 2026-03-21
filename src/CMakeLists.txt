@@ -1,5 +1,4 @@
 find_package(CURL)
-find_package(OpenMP)
 find_package(Threads REQUIRED)
 
 # Check for C++17 thread support
