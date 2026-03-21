@@ -242,7 +242,9 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 
                 for (auto const& f : filelist) {
                     // optimization: check if owner (from filename) has common groups with caller. if not, do not read
-                    if (!groupintersection.hasCommonGroups(utils::splitString(f, '-')[0]))
+                    // only take shortcut if username does not contain - (->2 fields in ID)
+                    auto parts = utils::splitString(f, '-');
+                    if (parts.size() == 2 && !groupintersection.hasCommonGroups(parts[0]))
                         continue;
 
 #ifndef WS_RAPIDYAML_DB
