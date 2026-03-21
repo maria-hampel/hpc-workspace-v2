@@ -47,5 +47,5 @@ including internals.
 - no python dependency, more C++ tools with higher speed and consistent behaviour
 - some tools use threading
 - abstraction of the DB, allowing easier tool development and will allow new functionality in DB in a coming version, planned is more privacy through better isolation of users/groups
-- added dependencies to Catch2, curl, fmt, GSL, rapidyaml, spdlog
+- added dependencies to Catch2, curl, fmt, GSL, rapidyaml, spdlog, bshoshany/thread-pool
 - curl and boost have to be installed from distribution, all others are compiled as part of building hpc-workspace-v2
