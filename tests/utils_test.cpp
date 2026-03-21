@@ -13,10 +13,8 @@ bool debugflag = false;
 bool traceflag = false;
 int debuglevel = 0;
 
-TEST_CASE("utils", "[utils]")
-{
-    SECTION("parceACL")
-    {
+TEST_CASE("utils", "[utils]") {
+    SECTION("parceACL") {
         auto m = utils::parseACL({"-a", "+abc:list,create", "-z", "c", "-y"});
         REQUIRE(m["a"].first == "-");
         REQUIRE(m["abc"].first == "+");
@@ -28,39 +26,34 @@ TEST_CASE("utils", "[utils]")
         REQUIRE(m["abc"].second == std::vector<int>{ws::LIST, ws::CREATE});
     }
 
-    SECTION("rmtree")
-    {
+    SECTION("rmtree") {
         fs::create_directories("/tmp/_wsTT/a/a/a/a");
         fs::create_directories("/tmp/_wsTT/a/a/a/b");
-        REQUIRE( fs::exists("/tmp/_wsTT") );
+        REQUIRE(fs::exists("/tmp/_wsTT"));
         utils::rmtree("/tmp/_wsTT");
         REQUIRE(fs::exists("/tmp/_wsTT") == false);
     }
 
-    SECTION("prettySize")
-    {
+    SECTION("prettySize") {
         REQUIRE(utils::prettyBytes(100) == "100 B");
         REQUIRE(utils::prettyBytes(1000) == "1 KB");
         REQUIRE(utils::prettyBytes(1500000) == "1.5 MB");
     }
 
-    SECTION("trimright")
-    {
+    SECTION("trimright") {
         REQUIRE(utils::trimright("- \n") == std::string("-"));
         REQUIRE(utils::trimright(std::string("- \n")) == std::string("-"));
         REQUIRE(utils::trimright(" ") == "");
     }
 
-    SECTION("ctime")
-    {
+    SECTION("ctime") {
         auto t = 1754337449L;
         REQUIRE(utils::ctime(&t) == std::string("Mon Aug  4 21:57:29 2025"));
     }
 
-    SECTION("mail")
-    {
+    SECTION("mail") {
         REQUIRE(utils::generateToHeader({"a"}) == std::string("a"));
-        REQUIRE(utils::generateToHeader({"a","b","c"}) == std::string("a, b, c"));
+        REQUIRE(utils::generateToHeader({"a", "b", "c"}) == std::string("a, b, c"));
 
         REQUIRE(utils::generateMessageID(".test") != utils::generateMessageID(".test"));
     }
@@ -123,5 +116,4 @@ TEST_CASE("utils", "[utils]")
         REQUIRE(utils::isValidEmail("user}test@example.com"));
         REQUIRE(utils::isValidEmail("user~test@example.com"));
     }
-
 }

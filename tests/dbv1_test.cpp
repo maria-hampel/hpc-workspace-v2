@@ -10,8 +10,7 @@ bool debugflag = false;
 bool traceflag = false;
 int debuglevel = 0;
 
-TEST_CASE("Database v1 yaml parser", "[dbv1]")
-{
+TEST_CASE("Database v1 yaml parser", "[dbv1]") {
 
     DBEntryV1 entry(nullptr);
 
@@ -25,8 +24,7 @@ mailaddress: ""
 comment: ""
 )yaml"});
 
-    SECTION("readentry")
-    {
+    SECTION("readentry") {
         REQUIRE(entry.getWSPath() == "/a/path");
         REQUIRE(entry.getExpiration() == 1734701876);
         REQUIRE(entry.getExtension() == 3);

@@ -25,8 +25,7 @@ Cap caps{};
 
 ////// MULTIPLE FILES ///////
 
-TEST_CASE("config file: multiple files and order", "[config]")
-{
+TEST_CASE("config file: multiple files and order", "[config]") {
     auto tmpbase = fs::temp_directory_path();
     auto id = getpid();
     auto basedirname = tmpbase / fs::path(fmt::format("wstest{}", id));
@@ -131,8 +130,7 @@ workspaces:
 )yaml");
     wsconf3.close();
 
-    SECTION("readconfig")
-    {
+    SECTION("readconfig") {
 
         auto config = Config(std::vector<fs::path>{basedirname / "ws.conf"});
 
@@ -181,11 +179,9 @@ workspaces:
 
 /////  PERMISSIONS AND ORDER /////
 
-TEST_CASE("config file: permissions and order", "[config]")
-{
+TEST_CASE("config file: permissions and order", "[config]") {
 
-    SECTION("canFind")
-    {
+    SECTION("canFind") {
         REQUIRE(canFind(std::vector<string>{"a", "b"}, string("a")) == true);
         REQUIRE(canFind(std::vector<string>{"a", "b"}, string("b")) == true);
         REQUIRE(canFind(std::vector<string>{"a"}, string("a")) == true);
@@ -194,8 +190,7 @@ TEST_CASE("config file: permissions and order", "[config]")
         REQUIRE(canFind(std::vector<string>{}, string("c")) == false);
     }
 
-    SECTION("validFilesystems")
-    {
+    SECTION("validFilesystems") {
         auto config = Config(std::string(R"(
 default: third
 admins: [e]
@@ -250,8 +245,7 @@ filesystems:
                 std::vector<string>{"third", "first", "fourth", "second"});
     }
 
-    SECTION("hasAccess")
-    {
+    SECTION("hasAccess") {
         auto config = Config(std::string(R"(
 admins: [d]
 dbuid: 2
@@ -293,8 +287,7 @@ filesystems:
         REQUIRE(config.hasAccess("y", std::vector<string>{"cg", "dg"}, "testacl", ws::CREATE) == true);
     }
 
-    SECTION("isAdmin")
-    {
+    SECTION("isAdmin") {
         auto config = Config(std::string(R"(
 admins: [d]
 dbuid: 2
@@ -320,8 +313,7 @@ filesystems:
     }
 }
 
-TEST_CASE("config file: full sample", "[config]")
-{
+TEST_CASE("config file: full sample", "[config]") {
 
     auto config = Config(std::string(R"(
 # this file illustrates and documents the workspace++ config files
@@ -366,8 +358,7 @@ workspaces:                     # now the list of the workspaces
     deleted: .trash
 )"));
 
-    SECTION("check config")
-    {
+    SECTION("check config") {
 
         REQUIRE(config.clustername() == "aName");
         REQUIRE(config.smtphost() == "localhost");
