@@ -58,9 +58,6 @@ no intention to support old platforms like centos7, but it might work.
 
 language level requirement might evolve from c++17 to c++20 if there is reasons.
 
-ws_list and ws_stat have a dependency to OpenMP, can be removed from CMakeList.txt
-if not available.
-
 ## Dependencies
 
 source is fetched and build as part of this tool:
@@ -69,6 +66,7 @@ source is fetched and build as part of this tool:
 - rapidyaml
 - Guidelines Support Library (GSL)
 - spdlog
+- bshoshany/thread-pool
 
 library taken from distribution
 - boost program_options + boost system
@@ -181,6 +179,12 @@ cmake --build build --target clang-format
 or - prefered - with presets
 ```
 cmake --build build --preset debug --target clang-format
+```
+
+or
+
+```
+cmake --build --preset format
 ```
 
 Using the dry-run option, you can check the compliance of a source code file without applying the style configuration.
