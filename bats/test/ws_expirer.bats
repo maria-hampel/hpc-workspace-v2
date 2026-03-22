@@ -61,12 +61,12 @@ setup() {
     ws_allocate --config bats/ws.conf EXPIRE_TEST 1
     ws_release --config bats/ws.conf EXPIRE_TEST
     run ws_expirer --config bats/ws.conf --forcedeletereleased
-    assert_output --regexp 'deleting DB.*-EXPIRE_TEST'
-    assert_output --regexp 'deleting directory.*-EXPIRE_TEST'
+    assert_output --regexp 'delete DB.*-EXPIRE_TEST'
+    assert_output --regexp 'delete directory.*-EXPIRE_TEST'
     assert_success
     run ws_expirer --config bats/ws.conf --forcedeletereleased -c
-    assert_output --regexp 'deleting DB.*-EXPIRE_TEST'
-    assert_output --regexp 'deleting directory.*-EXPIRE_TEST'
+    assert_output --regexp 'delete DB.*-EXPIRE_TEST'
+    assert_output --regexp 'delete directory.*-EXPIRE_TEST'
     assert_success
     run ws_list -e --config bats/ws.conf EXPIRE_TEST*
     refute_output --partial EXPIRE_TEST
@@ -108,7 +108,7 @@ setup() {
     ws_allocate --config bats/ws.conf -F ws1 TestWS 1
     ws_editdb --config bats/ws.conf --add-time -20 -p "*TestWS*" --not-kidding
     run ws_expirer --config bats/ws.conf -c
-    assert_output --regexp "keeping restorable.*-TestWS"
+    assert_output --regexp "keeping expired.*-TestWS"
 }
 
 @test "ws_expirer clean stray directories" {
@@ -151,8 +151,8 @@ setup() {
 
 @test "ws_expirer shows run start and end timestamps" {
     run ws_expirer --config bats/ws.conf
-    assert_output --regexp "WS_EXPIRER RUN START"
-    assert_output --regexp "WS_EXPIRER RUN END"
+    assert_output --regexp "WS_EXPIRER .*RUN START"
+    assert_output --regexp "WS_EXPIRER .*RUN END"
     assert_success
 }
 
@@ -225,7 +225,7 @@ setup() {
     assert_success
     # Run again - should keep the restorable workspace
     run ws_expirer --config bats/ws.conf -c
-    assert_output --regexp 'keeping restorable.*-KEEPTIME_TEST'
+    assert_output --regexp 'keeping expired.*-KEEPTIME_TEST'
     assert_success
 }
 
@@ -239,7 +239,7 @@ setup() {
     # Manually edit deleted DB entry to be beyond keeptime
     ws_editdb --config bats/ws.conf --not-kidding --expired --add-time-expired -10 "*BEYOND_KEEPTIME*"
     run ws_expirer --config bats/ws.conf -c
-    assert_output --regexp 'deleting DB.*BEYOND_KEEPTIME'
+    assert_output --regexp 'delete DB.*BEYOND_KEEPTIME'
     assert_success
 }
 
@@ -338,8 +338,8 @@ setup() {
     ws_editdb --config bats/ws.conf --not-kidding --expired --add-time -10 "*LOG_DELETE_TEST*"
     run ws_expirer --config bats/ws.conf -c --forcedeletereleased
     # Should show deletion info
-    assert_output --regexp 'deleting DB.*LOG_DELETE_TEST'
-    assert_output --regexp 'deleting directory'
+    assert_output --regexp 'delete DB.*LOG_DELETE_TEST'
+    assert_output --regexp 'delete directory'
     assert_success
 }
 
