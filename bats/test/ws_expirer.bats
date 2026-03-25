@@ -427,7 +427,7 @@ setup() {
 
 @test "ws_expirer email sending failure handled gracefully" {
     ws_allocate --config bats/ws.conf -r 1 -m ${USER}-NO@localhost EMAIL_FAIL_TEST 1
-    ws_editdb --config bats/ws.conf --not-kidding --add-time -1 EMAIL_FAIL_TEST
+    sleep 1
     run ws_expirer --config bats/ws.conf -c
     # Should continue processing even if email sending fails
     assert_output --partial "Failed to send email"
