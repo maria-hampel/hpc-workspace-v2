@@ -569,9 +569,17 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             spdlog::warn("  IGNORING released {} for {}", releasetime, id);
         }
 
-        if ((time((long*)0L) > (expiration + keeptime * 24 * 3600)) ||
-            (time((long*)0L) >= releasetime + releasekeeptime)) {
+        // Only use releasekeeptime if workspace was actually released by user
+        bool should_delete = false;
+        if (released > 1000000000L) {
+            // Released by user, use releasekeeptime
+            should_delete = (time((long*)0L) >= releasetime + releasekeeptime);
+        } else {
+            // Expired, use keeptime
+            should_delete = (time((long*)0L) > (expiration + keeptime * 24 * 3600));
+        }
 
+        if (should_delete) {
             result.deleted_ws++;
             spdlog::info(" {}delete DB entry {}, was {} {}", cleanermode ? "" : "would ", id, reason,
                          utils::ctime(&releasetime));
