@@ -655,6 +655,7 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, std::vec
 
     res = curl_easy_perform(curl);
 
+    // FIXME should an error be logged here if res != CURLE_OK? with spdlog:error, unconditionally?
     if (debugflag) {
         if (res == CURLE_OK) {
             spdlog::debug("Email sent successfully");
