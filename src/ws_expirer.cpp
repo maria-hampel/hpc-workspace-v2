@@ -559,7 +559,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
         auto released = dbentry->getReleaseTime(); // check if it was released by user, 0 if not
         if (debugflag) {
-            spdlog::debug("  released = {}, expiredtime (filename) = {}", released, releasetime);
+            spdlog::debug("  released = {}, expiredtime (filename) = {}, expiration = {}", utils::ctime(released), utils::ctime(releasetime), utils::ctime(expiration));
         }
         if (released > 1000000000L) { // released after 2001? if not ignore it
             releasetime = expiration = released;
@@ -593,7 +593,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             if (cleanermode) {
                 try {
                     // timeout is now + deldirtimeout;
-                    std::time_t deadline = std::time_t((std::time_t*)0L) + config.deldirtimeout();
+                    std::time_t deadline = std::time_t(std::time(nullptr)) + config.deldirtimeout();
+                    spdlog::info("   deadline: {}", deadline);
 
                     utils::rmtree(wspath.string(), deadline);
                 } catch (cppfs::filesystem_error& e) {
