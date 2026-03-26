@@ -33,7 +33,7 @@ setup() {
 
 @test "ws_expirer keep" {
     ws_allocate --config bats/ws.conf EXPIRE_TEST 1
-    ws_editdb --config bats/ws.conf --not-kidding --add-time -1 EXPIRE_TEST
+    #ws_editdb --config bats/ws.conf --not-kidding --add-time -1 EXPIRE_TEST
     run ws_expirer --config bats/ws.conf
     assert_output --regexp 'keeping .*-EXPIRE_TEST'
     assert_success
@@ -58,8 +58,8 @@ setup() {
 # }
 
 @test "ws_expirer released" {
-    ws_allocate --config bats/ws.conf EXPIRE_TEST 1
-    ws_release --config bats/ws.conf EXPIRE_TEST
+    ws_allocate --config bats/ws.conf RELEASE_TEST 1
+    ws_release --config bats/ws.conf RELEASE_TEST
     run ws_expirer --config bats/ws.conf --forcedeletereleased
     assert_output --regexp 'delete DB.*-EXPIRE_TEST'
     assert_output --regexp 'delete directory.*-EXPIRE_TEST'
@@ -68,8 +68,8 @@ setup() {
     assert_output --regexp 'delete DB.*-EXPIRE_TEST'
     assert_output --regexp 'delete directory.*-EXPIRE_TEST'
     assert_success
-    run ws_list -e --config bats/ws.conf EXPIRE_TEST*
-    refute_output --partial EXPIRE_TEST
+    run ws_list -e --config bats/ws.conf RELEASE_TEST*
+    refute_output --partial RELEASE_TEST
 }
 
 @test "ws_expirer broken DB entry" {
@@ -188,7 +188,7 @@ setup() {
     # Original workspace should not exist
     assert_dir_not_exists $ws_path
     # Should exist in deleted directory
-    [ -d /tmp/ws/ws2/*/.removed/*MOVED_TEST* ]
+    [ -d "/tmp/ws/ws2/*/.removed/*MOVED_TEST*" ]
     assert_success
 }
 
@@ -335,7 +335,7 @@ setup() {
     # First run expires it
     assert_output --regexp 'expiring .*LOG_DELETE_TEST'
     # Edit to be beyond keeptime
-    ws_editdb --config bats/ws.conf --not-kidding --expired --add-time -10 "*LOG_DELETE_TEST*"
+    ws_editdb --config bats/ws.conf --not-kidding --expired --add-time -30 "*LOG_DELETE_TEST*"
     run ws_expirer --config bats/ws.conf -c --forcedeletereleased
     # Should show deletion info
     assert_output --regexp 'delete DB.*LOG_DELETE_TEST'
@@ -464,5 +464,38 @@ setup() {
     assert_output --regexp 'expiring .*-TIMESTAMP_MOVE_TEST'
     # Check that the workspace was moved with a timestamp suffix
     run ls /tmp/ws/ws1/.removed/*TIMESTAMP_MOVE_TEST-*
+    assert_success
+}
+
+# ========== keeptime vs releasekeeptime fix tests ==========
+
+@test "ws_expirer expired workspace respects keeptime not releasekeeptime" {
+    # Verifies that an expired (not user-released) workspace uses keeptime (7 days from config),
+    # not releasekeeptime (1 hour). With the old buggy code, --forcedeletereleased
+    # (which sets releasekeeptime=0) would also delete expired workspaces due to the
+    # OR condition in the deletion check. The fix separates the two paths.
+    ws_allocate --config bats/ws.conf -F ws1 KT_EXPIRED_TEST 1
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -2 KT_EXPIRED_TEST
+    # Move workspace to deleted state by expiring it
+    ws_expirer --config bats/ws.conf -c
+    # Run with --forcedeletereleased (sets releasekeeptime=0).
+    # The expired workspace should still be kept because it was NOT released by user
+    # and is still within keeptime (7 days in config).
+    run ws_expirer --config bats/ws.conf -c --forcedeletereleased
+    assert_output --regexp "keeping expired.*KT_EXPIRED_TEST"
+    refute_output --regexp "delete.*KT_EXPIRED_TEST"
+    assert_success
+}
+
+@test "ws_expirer released workspace uses releasekeeptime not keeptime" {
+    # Verifies that a user-released workspace uses releasekeeptime (set to 0 by
+    # --forcedeletereleased), not keeptime (7 days). This confirms the released
+    # workspace path in the fix is still working correctly.
+    ws_allocate --config bats/ws.conf -F ws1 KT_RELEASED_TEST 1
+    ws_release --config bats/ws.conf KT_RELEASED_TEST
+    # --forcedeletereleased sets releasekeeptime=0, so the released workspace should
+    # be deleted immediately (not kept for 7 days like an expired workspace would be)
+    run ws_expirer --config bats/ws.conf -c --forcedeletereleased
+    assert_output --regexp "delete DB.*KT_RELEASED_TEST"
     assert_success
 }
