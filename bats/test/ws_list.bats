@@ -269,7 +269,7 @@ ws1"
     run ws_list --config bats/ws.conf fsname
     assert_output --partial "filesystem name"
     assert_success
-    ws_release --config bats/ws.conf fsname
+    ws_release --config bats/ws.conf fsname 
 }
 
 @test "ws_list shows available extensions" {

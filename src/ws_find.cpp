@@ -88,8 +88,8 @@ int main(int argc, char** argv) {
         ("help,h", "produce help message")
         ("version,V", "show version")
         ("filesystem,F", po::value<string>(&filesystem), "filesystem to search workspaces in")
-        ("group,g", "enable search for group workspaces")
-        ("user,u", po::value<string>(&user), "only show workspaces for selected user")
+        ("groupname,g", "enable search for group workspaces")
+        ("username,u", po::value<string>(&user), "only show workspaces for selected user")
         ("name,n", po::value<string>(&name), "workspace name to search for")
         ("config", po::value<string>(&configfile), "config file");
     // clang-format on
