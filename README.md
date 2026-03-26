@@ -94,7 +94,7 @@ for testing:
 - [x] ws_prepare (new in C++)
 
 
-## Todo
+## Todo before release candidate
 
 - [x] move from single file ws.conf to multifile ws.d
 - [x] migrate config from yaml-cpp to ryaml and remove yaml-cpp dependency (on hold for the moment, uses both)
@@ -111,11 +111,14 @@ for testing:
 - [x] remove tbb dependency
 - [x] migrate and check/correct/add documentation, guides and man pages
 - [x] test with more compilers and distributions
-- [x] do real live tests
-- [ ] define and implement new DB format
+- [ ] do real live tests and fix bugs
+- [ ] ws_editdb manpage
 - [ ] bash completion
+- [ ] keep externals download? or use package manager like vcpkg or conan? (vcpkg does now support rapidyaml)
 - [ ] installation tool? installation through CMake?
-- [ ] keep externals download? or use package manager like vcpkg or conan? (vcpkg does not support rapidyaml)
+
+## Future
+- [ ] define and implement new DB format
 
 ## Input and ideas and contributions needed
 
