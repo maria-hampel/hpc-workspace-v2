@@ -282,7 +282,7 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
 
         // set expiration to now so it gets deleted earlier after beeing released
         //   FIXME: this could be obsoleted later, releasad date assures this already?
-        dbentry->setExpiration(time(NULL));
+        // dbentry->setExpiration(time(NULL));
 
         // set released flag so released workspaces can be distinguished from expired ones,
         // update DB entry and move it
@@ -328,6 +328,11 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
                dbentry->getWSPath().c_str(), target.c_str());
 
         spdlog::info("workspace {} released.", name);
+        if (!deletedata) {
+            spdlog::info("workspace is still recoverable as --delete-data was not given.");
+        } else {
+            spdlog::info("workspace is not recoverable as --delete-data was given.");
+        }
 
         //
         // third remove data is requested

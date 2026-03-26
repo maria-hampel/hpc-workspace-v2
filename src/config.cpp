@@ -70,6 +70,7 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
     global.maxduration = 100;
     global.durationdefault = 30;
     global.reminderdefault = 0;
+    global.maxuserworkspaces = 0;
 
     bool filefound = false;
 
@@ -138,6 +139,10 @@ bool Config::validate() {
     if (global.adminmail.empty()) {
         valid = true;
         spdlog::warn("No adminmail in config!");
+    }
+    if (global.maxuserworkspaces == 0) {
+        if (debugflag)
+            spdlog::debug("maxuserworkspaces not set, using 0 (no limit)");
     }
     // SPEC:CHANGE: require default workspace
     if (global.defaultWorkspace.empty()) {

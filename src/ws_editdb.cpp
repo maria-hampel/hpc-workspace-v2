@@ -30,8 +30,13 @@
 
 #include <ctime>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <sstream>
+
+// Include bshoshany thread-pool
+#define BS_THREAD_POOL_NATIVE_EXTENSIONS
+#include "BS_thread_pool.hpp"
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -59,6 +64,12 @@ bool debugflag = false;
 bool traceflag = false;
 int debuglevel = 0;
 
+// ThreadPool type alias
+using ThreadPool = BS::thread_pool<BS::tp::none>;
+
+// Mutex for synchronizing access to entrylist
+mutex entrylist_mutex;
+
 // helper for fmt::
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
@@ -77,7 +88,7 @@ int main(int argc, char** argv) {
     int addtimeexpired = 0;
     bool listexpired = false;
     bool dryrun = true;
-    std::time_t date;
+    std::time_t date = 0;
     // bool verbose = false;
 
     po::variables_map opts;
@@ -189,7 +200,8 @@ int main(int argc, char** argv) {
     }
 
     if (!expireby.empty() || !ensureuntil.empty()) {
-        const std::string& datestr = !expireby.empty() ? fmt::format("{} 00:00:00",expireby) : fmt::format("{} 23:59:59", ensureuntil);
+        const std::string& datestr =
+            !expireby.empty() ? fmt::format("{} 00:00:00", expireby) : fmt::format("{} 23:59:59", ensureuntil);
 
         std::tm tm = {};
         std::istringstream ss(datestr);
@@ -240,7 +252,13 @@ int main(int argc, char** argv) {
 
     vector<std::unique_ptr<DBEntry>> entrylist;
 
-    // iterate over filesystems and print or create list to be sorted
+    // Initialize thread pool once for all filesystems
+    if (debugflag) {
+        spdlog::debug("Creating thread pool");
+    }
+    ThreadPool global_pool;
+
+    // iterate over filesystems and collect entries to be edited
     for (auto const& fs : fslist) {
         if (debugflag)
             spdlog::debug("loop over fslist {} in {}", fs, fslist);
@@ -252,21 +270,24 @@ int main(int argc, char** argv) {
             continue;
         }
 
-#pragma omp parallel for schedule(dynamic)
-        for (auto const& id : db->matchPattern(pattern, userpattern, {}, listexpired, false)) {
-            try {
-                std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
-                // if entry is valid
-                if (entry) {
-#pragma omp critical
-                    {
-                        entrylist.push_back(std::move(entry));
-                    }
-                }
-            } catch (DatabaseException& e) {
-                spdlog::error(e.what());
-            }
-        }
+        auto matchlist = db->matchPattern(pattern, userpattern, {}, listexpired, false);
+
+        // Use thread pool to collect entries in parallel
+        global_pool
+            .submit_loop(0, matchlist.size(),
+                         [db = db.get(), &matchlist, &entrylist, listexpired](size_t i) {
+                             try {
+                                 std::unique_ptr<DBEntry> entry(db->readEntry(matchlist[i], listexpired));
+                                 // if entry is valid
+                                 if (entry) {
+                                     lock_guard<mutex> lock(entrylist_mutex);
+                                     entrylist.push_back(std::move(entry));
+                                 }
+                             } catch (DatabaseException& e) {
+                                 spdlog::error(e.what());
+                             }
+                         })
+            .wait();
 
     } // loop over fs
 
@@ -274,7 +295,7 @@ int main(int argc, char** argv) {
         fmt::println("Actions that would be performed on the workspaces selected:");
 
     for (const auto& entry : entrylist) {
-        if (debugflag){
+        if (debugflag) {
             spdlog::debug("Id: {} ({})", entry->getId(), entry->getWSPath());
         }
 

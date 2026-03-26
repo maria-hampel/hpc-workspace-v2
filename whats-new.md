@@ -12,9 +12,9 @@ including internals.
 
 - `ws_list` is a lot faster due to no python startup and faster listing and reading of DB
 - `ws_list -g` is a lot faster as it does only read DB entries of owners sharing a group
-- `ws_list -L` shows information aboit workspaces, including permissions and a comment given bu administrator
+- `ws_list -L` shows information about avaible filesystems, including permissions and a comment given bu administrator
 - `/etc/ws.d` is primary location of config, files are read in alphabetical order and merged, if no files there,
-`/etc/ws.conf` is read
+`/etc/ws.conf` is read as fallbackt for compatibility
 - `ws_release --delete-data` to wipe data while releasing a workspace (also in v1 since a while)
 - `ws_restore --delete-data` to wipe data from an released or expired workspaces to reclaim disk space
 - `ws_restore -l` takes an optional globbing pattern argument
@@ -45,7 +45,7 @@ including internals.
 - more tests
 - CI pipeline
 - no python dependency, more C++ tools with higher speed and consistent behaviour
-- some tools use OpenMP parallelism
+- some tools use threading
 - abstraction of the DB, allowing easier tool development and will allow new functionality in DB in a coming version, planned is more privacy through better isolation of users/groups
-- added dependencies to Catch2, curl, fmt, GSL, rapidyaml, spdlog
+- added dependencies to Catch2, curl, fmt, GSL, rapidyaml, spdlog, bshoshany/thread-pool
 - curl and boost have to be installed from distribution, all others are compiled as part of building hpc-workspace-v2

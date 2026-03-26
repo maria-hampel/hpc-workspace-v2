@@ -11,20 +11,17 @@ bool debugflag = false;
 bool traceflag = false;
 int debuglevel = 0;
 
-TEST_CASE("Caps", "[capabilities]")
-{
+TEST_CASE("Caps", "[capabilities]") {
 
     Cap caps{}; // default constructor without arguments
 
-    SECTION("check interfaces are present and callable")
-    {
+    SECTION("check interfaces are present and callable") {
         [[maybe_unused]] bool issetuid = caps.isSetuid();     // isSetuid()
         [[maybe_unused]] bool hascaps = caps.hasCaps();       // hasCaps()
         [[maybe_unused]] bool isusermode = caps.isUserMode(); // isUserMode()
     }
 
-    SECTION("check cap drop is present and callable")
-    {
+    SECTION("check cap drop is present and callable") {
         caps.drop_caps({CAP_DAC_OVERRIDE, CAP_CHOWN, CAP_FOWNER}, getuid(),
                        utils::SrcPos(__FILE__, __LINE__, __func__));
     }

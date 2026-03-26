@@ -298,7 +298,7 @@ int countWorkspaces(const Config& config, const std::string username, const std:
     vector<std::unique_ptr<Database>> dblist;
     std::unique_ptr<Database> db;
 
-    // iterate over filesystems and print or create list to be sorted
+    // iterate over filesystems
     for (auto const& fs : fslist) {
         if (debugflag)
             spdlog::debug("loop over fslist {} in {}", fs, fslist);
@@ -310,7 +310,6 @@ int countWorkspaces(const Config& config, const std::string username, const std:
             continue;
         }
 
-        // get list before loop to prevent matching per thread
         auto matchlist = db->matchPattern("*", "*", grouplist, false, false);
         counter += matchlist.size();
     }

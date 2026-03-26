@@ -295,6 +295,7 @@ setup() {
     mkdir -p "$WSPATH"/dir1
     touch "$WSPATH"/file1.txt
     touch "$WSPATH"/file2.txt
+    rm -f "$WSPATH"/link1 2>/dev/null
     ln -s "$WSPATH"/file1.txt "$WSPATH"/link1
     run ws_stat --config bats/ws.conf MIXEDTEST
     assert_output --partial "files               : 2"

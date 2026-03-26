@@ -480,7 +480,7 @@ auto parseACL(const std::vector<std::string> acl) -> std::map<std::string, std::
 // delete path be deleting contents and deleting path itself
 void rmtree(std::string path, std::time_t deadline) {
     if (traceflag) {
-        spdlog::trace("rmtree({})", path);
+        spdlog::trace("rmtree({}, {})", path, deadline);
     }
 
     struct stat orig_stat, new_stat;
@@ -655,6 +655,7 @@ bool sendCurl(const std::string& smtpUrl, const std::string& mail_from, std::vec
 
     res = curl_easy_perform(curl);
 
+    // FIXME should an error be logged here if res != CURLE_OK? with spdlog:error, unconditionally?
     if (debugflag) {
         if (res == CURLE_OK) {
             spdlog::debug("Email sent successfully");
@@ -759,7 +760,7 @@ static size_t readEmailCallback(void* ptr, size_t size, size_t nmemb, void* user
 // deadline==0 disables the deadline
 static void rmtree_fd(int topfd, std::string path, const std::time_t deadline) {
     if (traceflag) {
-        spdlog::trace("rmtree_fd({}, {})", topfd, path);
+        spdlog::trace("rmtree_fd({}, {}, {})", topfd, path, deadline);
     }
 
     // check for deadline

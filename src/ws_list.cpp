@@ -6,15 +6,14 @@
  *  - tool to list workspaces
  *    changes to workspace++:
  *      - c++ implementation (not python anymore)
- *      - option to run in parallel (PARALLEL CMake flag),
- *        which helps to hide network latency of parallel filesystems
- *        needs as of 2024 openmp support
+ *      - runs in parallel using a thread pool
+ *        helps to hide network latency of parallel filesystems
  *      - fast YAML reader with rapidyaml
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024,2025
+ *  (c) Holger Berger 2021,2023,2024,2025,2026
  *  (c) Christoph Niethammer 2025
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
@@ -34,8 +33,14 @@
  *
  */
 
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
+#include <mutex>
+
+// Include bshoshany thread-pool
+#define BS_THREAD_POOL_NATIVE_EXTENSIONS
+#include "BS_thread_pool.hpp"
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -44,7 +49,7 @@
 #include "db.h"
 #include "fmt/base.h"
 #include "fmt/color.h"
-#include "fmt/format.h"
+#include "fmt/format.h" // IWYU pragma: keep
 #include "fmt/ostream.h"
 #include "fmt/ranges.h" // IWYU pragma: keep
 #include "user.h"
@@ -59,17 +64,27 @@
 Cap caps{};
 
 namespace po = boost::program_options;
+namespace cppfs = std::filesystem;
+
 using namespace std;
 
 bool debugflag = false;
 bool traceflag = false;
 int debuglevel = 0;
+unsigned int thread_count = 0; // 0 = default (hardware_concurrency)
+
+// ThreadPool type alias
+using ThreadPool = BS::thread_pool<BS::tp::none>;
+
+// Mutex for synchronizing output from multiple threads
+static mutex print_entry_mtx;
 
 // helper for fmt::
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
 // print entry in traditional format, one below each other, multiline
 void print_entry(const DBEntry* entry, const bool verbose, const bool terse, const bool permissions) {
+    lock_guard<mutex> lock(print_entry_mtx);
     long remaining = entry->getExpiration() - time(0L);
 
     if (entry->getConfig()->isAdmin(user::getUsername())) {
@@ -81,6 +96,8 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
     fmt::println("    workspace directory  : {}", entry->getWSPath());
     if (remaining < 0) {
         fmt::println("    remaining time       : {}", "expired");
+    } else if (entry->getReleaseTime() > 0) {
+        fmt::println("    remaining time       : {}", "released");
     } else {
         fmt::println("    remaining time       : {} days, {} hours", remaining / (24 * 3600),
                      (remaining % (24 * 3600)) / 3600);
@@ -93,6 +110,8 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
         fmt::println("    expiration time      : {}", utils::ctime(entry->getExpiration()));
         if (entry->getExpired() > 0)
             fmt::println("    expired time         : {}", utils::ctime(entry->getExpired()));
+        if (entry->getReleaseTime() >0)
+            fmt::println("    release time         : {}", utils::ctime(entry->getReleaseTime()));
         if (entry->getGroup() != "")
             fmt::println("    group                : {}", entry->getGroup());
         fmt::println("    filesystem name      : {}", entry->getFilesystem());
@@ -116,6 +135,7 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
     static bool headerprinted = false;
     static bool color_checked = false;
     static bool color_output = true;
+    static mutex mtx; // protect static variables
 
     long remaining = entry->getExpiration() - time(0L);
 
@@ -126,16 +146,23 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
         ID = utils::getID(user::getUsername(), entry->getId());
     }
 
-    if (!color_checked) {
-        color_checked = true;
-        const char* no_color = std::getenv("NO_COLOR");
-        if (no_color != nullptr && no_color[0] != '\0')
-            color_output = false;
-        if (!isatty(STDOUT_FILENO))
-            color_output = false;
+    // Check color support (thread-safe with mutex)
+    {
+        lock_guard<mutex> lock(mtx);
+        if (!color_checked) {
+            color_checked = true;
+            const char* no_color = std::getenv("NO_COLOR");
+            if (no_color != nullptr && no_color[0] != '\0')
+                color_output = false;
+            if (!isatty(STDOUT_FILENO))
+                color_output = false;
+        }
     }
 
+#pragma GCC diagnostic push                            // save the actual diag context
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized" // disable maybe warnings
     fmt::color remaincolor;
+
     if (color_output) {
         if (remaining / (24 * 3600) < 3)
             remaincolor = fmt::color::red;
@@ -146,6 +173,7 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
     }
 
     if (terse) {
+        lock_guard<mutex> lock(mtx);
         if (!headerprinted) {
             headerprinted = true;
             fmt::println("{:<30} {:<50} {:<9}", "ID", "PATH", "REMAINING");
@@ -157,6 +185,7 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
         else
             fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(), remaining / (24 * 3600));
     } else {
+        lock_guard<mutex> lock(mtx);
         if (!headerprinted) {
             headerprinted = true;
             fmt::println("{:<30} {:<50} {:<25} {:10} {:<9}", "ID", "PATH", "EXPIRATION", "EXTENSIONS", "REMAINING");
@@ -170,6 +199,7 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
             fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(),
                          utils::ctime(entry->getExpiration()), entry->getExtension(), remaining / (24 * 3600));
     }
+#pragma GCC diagnostic pop
 }
 
 int main(int argc, char** argv) {
@@ -223,7 +253,8 @@ int main(int argc, char** argv) {
         ("config", po::value<string>(&configfile), "config file")
         ("pattern,p", po::value<string>(&pattern), "pattern matching name (glob syntax)")
         ("permissions,P", "list permissions of workspace directory")
-        ("verbose,v", "verbose listing");
+        ("verbose,v", "verbose listing")
+        ("threads,n", po::value<unsigned int>(&thread_count)->default_value(0), "number of threads to use (default: hardware_concurrency, override with WS_THREADS env var)");
     // clang-format on
 
     po::options_description secret_options("Secret");
@@ -266,7 +297,37 @@ int main(int argc, char** argv) {
     debugflag = opts.count("debug");
     traceflag = opts.count("trace");
 
+    // thread count: CLI option overrides WS_THREADS env variable, which overrides default
+    if (thread_count == 0) {
+        const char* env_threads = std::getenv("WS_THREADS");
+        if (env_threads != nullptr && std::string(env_threads) != "") {
+            try {
+                thread_count = std::stoul(env_threads);
+                if (thread_count == 0)
+                    thread_count = 1;
+                if (debugflag) {
+                    spdlog::debug("Using WS_THREADS={} from environment", thread_count);
+                }
+            } catch (...) {
+                spdlog::warn("Invalid WS_THREADS value '{}', using default", env_threads);
+                thread_count = std::thread::hardware_concurrency();
+                if (thread_count == 0)
+                    thread_count = 1;
+            }
+        } else {
+            thread_count = std::thread::hardware_concurrency();
+            if (thread_count == 0)
+                thread_count = 1; // fallback if hardware_concurrency fails
+        }
+    }
+
     // handle options exiting here
+
+    // Initialize thread pool with custom thread count
+    if (debugflag) {
+        spdlog::debug("Creating thread pool with {} threads", thread_count);
+    }
+    ThreadPool global_pool(thread_count);
 
     if (opts.count("help")) {
         fmt::print(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
@@ -364,9 +425,10 @@ int main(int argc, char** argv) {
             fslist = validfs;
         }
 
+        // Collect all entries from all filesystems
         vector<std::unique_ptr<DBEntry>> entrylist;
         vector<std::unique_ptr<Database>> dblist;
-        std::unique_ptr<Database> db;
+        mutex mtx; // protect entrylist and output
 
         // iterate over filesystems and print or create list to be sorted
         for (auto const& fs : fslist) {
@@ -374,46 +436,49 @@ int main(int argc, char** argv) {
                 spdlog::debug("loop over fslist {} in {}", fs, fslist);
 
             try {
-                db = std::unique_ptr<Database>(config.openDB(fs));
+                auto db = std::unique_ptr<Database>(config.openDB(fs));
+                auto matchlist = db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups);
+
+                // Use bshoshany's parallel loop for database processing
+                global_pool
+                    .submit_loop(0, matchlist.size(),
+                                 [db = db.get(), &matchlist, &entrylist, &mtx, listexpired, sort, shortlisting,
+                                  tableformat, permissions, terselisting, verbose](size_t i) {
+                                     try {
+                                         auto entry = db->readEntry(matchlist[i], listexpired);
+                                         // if entry is valid
+                                         if (entry) {
+                                             lock_guard<mutex> lock(mtx);
+                                             if (sort) {
+                                                 // Store for sorting
+                                                 entrylist.push_back(std::move(entry));
+                                             } else {
+                                                 // Print directly
+                                                 if (shortlisting) {
+                                                     lock_guard<mutex> out_lock(print_entry_mtx);
+                                                     fmt::println(entry->getId());
+                                                 } else {
+                                                     if (!tableformat)
+                                                         print_entry(entry.get(), verbose, terselisting, permissions);
+                                                     else
+                                                         print_entry_tableformat(entry.get(), verbose, terselisting,
+                                                                                 permissions);
+                                                 }
+                                             }
+                                         }
+                                     } catch (DatabaseException& e) {
+                                         spdlog::error(e.what());
+                                     }
+                                 })
+                    .wait();
+
+                // Keep the database alive until all entries are processed
+                dblist.push_back(std::move(db));
+
             } catch (DatabaseException& e) {
                 spdlog::error(e.what());
-                continue;
             }
-
-            // get list before loop to prevent matching per thread
-            auto matchlist = db->matchPattern(pattern, userpattern, grouplist, listexpired, listgroups);
-
-#pragma omp parallel for schedule(dynamic)
-            for (auto const& id : matchlist) {
-                try {
-                    std::unique_ptr<DBEntry> entry(db->readEntry(id, listexpired));
-                    // if entry is valid
-                    if (entry) {
-#pragma omp critical
-                        {
-                            // if no sorting, print, otherwise append to list
-                            if (!sort) {
-                                if (shortlisting) {
-                                    fmt::println(entry->getId()); // FIXME:: correct for root/admin?
-                                } else {
-                                    if (!tableformat)
-                                        print_entry(entry.get(), verbose, terselisting, permissions);
-                                    else
-                                        print_entry_tableformat(entry.get(), verbose, terselisting, permissions);
-                                }
-                            } else {
-                                entrylist.push_back(std::move(entry));
-                            }
-                        }
-                    }
-                } catch (DatabaseException& e) {
-                    spdlog::error(e.what());
-                }
-            }
-
-            dblist.push_back(std::move(db));
-
-        } // loop over fs
+        }
 
         // in case of sorted output, sort and print here
         if (sort) {
@@ -446,4 +511,5 @@ int main(int argc, char** argv) {
             }
         }
     }
+    return 0;
 }

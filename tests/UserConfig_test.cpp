@@ -7,11 +7,9 @@ bool debugflag = false;
 bool traceflag = false;
 int debuglevel = 0;
 
-TEST_CASE("User config yaml format", "[userconfig]")
-{
+TEST_CASE("User config yaml format", "[userconfig]") {
 
-    SECTION("user config reads all fields")
-    {
+    SECTION("user config reads all fields") {
         std::string userconf =
             R"yaml(
 mail: address@mail.com
@@ -28,8 +26,7 @@ duration: 10
         REQUIRE(uc.getReminder() == 1);
     }
 
-    SECTION("user config with comment")
-    {
+    SECTION("user config with comment") {
         std::string userconf =
             R"yaml(#comment test
 mail: address@mail.com
@@ -46,8 +43,7 @@ duration: 10
         REQUIRE(uc.getReminder() == 1);
     }
 
-    SECTION("user config check defaults for empty config")
-    {
+    SECTION("user config check defaults for empty config") {
         std::string userconf =
             R"yaml(
 )yaml";
@@ -60,8 +56,7 @@ duration: 10
         REQUIRE(uc.getReminder() == -1);
     }
 
-    SECTION("user config ignores invalid email")
-    {
+    SECTION("user config ignores invalid email") {
 
         std::string userconf =
             R"yaml(
@@ -74,11 +69,9 @@ mail: 1-invalid_mail_address!
     }
 }
 
-TEST_CASE("User config old format", "[userconfig]")
-{
+TEST_CASE("User config old format", "[userconfig]") {
 
-    SECTION("user config reads single line valid email")
-    {
+    SECTION("user config reads single line valid email") {
         std::string userconf =
             R"(address@mail.com
 )";
@@ -88,8 +81,7 @@ TEST_CASE("User config old format", "[userconfig]")
         REQUIRE(uc.getMailaddress() == "address@mail.com");
     }
 
-    SECTION("user config ignores single line invalid email")
-    {
+    SECTION("user config ignores single line invalid email") {
         std::string userconf =
             R"(1-invalid_mail_address!
 )";

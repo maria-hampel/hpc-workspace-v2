@@ -242,7 +242,9 @@ vector<WsID> FilesystemDBV1::matchPattern(const string pattern, const string use
 
                 for (auto const& f : filelist) {
                     // optimization: check if owner (from filename) has common groups with caller. if not, do not read
-                    if (!groupintersection.hasCommonGroups(utils::splitString(f, '-')[0]))
+                    // only take shortcut if username does not contain - (->2 fields in ID)
+                    auto parts = utils::splitString(f, '-');
+                    if (parts.size() == 2 && !groupintersection.hasCommonGroups(parts[0]))
                         continue;
 
 #ifndef WS_RAPIDYAML_DB
@@ -366,9 +368,9 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
     }
 
     if (debugflag) {
-        spdlog::debug("creation={} released={} expiration={} reminder={} workspace={} extensions={} "
+        spdlog::debug("  id={} creation={} released={} expiration={} reminder={} workspace={} extensions={} "
                       "mailaddress={} comment={} group={}",
-                      creation, released, expiration, reminder, workspace, extensions, mailaddress, comment, group);
+                      id, creation, released, expiration, reminder, workspace, extensions, mailaddress, comment, group);
     }
 }
 
@@ -420,7 +422,27 @@ void DBEntryV1::readFromString(std::string str) {
     if (traceflag)
         spdlog::trace("readFromString_RAPIDYAML");
 
-    ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(str)); // FIXME: error check?
+    // Set up temporary error handler for parsing
+    ryml::Callbacks const prev_callbacks = ryml::get_callbacks();
+    ryml::Callbacks callbacks = {};
+
+    // Error handler that throws DatabaseException on parse errors
+    callbacks.m_error_parse = [](ryml::csubstr msg, ryml::ErrorDataParse const&, void*) {
+        throw DatabaseException("YAML parse error: " + std::string(msg.str, msg.len));
+    };
+    callbacks.set_user_data(nullptr);
+
+    // Also set basic error handler as fallback
+    callbacks.m_error_basic = [](ryml::csubstr msg, ryml::ErrorDataBasic const&, void*) {
+        throw DatabaseException("YAML error: " + std::string(msg.str, msg.len));
+    };
+
+    ryml::set_callbacks(callbacks);
+
+    ryml::Tree dbentry = ryml::parse_in_place(ryml::to_substr(str));
+
+    // Restore previous callbacks
+    ryml::set_callbacks(prev_callbacks);
 
     // error check, see if the file looks like yaml and is a map
     ryml::NodeRef node;

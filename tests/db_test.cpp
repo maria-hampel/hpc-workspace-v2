@@ -19,8 +19,7 @@ bool debugflag = false;
 bool traceflag = false;
 int debuglevel = 0;
 
-TEST_CASE("Database Test", "[db]")
-{
+TEST_CASE("Database Test", "[db]") {
 
     // create a stub/mockup  of everything
     //   - config
@@ -164,8 +163,7 @@ comment: ""
     std::unique_ptr<Database> db1(config.openDB("ws1"));
     std::unique_ptr<Database> db2(config.openDB("ws2"));
 
-    SECTION("list entries")
-    {
+    SECTION("list entries") {
 
         // test some patterns
         REQUIRE(db1->matchPattern("TEST*", "user1", vector<string>{}, false, false) == vector<string>{"user1-TEST1"});
@@ -187,8 +185,7 @@ comment: ""
                 vector<string>{"user2-TEST1"});
     }
 
-    SECTION("read entry")
-    {
+    SECTION("read entry") {
 
         std::unique_ptr<DBEntry> entry(db1->readEntry("user1-TEST1", false));
         REQUIRE(entry != nullptr);
@@ -206,8 +203,7 @@ comment: ""
         REQUIRE(entry4->getExtension() == 0);
     }
 
-    SECTION("modify entry")
-    {
+    SECTION("modify entry") {
 
         std::unique_ptr<DBEntry> entry(db1->readEntry("user1-TEST1", false));
         REQUIRE(entry->getExtension() == 1);
@@ -222,8 +218,7 @@ comment: ""
     }
 }
 
-TEST_CASE("workspace creation test", "[db]")
-{
+TEST_CASE("workspace creation test", "[db]") {
 
     // create a stub/mockup  of everything
     //   - config
