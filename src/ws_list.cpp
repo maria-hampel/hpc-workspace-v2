@@ -96,6 +96,8 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
     fmt::println("    workspace directory  : {}", entry->getWSPath());
     if (remaining < 0) {
         fmt::println("    remaining time       : {}", "expired");
+    } else if (entry->getReleaseTime() > 0) {
+        fmt::println("    remaining time       : {}", "released");
     } else {
         fmt::println("    remaining time       : {} days, {} hours", remaining / (24 * 3600),
                      (remaining % (24 * 3600)) / 3600);
@@ -108,6 +110,8 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
         fmt::println("    expiration time      : {}", utils::ctime(entry->getExpiration()));
         if (entry->getExpired() > 0)
             fmt::println("    expired time         : {}", utils::ctime(entry->getExpired()));
+        if (entry->getReleaseTime() >0)
+            fmt::println("    release time         : {}", utils::ctime(entry->getReleaseTime()));
         if (entry->getGroup() != "")
             fmt::println("    group                : {}", entry->getGroup());
         fmt::println("    filesystem name      : {}", entry->getFilesystem());
