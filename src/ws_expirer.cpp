@@ -150,7 +150,10 @@ void robust_rename(const cppfs::path src, const cppfs::path dest) {
     } catch (cppfs::filesystem_error& e) {
         if (e.code() == std::errc::cross_device_link) {
             spdlog::info("cross device rename, falling back to 'mv'");
-            utils::mv(src.c_str(), dest.c_str());
+            int ret = utils::mv(src.c_str(), dest.c_str());
+            if (ret != 0) {
+                spdlog::error("mv failed: {}", strerror(errno));
+            }
         }
     }
 }
