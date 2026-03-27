@@ -93,7 +93,7 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
 
     // define options without names
     po::positional_options_description p;
-    p.add("name", 1).add("duration", 2);
+    p.add("name", 1);
 
     po::options_description all_options;
     all_options.add(cmd_options).add(secret_options);
@@ -103,7 +103,7 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
         po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), opt);
         po::notify(opt);
     } catch (...) {
-        fmt::println(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "Usage: {} [options] workspace_name\n", argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
@@ -111,7 +111,7 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
     // see whats up
 
     if (opt.count("help")) {
-        fmt::println(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "Usage: {} [options] workspace_name\n", argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(0);
     }
@@ -131,12 +131,12 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
     if (opt.count("name")) {
         // cout << " name: " << name << "\n";
     } else {
-        fmt::println(stderr, "Usage: {} [options] workspace_name duration\n", argv[0]);
+        fmt::println(stderr, "Usage: {} [options] workspace_name\n", argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         exit(1);
     }
 
-    deletedata = opt.count("delete-data"); // FIXME: unused
+    deletedata = opt.count("delete-data");
 
     // globalflags
     debugflag = opt.count("debug");
@@ -155,8 +155,6 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
  *  validate parameters vs config file
  *
  *  return true if ok and false if not
- *
- *  changes duration and maxextensions, does return true if they are out of bounds
  */
 bool validateFs(const Config& config, const po::variables_map& opt, const std::string username) {
     if (traceflag)
@@ -184,7 +182,7 @@ bool validateFs(const Config& config, const po::variables_map& opt, const std::s
 bool release(const Config& config, const po::variables_map& opt, string filesystem, const string name,
              string user_option, const bool deletedata) {
     if (traceflag)
-        spdlog::trace("releae({}, {}, {}, {})", filesystem, name, user_option, deletedata);
+        spdlog::trace("release({}, {}, {}, {})", filesystem, name, user_option, deletedata);
 
     std::string username = user::getUsername(); // current user
 
@@ -218,7 +216,6 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
     //
 
     bool ws_exists = false;
-    std::string foundfs;
 
     std::unique_ptr<DBEntry> dbentry;
     std::string dbid;
@@ -250,10 +247,9 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
 
             entrylist.push_back(std::unique_ptr<DBEntry>(candidate_db->readEntry(dbid, false)));
             db = std::move(candidate_db);
-            foundfs = cfilesystem;
             ws_exists = true;
         } catch (DatabaseException& e) {
-            // silently ignore non existiong entries
+            // silently ignore non existing entries
             if (debugflag)
                 spdlog::debug("existence check failed for {}/{}", cfilesystem, dbid);
         }
@@ -292,7 +288,7 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
             dbentry->release(timestamp_time);
         } catch (const DatabaseException& e) {
             spdlog::error(e.what());
-            return -1; // on error we bail out, workspace will still exist and db most probably as well
+            return false; // on error we bail out, workspace will still exist and db most probably as well
         }
         // we exit this as DB user on success
 
@@ -428,18 +424,6 @@ int main(int argc, char** argv) {
     if (!config.isValid()) {
         spdlog::error("No valid config file found!");
         exit(-2);
-    }
-
-    // read user config
-    string user_conf_filename = user::getUserhome() + "/.ws_user.conf";
-    if (!cppfs::is_symlink(user_conf_filename)) {
-        if (cppfs::is_regular_file(user_conf_filename)) {
-            user_conf = utils::getFileContents(user_conf_filename.c_str());
-        }
-        // FIXME: could be parsed here and passed as object not string
-    } else {
-        spdlog::error("~/.ws_user.conf can not be symlink!");
-        exit(-1);
     }
 
     openlog("ws_release", 0, LOG_USER); // SYSLOG

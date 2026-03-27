@@ -5,7 +5,7 @@ ws_release \- release a workspace directory and free the workspace name
 
 .SH SYNOPSIS
 .B ws_release
-[\-h] [\-F filesystem] [\-n NAME] [\-u USERNAME] [\-G GROUPNAME] [\-\-delete\-data] NAME
+[\-h] [\-F filesystem] [\-n NAME] [\-u USERNAME] [\-\-delete\-data] NAME
 
 .SH DESCRIPTION
 Release the
@@ -36,7 +36,7 @@ quota if enabled by the administrator. If the user is short on available quota i
 inside the workspace directory using
 .B rm
 before releasing the workspace, or usage of the
-.B --deleta-data
+.B --delete-data
 option.
 
 If a
@@ -74,9 +74,6 @@ for root only: release a user's workspace, with the id as seen in
 \-n NAME
 name of workspace, can also be given as positional parameter
 .TP
-\-G GROUPNAME
-release a group workspace
-
 
 .SH EXAMPLES
 .TP
