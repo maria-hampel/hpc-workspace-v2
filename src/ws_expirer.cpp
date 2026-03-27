@@ -109,7 +109,7 @@ struct clean_stray_result_t {
 };
 
 // time to keep released workspaces before deletion in seconds
-long releasekeeptime = 3600;
+long releasekeeptime = 3600;  // TODO: make configurable
 const std::string CRLF = "\r\n";
 const std::string boundary = "_NextPart_01234567.89ABCDEF";
 
@@ -264,14 +264,32 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
     // find directories first, check DB entries later, to prevent data race with
     // workspaces getting created while this is running
+    // also collect non-matching directories for logging
+    std::vector<string> non_matching_dirs;
     for (const auto& space : spaces) {
         // NOTE: *-* for compatibility with old expirer
-        // FIXME: this does NOT delete directories not matching this pattern!
-        for (const auto& dir : utils::dirEntries(space, "*-*", true)) {
-            if (cppfs::is_directory(cppfs::path(space) / dir)) {
-                dirs.push_back({space, dir});
+        // collect all directories first to separate matching and non-matching
+        for (const auto& entry : utils::dirEntries(space, "*", true)) {
+            if (cppfs::is_directory(cppfs::path(space) / entry)) {
+                if (entry.find('-') != string::npos) {
+                    dirs.push_back({space, entry});
+                } else {
+                    non_matching_dirs.push_back(entry);
+                }
             }
         }
+    }
+    // Log non-matching directories for manual intervention
+    // Filter out the deleted directory path configured for the filesystem
+    const std::string deletedPath = config.deletedPath(fs);
+    if (!non_matching_dirs.empty()) {
+        spdlog::warn("Found {} directories not matching pattern '*-*' in filesystem {}: ", non_matching_dirs.size(), fs);
+        for (const auto& dir : non_matching_dirs) {
+            if (dir != deletedPath) {
+                spdlog::warn("    {}", dir);
+            }
+        }
+        spdlog::warn("These directories will be ignored and require manual intervention.");
     }
 
     std::unique_ptr<Database> db;
@@ -378,7 +396,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
             if (!dryrun) {
                 try {
                     // timeout is now + deldirtimeout
-                    std::time_t deadline = std::time_t((std::time_t*)0L) + config.deldirtimeout();
+                    std::time_t deadline = std::time_t(std::time_t(nullptr)) + config.deldirtimeout();
 
                     utils::rmtree(cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir, deadline);
 
@@ -514,6 +532,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                     try {
                         if (!utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
                             spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
+                        } else {
+                            result.sent_mails++;
                         }
                     } catch (const std::exception& e) {
                         spdlog::error("Exception while sending email: {}", e.what());
