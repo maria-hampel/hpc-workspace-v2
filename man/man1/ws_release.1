@@ -41,11 +41,13 @@ option.
 
 If a
 .B workspace
-was forgotten and expired or released in error, it might make sense to contact the administrator,
-as he probaly can restore a workspace for some time, if disk space is not low.
-Check if
-.ws_restore
-is available which allows you to restore workspaces on your own.
+was forgotten and expired or released in error, check
+.B ws_restore -l
+which allows you to restore workspaces on your own.
+
+A expired workspace will be deleted after `keeptime` days, a released workspace gets probably deleted a lot earlier, e.g. during the next night.
+You can see `keeptime` in the workspace details with
+.B ws_list -L
 
 .PP
 
