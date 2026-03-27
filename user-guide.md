@@ -82,6 +82,10 @@ but it does not delete the data immediately.
 The data is probably kept for a while if there is enough space and can be recovered using
 the ```ws_restore``` command as long as it is not finally deleted.
 
+**Note:** ws_release makes the workspace a candidate for deletion: if you deleted it by accident,
+better restore it quickly. A expired workspace that your forgot to extend might linger a while, a released workspace
+gets probably deleted a lot earlier, e.g. during the next night.
+
 The real deletion will probably take place nightly.
 
 If you are sure you do not need the data anymore, there is an option ``--delete-data`` to
