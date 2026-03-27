@@ -328,3 +328,36 @@ setup() {
     assert_output --partial "neither workspace nor -l specified"
     assert_failure
 }
+
+@test "ws_restore detects duplicate workspace IDs across filesystems" {
+    ws_name=duplicate-test-$RANDOM
+    target_name=duplicate-target-$RANDOM
+    wsdir1=$(ws_allocate --config bats/ws.conf -F ws1 $ws_name)
+    wsdir2=$(ws_allocate --config bats/ws.conf -F ws2 $ws_name)
+    ws_release --config bats/ws.conf -F ws1 $ws_name
+    ws_release --config bats/ws.conf -F ws2 $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -l | grep $ws_name | head -1)
+    target_dir=$(ws_allocate --config bats/ws.conf $target_name)
+    run ws_restore_notest --config bats/ws.conf $wsid $target_name
+    assert_output --partial "not unique"
+    assert_output --partial "please give filesystem with -F"
+    assert_failure
+    ws_release --config bats/ws.conf $target_name
+}
+
+@test "ws_restore uses filesystem option to resolve duplicate workspace IDs" {
+    ws_name=fs-resolve-test-$RANDOM
+    target_name=fs-resolve-target-$RANDOM
+    wsdir1=$(ws_allocate --config bats/ws.conf -F ws1 $ws_name)
+    echo "data on ws1" > $wsdir1/datafile
+    wsdir2=$(ws_allocate --config bats/ws.conf -F ws2 $ws_name)
+    echo "data on ws2" > $wsdir2/datafile
+    ws_release --config bats/ws.conf -F ws1 $ws_name
+    ws_release --config bats/ws.conf -F ws2 $ws_name
+    wsid=$(ws_restore --config bats/ws.conf -F ws1 -l | grep $ws_name | head -1)
+    target_dir=$(ws_allocate --config bats/ws.conf -F ws1 $target_name)
+    ws_restore_notest --config bats/ws.conf -F ws1 $wsid $target_name
+    assert_file_exists $target_dir/$wsid/datafile
+    assert_equal "$(cat $target_dir/$wsid/datafile)" "data on ws1"
+    ws_release --config bats/ws.conf -F ws1 $target_name
+}

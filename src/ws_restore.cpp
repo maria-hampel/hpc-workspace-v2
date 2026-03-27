@@ -249,10 +249,10 @@ void restore(const string name, const string target, const string username, cons
         for (const auto& h : hits) {
             spdlog::error(" {} is in {}", h.second, h.first);
         }
-        return;
+        exit(1);
     } else if (hits.size() == 0) {
         spdlog::error("workspace to restore does not exist!");
-        return;
+        exit(1);
     }
 
     auto source_filesystem = hits[0].first;
@@ -397,6 +397,9 @@ void restore(const string name, const string target, const string username, cons
         // under the hood
         if ((ret == -1) && (errno == EXDEV)) {
             ret = utils::mv(wssourcename.c_str(), targetpathname.c_str());
+            if (ret != 0) {
+                spdlog::error("mv failed: {}", strerror(errno));
+            }
         }
 
         // FIXME: move this to deleteEntry?
