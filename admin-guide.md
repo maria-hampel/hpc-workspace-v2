@@ -286,6 +286,8 @@ cleaner. The cleaner will move the expired workspace to a hidden location
 Users or administrators can still recover the data. After `keeptime` days,
 it will be removed and can not be recovered anymore.
 
+**Note:** `keeptime` does not apply to user released workspaces.
+
 #### `spaces`
 
 A list of directories that make up the workspace location. The directory for
