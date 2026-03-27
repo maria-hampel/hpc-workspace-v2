@@ -79,6 +79,15 @@ using ThreadPool = BS::thread_pool<BS::tp::none>;
 // Mutex for synchronizing output from multiple threads
 static mutex print_entry_mtx;
 
+// Helper to get masked ID for display, respecting admin/root privileges
+static string getMaskedID(const DBEntry* entry) {
+    if (entry->getConfig()->isAdmin(user::getUsername())) {
+        return entry->getId();
+    } else {
+        return utils::getID(user::getUsername(), entry->getId());
+    }
+}
+
 // helper for fmt::
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
@@ -87,11 +96,7 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
     lock_guard<mutex> lock(print_entry_mtx);
     long remaining = entry->getExpiration() - time(0L);
 
-    if (entry->getConfig()->isAdmin(user::getUsername())) {
-        fmt::println("Id: {}", entry->getId());
-    } else {
-        fmt::println("Id: {}", utils::getID(user::getUsername(), entry->getId()));
-    }
+    fmt::println("Id: {}", getMaskedID(entry));
 
     fmt::println("    workspace directory  : {}", entry->getWSPath());
     if (remaining < 0) {
@@ -110,7 +115,7 @@ void print_entry(const DBEntry* entry, const bool verbose, const bool terse, con
         fmt::println("    expiration time      : {}", utils::ctime(entry->getExpiration()));
         if (entry->getExpired() > 0)
             fmt::println("    expired time         : {}", utils::ctime(entry->getExpired()));
-        if (entry->getReleaseTime() >0)
+        if (entry->getReleaseTime() > 0)
             fmt::println("    release time         : {}", utils::ctime(entry->getReleaseTime()));
         if (entry->getGroup() != "")
             fmt::println("    group                : {}", entry->getGroup());
@@ -139,12 +144,7 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
 
     long remaining = entry->getExpiration() - time(0L);
 
-    std::string ID;
-    if (entry->getConfig()->isAdmin(user::getUsername())) {
-        ID = entry->getId();
-    } else {
-        ID = utils::getID(user::getUsername(), entry->getId());
-    }
+    const string ID = getMaskedID(entry);
 
     // Check color support (thread-safe with mutex)
     {
@@ -172,25 +172,31 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
             remaincolor = fmt::color::green;
     }
 
-    if (terse) {
+    bool must_print_header = false;
+    {
         lock_guard<mutex> lock(mtx);
         if (!headerprinted) {
             headerprinted = true;
+            must_print_header = true;
+        }
+    }
+    if (must_print_header) {
+        if (terse) {
             fmt::println("{:<30} {:<50} {:<9}", "ID", "PATH", "REMAINING");
             fmt::println("{:=<30} {:=<50} {:=<9}", "", "", "");
+        } else {
+            fmt::println("{:<30} {:<50} {:<25} {:10} {:<9}", "ID", "PATH", "EXPIRATION", "EXTENSIONS", "REMAINING");
+            fmt::println("{:=<30} {:=<50} {:=<25} {:=<10} {:=<9}", "", "", "", "", "");
         }
+    }
+
+    if (terse) {
         if (color_output)
             fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(),
                          fmt::styled(remaining / (24 * 3600), fg(remaincolor)));
         else
             fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(), remaining / (24 * 3600));
     } else {
-        lock_guard<mutex> lock(mtx);
-        if (!headerprinted) {
-            headerprinted = true;
-            fmt::println("{:<30} {:<50} {:<25} {:10} {:<9}", "ID", "PATH", "EXPIRATION", "EXTENSIONS", "REMAINING");
-            fmt::println("{:=<30} {:=<50} {:=<25} {:=<10} {:=<9}", "", "", "", "", "");
-        }
         if (color_output)
             fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(),
                          utils::ctime(entry->getExpiration()), entry->getExtension(),
@@ -448,15 +454,15 @@ int main(int argc, char** argv) {
                                          auto entry = db->readEntry(matchlist[i], listexpired);
                                          // if entry is valid
                                          if (entry) {
-                                             lock_guard<mutex> lock(mtx);
                                              if (sort) {
+                                                 lock_guard<mutex> lock(mtx);
                                                  // Store for sorting
                                                  entrylist.push_back(std::move(entry));
                                              } else {
-                                                 // Print directly
+                                                 // Don't hold mtx - let print functions manage their own locks
                                                  if (shortlisting) {
                                                      lock_guard<mutex> out_lock(print_entry_mtx);
-                                                     fmt::println(entry->getId());
+                                                     fmt::println(getMaskedID(entry.get()));
                                                  } else {
                                                      if (!tableformat)
                                                          print_entry(entry.get(), verbose, terselisting, permissions);
@@ -501,7 +507,7 @@ int main(int argc, char** argv) {
 
             for (const auto& entry : entrylist) {
                 if (shortlisting) {
-                    fmt::println(entry->getId()); // FIXME:: correct for root/admin?
+                    fmt::println(getMaskedID(entry.get()));
                 } else {
                     if (!tableformat)
                         print_entry(entry.get(), verbose, terselisting, permissions);

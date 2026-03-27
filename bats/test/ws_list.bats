@@ -64,14 +64,14 @@ EOF
     ws_allocate --config bats/ws.conf sortTestC 2
 
     run ws_list --config bats/ws.conf -s -N "sortTest*"
-    assert_output "${USER}-sortTestA
-${USER}-sortTestB
-${USER}-sortTestC"
+    assert_output "sortTestA
+sortTestB
+sortTestC"
 
     run ws_list --config bats/ws.conf -s -r -N "sortTest?"
-    assert_output "${USER}-sortTestC
-${USER}-sortTestB
-${USER}-sortTestA"
+    assert_output "sortTestC
+sortTestB
+sortTestA"
 
 }
 
@@ -81,15 +81,15 @@ ${USER}-sortTestA"
     #ws_allocate --config bats/ws.conf sortTestC 2
 
     run ws_list --config bats/ws.conf -s -C "sortTest*"
-    assert_output "${USER}-sortTestB
-${USER}-sortTestA
-${USER}-sortTestC"
+    assert_output "sortTestB
+sortTestA
+sortTestC"
 
 
     run ws_list --config bats/ws.conf -s -r -C "sortTest*"
-    assert_output "${USER}-sortTestC
-${USER}-sortTestA
-${USER}-sortTestB"
+    assert_output "sortTestC
+sortTestA
+sortTestB"
 }
 
 @test "ws_list sorting by remaining time" {
@@ -98,14 +98,14 @@ ${USER}-sortTestB"
     #ws_allocate --config bats/ws.conf sortTestC 2
 
     run ws_list --config bats/ws.conf -s -R "sortTest[A-C]"
-    assert_output "${USER}-sortTestA
-${USER}-sortTestC
-${USER}-sortTestB"
+    assert_output "sortTestA
+sortTestC
+sortTestB"
 
     run ws_list --config bats/ws.conf -s -r -R "sortTest*"
-    assert_output "${USER}-sortTestB
-${USER}-sortTestC
-${USER}-sortTestA"
+    assert_output "sortTestB
+sortTestC
+sortTestA"
 }
 
 @test "ws_list -T sorting by remaining time" {
@@ -140,7 +140,7 @@ sortTestA.*$"
 @test "ws_list other fs" {
     ws_allocate --config bats/ws.conf -F ws1 WS1TEST
     run ws_list --config bats/ws.conf -s -F ws1 WS1TEST
-    assert_output ${USER}-WS1TEST
+    assert_output WS1TEST
 }
 
 @test "ws_list list fs" {
@@ -193,7 +193,7 @@ ws1"
 @test "ws_list short format shows only names" {
     ws_allocate --config bats/ws.conf shortformat
     run ws_list --config bats/ws.conf -s shortformat
-    assert_output "${USER}-shortformat"
+    assert_output "shortformat"
     assert_success
     ws_release --config bats/ws.conf shortformat
 }
@@ -293,7 +293,7 @@ ws1"
 @test "ws_list positional pattern argument" {
     ws_allocate --config bats/ws.conf pospattern
     run ws_list --config bats/ws.conf -s pospattern
-    assert_output "${USER}-pospattern"
+    assert_output "pospattern"
     assert_success
     ws_release --config bats/ws.conf pospattern
 }
@@ -361,7 +361,7 @@ ws1"
 @test "ws_list short form options" {
     ws_allocate --config bats/ws.conf shortopt
     run ws_list --config bats/ws.conf -s shortopt
-    assert_output "${USER}-shortopt"
+    assert_output "shortopt"
     assert_success
     ws_release --config bats/ws.conf shortopt
 }
@@ -377,7 +377,7 @@ ws1"
 @test "ws_list config option works" {
     ws_allocate --config bats/ws.conf confopt
     run ws_list --config bats/ws.conf -s confopt
-    assert_output "${USER}-confopt"
+    assert_output "confopt"
     assert_success
     ws_release --config bats/ws.conf confopt
 }
@@ -447,7 +447,7 @@ ws1"
 @test "ws_list workspace on specific filesystem" {
     ws_allocate --config bats/ws.conf -F ws1 specfs
     run ws_list --config bats/ws.conf -F ws1 -s specfs
-    assert_output "${USER}-specfs"
+    assert_output "specfs"
     assert_success
     ws_release --config bats/ws.conf -F ws1 specfs
 }
@@ -457,10 +457,10 @@ ws1"
     ws_allocate --config bats/ws.conf -F ws2 difffs2
 
     run ws_list --config bats/ws.conf -F ws1 -s difffs1
-    assert_output "${USER}-difffs1"
+    assert_output "difffs1"
 
     run ws_list --config bats/ws.conf -F ws2 -s difffs2
-    assert_output "${USER}-difffs2"
+    assert_output "difffs2"
 
     assert_success
     ws_release --config bats/ws.conf -F ws1 difffs1
