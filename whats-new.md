@@ -31,6 +31,7 @@ including internals.
 ## changed behaviour
 
 - field `adminmail` as a list of email addresses is required in config (gives warning when not present)
+- `ws_release` does not keep the workspace for `keeptime` but for a shorter time, only expired workspace are kept `keeptime`
 - `ws_release` bails out if workspace name is not unique
 - `ws_allocate -x` bails out if workspace name is not unique
 - `ws_allocate -g` can take an groupname as well, -G can have no groupname
@@ -42,7 +43,7 @@ including internals.
 
 ## what's new under the hood
 
-- more tests
+- a lot more tests
 - CI pipeline
 - no python dependency, more C++ tools with higher speed and consistent behaviour
 - some tools use threading
