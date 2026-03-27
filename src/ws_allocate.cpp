@@ -188,7 +188,7 @@ void commandline(po::variables_map& opt, string& name, int& duration, string& fi
     } else {
         // check if mail address was set with -m but not -r
         if (opt.count("mailaddress") && !opt.count("extension")) {
-            spdlog::error("You can't use the mailaddress (-m) without the reminder (-r) option.");
+            spdlog::error("You can't use the mailaddress (-m) without the reminder (-r) or extensions (-x) option.");
             exit(1);
         }
     }
@@ -527,9 +527,6 @@ bool allocate(const Config& config, const po::variables_map& opt, int duration, 
                 exit(-2);
             }
 
-            // extension = dbentry->getExtension(); // for output // FIXME: see below?
-
-            // extensionflag
         } else {
             spdlog::info("reusing workspace");
             syslog(LOG_INFO, "reusing <%s/%s>.", foundfs.c_str(), dbid.c_str());
