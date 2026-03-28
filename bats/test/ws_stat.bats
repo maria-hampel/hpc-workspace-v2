@@ -261,10 +261,13 @@ setup() {
 @test "ws_stat verbose output" {
     ws_allocate --config bats/ws.conf VERBOSETEST
     WSPATH=$(ws_find --config bats/ws.conf VERBOSETEST)
-    touch "$WSPATH"/test.txt
+    # Create enough files to ensure non-zero time
+    for i in {1..100}; do
+        touch "$WSPATH"/file$i.txt
+    done
     run ws_stat --config bats/ws.conf --verbose VERBOSETEST
     assert_output --partial "time[msec]"
-    assert_output --partial "KFiles/sec"
+    # KFiles/sec should only appear if time > 0, test should not crash either way
     assert_success
     ws_release --config bats/ws.conf VERBOSETEST
 }
@@ -406,4 +409,86 @@ setup() {
     assert_output --partial "files               : 50"
     assert_success
     ws_release --config bats/ws.conf MANYFILES
+}
+
+@test "ws_stat thread option" {
+    ws_allocate --config bats/ws.conf -F ws1 THREADOPT
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 THREADOPT)
+    touch "$WSPATH"/test.txt
+    run ws_stat --config bats/ws.conf -F ws1 --threads 2 THREADOPT
+    assert_output --partial "files               : 1"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 THREADOPT
+}
+
+@test "ws_stat max-depth option" {
+    ws_allocate --config bats/ws.conf -F ws1 MAXDEPTHOPT
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 MAXDEPTHOPT)
+    touch "$WSPATH"/test.txt
+    run ws_stat --config bats/ws.conf -F ws1 --max-depth 3 MAXDEPTHOPT
+    assert_output --partial "files               : 1"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 MAXDEPTHOPT
+}
+
+@test "ws_stat deep structure max-depth 3" {
+    ws_allocate --config bats/ws.conf -F ws1 DEEPDEPTH3
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 DEEPDEPTH3)
+    mkdir -p "$WSPATH"/a/b/c/d/e/f  # Depth 6
+    touch "$WSPATH"/root.txt
+    touch "$WSPATH"/a/level1.txt
+    touch "$WSPATH"/a/b/level2.txt
+    touch "$WSPATH"/a/b/c/level3.txt
+    touch "$WSPATH"/a/b/c/d/level4.txt
+    touch "$WSPATH"/a/b/c/d/e/level5.txt
+    run ws_stat --config bats/ws.conf -F ws1 --max-depth 3 DEEPDEPTH3
+    assert_output --partial "directories         : 6"
+    assert_output --partial "files               : 6"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 DEEPDEPTH3
+}
+
+@test "ws_stat deep structure max-depth 5" {
+    ws_allocate --config bats/ws.conf -F ws1 DEEPDEPTH5
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 DEEPDEPTH5)
+    mkdir -p "$WSPATH"/a/b/c/d/e/f  # Depth 6
+    touch "$WSPATH"/root.txt
+    touch "$WSPATH"/a/level1.txt
+    touch "$WSPATH"/a/b/level2.txt
+    touch "$WSPATH"/a/b/c/level3.txt
+    touch "$WSPATH"/a/b/c/d/level4.txt
+    touch "$WSPATH"/a/b/c/d/e/level5.txt
+    run ws_stat --config bats/ws.conf -F ws1 --max-depth 5 DEEPDEPTH5
+    assert_output --partial "directories         : 6"
+    assert_output --partial "files               : 6"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 DEEPDEPTH5
+}
+
+@test "ws_stat multiple branches parallel" {
+    ws_allocate --config bats/ws.conf -F ws1 MULBRANCH
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 MULBRANCH)
+    mkdir -p "$WSPATH"/branch1/a/b/c
+    mkdir -p "$WSPATH"/branch2/a/b/c
+    mkdir -p "$WSPATH"/branch3/a/b/c
+    touch "$WSPATH"/branch1/file1.txt
+    touch "$WSPATH"/branch2/file2.txt
+    touch "$WSPATH"/branch3/file3.txt
+    touch "$WSPATH"/branch1/a/file1a.txt
+    touch "$WSPATH"/branch2/a/file2a.txt
+    touch "$WSPATH"/branch3/a/file3a.txt
+    run ws_stat --config bats/ws.conf -F ws1 --max-depth 3 MULBRANCH
+    # 3 branches × 4 levels each (a,b,c plus root level) = 12 directories
+    assert_output --partial "directories         : 12"
+    assert_output --partial "files               : 6"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 MULBRANCH
+}
+
+@test "ws_stat verbose fast operation no division by zero" {
+    ws_allocate --config bats/ws.conf -F ws1 FASTEMPTY
+    run ws_stat --config bats/ws.conf -F ws1 --verbose FASTEMPTY
+    assert_output --partial "time[msec]"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 FASTEMPTY
 }

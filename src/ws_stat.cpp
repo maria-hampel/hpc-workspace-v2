@@ -36,6 +36,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 // Include bshoshany thread-pool
@@ -80,22 +81,25 @@ int debuglevel = 0;
 unsigned int thread_count = 0; // 0 = default (hardware_concurrency)
 
 // result type for stat collection
-struct stat_result {
-    uint64_t files;
-    uint64_t softlinks;
-    uint64_t directories;
-    uint64_t bytes;
-    uint64_t blocks;
-};
+struct StatResult {
+    uint64_t files{0};
+    uint64_t softlinks{0};
+    uint64_t directories{0};
+    uint64_t bytes{0};
+    uint64_t blocks{0};
 
-// return type for stat collection
-struct stat_return {
-    uint64_t bytes;
-    uint64_t blocks;
+    StatResult& operator+=(const StatResult& other) {
+        files += other.files;
+        softlinks += other.softlinks;
+        directories += other.directories;
+        bytes += other.bytes;
+        blocks += other.blocks;
+        return *this;
+    }
 };
 
 // return filesize using statx(), this works only from redhat >= 8
-struct stat_return getfilesize(const cppfs::path& path) {
+std::pair<uint64_t, uint64_t> getfilesize(const cppfs::path& path) {
     struct statx statxbuf;
 
     int mask = STATX_SIZE | STATX_BLOCKS;
@@ -110,24 +114,12 @@ struct stat_return getfilesize(const cppfs::path& path) {
     }
 }
 
-// Global bshoshany thread pool instance for workspace-level parallelization
-using ThreadPool = BS::thread_pool<BS::tp::none>;
-
 // Mutex for synchronizing output from multiple threads
 std::mutex output_mutex;
 
-// Atomic result container for lock-free aggregation
-struct AtomicStatResult {
-    std::atomic<uint64_t> files{0};
-    std::atomic<uint64_t> softlinks{0};
-    std::atomic<uint64_t> directories{0};
-    std::atomic<uint64_t> bytes{0};
-    std::atomic<uint64_t> blocks{0};
-};
-
-// Helper function to collect all files and directories recursively
-void collect_all_entries_recursive(const cppfs::path& path, std::vector<cppfs::path>& files,
-                                   std::vector<cppfs::path>& dirs, uint64_t& softlinks, uint64_t& directories) {
+// Helper function to collect all entries recursively (for serial subtree processing)
+void collect_all_entries_recursive(const cppfs::path& path, std::vector<cppfs::path>& files, uint64_t& softlinks,
+                                   uint64_t& directories) {
     if (!cppfs::is_directory(path)) {
         return;
     }
@@ -137,64 +129,114 @@ void collect_all_entries_recursive(const cppfs::path& path, std::vector<cppfs::p
             softlinks++;
         } else if (entry.is_directory()) {
             directories++;
-            dirs.push_back(entry.path());
-            collect_all_entries_recursive(entry.path(), files, dirs, softlinks, directories);
+            collect_all_entries_recursive(entry.path(), files, softlinks, directories);
         } else if (entry.is_regular_file()) {
             files.push_back(entry.path());
         }
     }
 }
 
-// Process files in batches - serial processing to avoid nested parallelism deadlock
-void process_files_batch(const std::vector<cppfs::path>& files, AtomicStatResult& result) {
-    if (files.empty())
+// Collect only files and subdirectories at current level (no recursion)
+void collect_level(const cppfs::path& path, std::vector<cppfs::path>& files, std::vector<cppfs::path>& subdirs,
+                   uint64_t& softlinks, uint64_t& directories) {
+    if (!cppfs::is_directory(path)) {
         return;
-
-    // Serial processing - nested parallelism would cause deadlock
-    uint64_t bytes = 0;
-    uint64_t blocks = 0;
-    for (const auto& entry : files) {
-        auto ret = getfilesize(entry);
-        bytes += ret.bytes;
-        blocks += ret.blocks;
     }
 
-    result.bytes.fetch_add(bytes, std::memory_order_relaxed);
-    result.blocks.fetch_add(blocks, std::memory_order_relaxed);
-    result.files.fetch_add(files.size(), std::memory_order_relaxed);
+    for (const auto& entry : cppfs::directory_iterator(path)) {
+        if (entry.is_symlink()) {
+            softlinks++;
+        } else if (entry.is_directory()) {
+            directories++;
+            subdirs.push_back(entry.path());
+        } else if (entry.is_regular_file()) {
+            files.push_back(entry.path());
+        }
+    }
 }
 
-// Process the entire workspace tree - files processed serially within workspace
-void parallel_stat(AtomicStatResult& result, const cppfs::path& path) {
+// Process entire subtree serially (for depth-limited parallel traversal)
+StatResult process_subtree_serial(const cppfs::path& path) {
     std::vector<cppfs::path> all_files;
-    std::vector<cppfs::path> all_dirs;
-    uint64_t total_softlinks = 0;
-    uint64_t total_directories = 0;
+    uint64_t softlinks = 0;
+    uint64_t directories = 0;
 
-    if (!cppfs::is_directory(path)) {
-        spdlog::error("workspace <{}> does not exist!", path.string());
-        return;
+    collect_all_entries_recursive(path, all_files, softlinks, directories);
+
+    StatResult result;
+    result.directories = directories;
+    result.softlinks = softlinks;
+
+    for (const auto& entry : all_files) {
+        auto [bytes, blocks] = getfilesize(entry);
+        result.files++;
+        result.bytes += bytes;
+        result.blocks += blocks;
     }
 
-    // Collect ALL files and directories from the entire tree
-    collect_all_entries_recursive(path, all_files, all_dirs, total_softlinks, total_directories);
+    return result;
+}
 
-    // Process ALL collected files serially (avoids nested parallelism deadlock)
-    if (!all_files.empty()) {
-        process_files_batch(all_files, result);
+// Depth-limited parallel directory traversal
+StatResult process_directory_parallel(const cppfs::path& path, unsigned int current_depth, unsigned int max_depth,
+                                      BS::thread_pool<BS::tp::none>& dir_pool) {
+    std::vector<cppfs::path> files, subdirs;
+    uint64_t softlinks = 0;
+    uint64_t directories = 0;
+
+    // At max depth: process entire subtree serially (includes all counting)
+    if (current_depth >= max_depth) {
+        return process_subtree_serial(path);
     }
 
-    result.directories.fetch_add(total_directories, std::memory_order_relaxed);
-    result.softlinks.fetch_add(total_softlinks, std::memory_order_relaxed);
+    // Below max depth: collect this level and recurse
+    collect_level(path, files, subdirs, softlinks, directories);
+
+    // Process files at this level
+    StatResult result;
+    result.directories = directories;
+    result.softlinks = softlinks;
+
+    for (const auto& entry : files) {
+        auto [bytes, blocks] = getfilesize(entry);
+        result.files++;
+        result.bytes += bytes;
+        result.blocks += blocks;
+    }
+
+    // Submit subdirectories in parallel
+    std::vector<std::future<StatResult>> futures;
+    for (const auto& subdir : subdirs) {
+        try {
+            auto fut = dir_pool.submit_task([subdir, current_depth, max_depth, &dir_pool]() {
+                return process_directory_parallel(subdir, current_depth + 1, max_depth, dir_pool);
+            });
+            futures.push_back(std::move(fut));
+        } catch (const std::exception& e) {
+            spdlog::warn("Failed to enqueue subdirectory {}: {} - data might be incomplete", subdir.string(), e.what());
+        }
+    }
+
+    // Wait and aggregate results
+    for (auto& fut : futures) {
+        try {
+            result += fut.get();
+        } catch (const std::exception& e) {
+            spdlog::warn("Subdirectory processing failed: {} - data might be incomplete", e.what());
+        }
+    }
+
+    return result;
 }
 
 // Wrapper function
-struct stat_result stat_workspace(const std::string& wspath) {
-    AtomicStatResult atomic_result;
-    parallel_stat(atomic_result, wspath);
+StatResult stat_workspace(const std::string& wspath, BS::thread_pool<BS::tp::none>& dir_pool, unsigned int max_depth) {
+    if (!cppfs::is_directory(wspath)) {
+        spdlog::error("workspace <{}> does not exist!", wspath);
+        return StatResult{};
+    }
 
-    return {atomic_result.files.load(), atomic_result.softlinks.load(), atomic_result.directories.load(),
-            atomic_result.bytes.load(), atomic_result.blocks.load()};
+    return process_directory_parallel(wspath, 0, max_depth, dir_pool);
 }
 
 // helper for fmt:: formatter for boost program_options
@@ -216,6 +258,7 @@ int main(int argc, char** argv) {
     bool sortbycreation = false;
     bool sortbyremaining = false;
     bool sortreverted = false;
+    int max_depth_param = -1; // -1 means auto-calculate
 
     po::variables_map opts;
 
@@ -241,7 +284,8 @@ int main(int argc, char** argv) {
         ("remaining,R", "sort by remaining time")
         ("reverted,r", "revert sort")
         ("verbose,v", "verbose listing")
-        ("threads,t", po::value<unsigned int>(&thread_count)->default_value(0), "number of threads to use (default: hardware_concurrency, override with WS_THREADS env var)");
+        ("max-depth,m", po::value<int>(&max_depth_param)->default_value(-1), "max parallel traversal depth (-1 = auto)")
+        ("threads,t", po::value<unsigned int>(&thread_count)->default_value(0), "threads for parallel operation (default: hardware_concurrency)");
     // clang-format on
 
     po::options_description secret_options("Secret");
@@ -298,6 +342,32 @@ int main(int argc, char** argv) {
             thread_count = std::thread::hardware_concurrency();
             if (thread_count == 0)
                 thread_count = 1; // fallback if hardware_concurrency fails
+        }
+    }
+
+    // Apply minimum thread count for effective parallelism
+    if (thread_count < 4) {
+        if (debugflag) {
+            spdlog::debug("thread count {} too low, increasing to 4", thread_count);
+        }
+        thread_count = 4;
+    }
+
+    // Calculate max_depth from thread count if not specified
+    unsigned int max_depth;
+    if (max_depth_param < 0) {
+        max_depth = std::min(6u, std::max(3u, thread_count / 4));
+        if (debugflag) {
+            spdlog::debug("Derived max_depth={} from threads={}", max_depth, thread_count);
+        }
+    } else {
+        max_depth = static_cast<unsigned int>(max_depth_param);
+        if (max_depth < 3) {
+            spdlog::warn("max_depth {} is below minimum of 3, using 3", max_depth_param);
+            max_depth = 3;
+        }
+        if (debugflag) {
+            spdlog::debug("Using user-specified max_depth={}", max_depth);
         }
     }
 
@@ -398,15 +468,16 @@ int main(int argc, char** argv) {
 
     } // loop over fs
 
-    if (sortbyremaining)
+    if (sortbyremaining) {
         std::sort(entrylist.begin(), entrylist.end(),
                   [](const auto& x, const auto& y) { return (x->getRemaining() < y->getRemaining()); });
-    if (sortbycreation)
+    } else if (sortbycreation) {
         std::sort(entrylist.begin(), entrylist.end(),
                   [](const auto& x, const auto& y) { return (x->getCreation() < y->getCreation()); });
-    if (sortbyname)
+    } else if (sortbyname) {
         std::sort(entrylist.begin(), entrylist.end(),
                   [](const auto& x, const auto& y) { return (x->getId() < y->getId()); });
+    }
 
     if (sortreverted) {
         std::reverse(entrylist.begin(), entrylist.end());
@@ -416,20 +487,24 @@ int main(int argc, char** argv) {
 
     std::locale::global(std::locale("en_US.UTF-8"));
 
-    // Process workspaces - parallel at workspace level, serial within each workspace
-    // This avoids nested parallelism deadlock while providing good performance
+    // Create two thread pools: workspace_pool for workspace-level parallelism,
+    // dir_pool for directory-level parallelism (shared across workspaces)
+    BS::thread_pool<BS::tp::none> workspace_pool(thread_count);
+    BS::thread_pool<BS::tp::none> dir_pool(thread_count);
+    if (debugflag) {
+        spdlog::debug("Creating workspace_pool and dir_pool with {} threads each", thread_count);
+    }
+
+    // Process workspaces
     if (!sort && entrylist.size() > 1) {
-        // Initialize thread pools with custom thread count
-        ThreadPool workspace_pool(thread_count);
         if (debugflag) {
-            spdlog::debug("Creating thread pool with {} threads", thread_count);
+            spdlog::debug("Parallel workspace processing with {} workspaces", entrylist.size());
         }
-        // Use workspace_pool for parallel workspace processing
         workspace_pool
             .submit_loop(0, entrylist.size(),
-                         [&entrylist, &username](size_t i) {
+                         [&entrylist, &username, &dir_pool, max_depth](size_t i) {
                              auto begin = std::chrono::steady_clock::now();
-                             auto result = stat_workspace(entrylist[i]->getWSPath());
+                             auto result = stat_workspace(entrylist[i]->getWSPath(), dir_pool, max_depth);
                              auto end = std::chrono::steady_clock::now();
                              auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
@@ -448,7 +523,9 @@ int main(int argc, char** argv) {
                                           utils::prettyBytes(result.bytes), result.blocks);
                              if (verbose) {
                                  fmt::println("\n    time[msec]          : {}", secs);
-                                 fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
+                                 if (secs > 0) {
+                                     fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
+                                 }
                              }
                          })
             .wait();
@@ -456,7 +533,7 @@ int main(int argc, char** argv) {
         // Serial processing when sorted or for small lists
         for (auto& entry : entrylist) {
             auto begin = std::chrono::steady_clock::now();
-            auto result = stat_workspace(entry->getWSPath());
+            auto result = stat_workspace(entry->getWSPath(), dir_pool, max_depth);
             auto end = std::chrono::steady_clock::now();
             auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
@@ -473,7 +550,9 @@ int main(int argc, char** argv) {
                          utils::prettyBytes(result.bytes), result.blocks);
             if (verbose) {
                 fmt::println("\n    time[msec]          : {}", secs);
-                fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
+                if (secs > 0) {
+                    fmt::println("    KFiles/sec          : {}", (double)result.files / secs);
+                }
             }
         }
     }

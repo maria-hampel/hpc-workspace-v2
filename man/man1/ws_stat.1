@@ -5,7 +5,7 @@ ws_stat \- list workspaces
 
 .SH SYNOPSIS
 .B ws_stat
-[\-h] [\-F FILESYSTEM] [\-g] [\-r] [\-N] [\-R] [\-C] [PATTERN]
+[\-h] [\-V] [\-F FILESYSTEM] [\-g] [\-r] [\-N] [\-R] [\-C] [\-m DEPTH] [\-t THREADS] [PATTERN]
 
 .SH DESCRIPTION
 Show statistics for
@@ -50,12 +50,20 @@ Check if
 .ws_restore
 is available allowing you to restore workspaces on your own.
 
+The tool uses parallel processing to speed up statistics gathering on large workspaces.
+By default, the number of threads is determined automatically based on the hardware.
+The parallel directory traversal uses a depth-limited approach to balance memory usage
+with parallelism efficiency.
+
 .PP
 
 .SH OPTIONS
 .TP
 \-h
 display usage help text
+.TP
+\-V
+show version and build information
 .TP
 \-F
 select the filesystem to list the workspaces from.
@@ -74,6 +82,19 @@ sort according to creation date of workspaces
 .TP
 \-r
 invert the sorting of \-N, \-C or \-R
+.TP
+\-m DEPTH
+set maximum depth for parallel directory traversal.
+At depths beyond this limit, subdirectories are processed serially.
+Default: auto-calculated based on thread count (min(6, max(3, threads/4))).
+Minimum value: 3.
+.TP
+\-t THREADS
+set the number of threads for parallel operation.
+This affects both workspace-level and directory-level parallelism.
+Default: hardware_concurrency (number of CPU cores).
+Minimum enforced value: 4 for effective parallelism.
+Environment variable WS_THREADS can also be used.
 
 
 .SH AUTHOR
