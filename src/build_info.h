@@ -10,7 +10,7 @@
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024,2025
+ *  (c) Holger Berger 2021,2023,2024,2025,2026
  *  (c) Christoph Niethammer 2025
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
@@ -60,6 +60,14 @@ void printVersion(std::string program_name) {
     fmt::println("{} build from git commit hash {} on top of release {}", program_name, GIT_COMMIT_HASH, WS_VERSION);
 #else
     fmt::println("{} version {}", program_name, WS_VERSION);
+#endif
+}
+
+std::string getVersion() {
+#ifdef IS_GIT_REPOSITORY
+    return fmt::format("{} build from git commit hash {} on top of release {}", WS_VERSION, GIT_COMMIT_HASH, WS_VERSION);
+#else
+    return fmt::format("{} version {}", WS_VERSION);
 #endif
 }
 
