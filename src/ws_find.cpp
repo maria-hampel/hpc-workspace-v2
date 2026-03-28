@@ -8,12 +8,11 @@
  *      - c++ implementation (not python anymore)
  *      - search oder is better defined
  *      - fast YAML reader with rapidyaml
- *      - correct handling of group workspaces FIXME: is it broken in V1? looks like
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024,2025
+ *  (c) Holger Berger 2021,2023,2024,2025,2026
  *  (c) Christoph Niethammer 2025
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
@@ -33,6 +32,7 @@
  *
  */
 
+#include <exception>
 #include <memory>
 
 #include "config.h"
@@ -203,17 +203,22 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        // catch DB access errors, if DB directory or DB is accessible
+        // catch unknown errors e.g. in matchPattern
         try {
             for (auto const& id : db->matchPattern(name, userpattern, grouplist, false, listgroups)) {
-                std::unique_ptr<DBEntry> entry(db->readEntry(id, false));
-                // if entry is valid
-                if (entry) {
-                    fmt::print("{}\n", entry->getWSPath());
-                    exit(0);
+                try {
+                    // catch DB access errors, if DB directory or DB is accessible, continue with next entry on error
+                    std::unique_ptr<DBEntry> entry(db->readEntry(id, false));
+                    // if entry is valid
+                    if (entry) {
+                        fmt::print("{}\n", entry->getWSPath());
+                        exit(0);
+                    }
+                } catch (DatabaseException& e) {
+                    spdlog::warn("error reading DB: {}", e.what());
                 }
             }
-        } catch (DatabaseException& e) {
+        } catch (std::exception& e) {
             spdlog::error("{}", e.what());
             exit(-2);
         }

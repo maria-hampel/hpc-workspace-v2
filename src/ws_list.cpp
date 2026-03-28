@@ -494,10 +494,10 @@ int main(int argc, char** argv) {
             if (sortbyremaining)
                 std::sort(entrylist.begin(), entrylist.end(),
                           [](const auto& x, const auto& y) { return (x->getRemaining() < y->getRemaining()); });
-            if (sortbycreation)
+            else if (sortbycreation)
                 std::sort(entrylist.begin(), entrylist.end(),
                           [](const auto& x, const auto& y) { return (x->getCreation() < y->getCreation()); });
-            if (sortbyname)
+            else if (sortbyname)
                 std::sort(entrylist.begin(), entrylist.end(),
                           [](const auto& x, const auto& y) { return (x->getId() < y->getId()); });
 
