@@ -109,13 +109,14 @@ struct clean_stray_result_t {
 };
 
 // time to keep released workspaces before deletion in seconds
-long releasekeeptime = 3600;  // TODO: make configurable
+long releasekeeptime = 3600; // TODO: make configurable
 const std::string CRLF = "\r\n";
 const std::string boundary = "_NextPart_01234567.89ABCDEF";
 
 // Format a time difference in seconds as a fixed-width string with 3 digits and appropriate unit
 static std::string formatTimedelta(long seconds) {
-    if (seconds < 0) seconds = 0;
+    if (seconds < 0)
+        seconds = 0;
 
     long days = seconds / 86400;
     long hours = (seconds % 86400) / 3600;
@@ -269,7 +270,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     //////// stray directories /////////
     // move directories not having a DB entry to deleted
 
-    spdlog::info("* STRAY DIRECTORY REMOVAL for filesystem {}", fs);
+    spdlog::info("* STRAY DIRECTORY REMOVAL for filesystem: {}", fs);
     spdlog::info("   workspaces first...");
 
     if (single_space != "") {
@@ -306,9 +307,10 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     // Log non-matching directories for manual intervention
 
     if (!non_matching_dirs.empty()) {
-        spdlog::warn(" Found {} directories not matching pattern '*-*' in filesystem {}: ", non_matching_dirs.size(), fs);
+        spdlog::warn(" Found {} directories not matching pattern '*-*' in filesystem {}: ", non_matching_dirs.size(),
+                     fs);
         for (const auto& dir : non_matching_dirs) {
-                spdlog::warn("    {}", dir);
+            spdlog::warn("    {}", dir);
         }
         spdlog::warn(" These directories will be ignored and require manual intervention.");
     }
@@ -479,7 +481,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         return result;
     }
 
-    spdlog::info("* CHECKING DB FOR WORKSPACES TO BE EXPIRED for filesystem {}", fs);
+    spdlog::info("* CHECKING DB FOR WORKSPACES TO BE EXPIRED for filesystem: {}", fs);
 
     // search expired active workspaces in DB
     for (auto const& id : db->matchPattern("*", "*", {}, false, false)) {
@@ -568,7 +570,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
     spdlog::info(" =>  {} workspaces expired, {} kept.", result.expired_ws, result.kept_ws);
     spdlog::info("");
-    spdlog::info("* CHECKING DELETED DB FOR WORKSPACES TO BE DELETED for filesystem {}", fs);
+    spdlog::info("* CHECKING DELETED DB FOR WORKSPACES TO BE DELETED for filesystem: {}", fs);
 
     // search in DB for expired/released workspaces for those over keeptime to delete them
     for (auto const& id : db->matchPattern("*", "*", {}, true, false)) {
@@ -602,7 +604,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
         auto released = dbentry->getReleaseTime(); // check if it was released by user, 0 if not
         if (debugflag) {
-            spdlog::debug("   released = {}, expiredtime (filename) = {}, expiration = {}", utils::ctime(released), utils::ctime(releasetime), utils::ctime(expiration));
+            spdlog::debug("   released = {}, expiredtime (filename) = {}, expiration = {}", utils::ctime(released),
+                          utils::ctime(releasetime), utils::ctime(expiration));
         }
         if (released > 1000000000L) { // released after 2001? if not ignore it
             releasetime = expiration = released;
