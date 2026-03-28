@@ -30,5 +30,5 @@ setup() {
         run sudo --preserve-env=ASAN_OPTIONS $WS_EXPIRER -F ws1
         assert_output --partial "keeping restorable mean-user-name-TEST_MEAN"
         assert_success
-        sudo rm /tmp/ws_expirer.log
+        sudo rm -f /tmp/ws_expirer.log
 }
