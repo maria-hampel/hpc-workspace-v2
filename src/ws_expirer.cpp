@@ -10,7 +10,7 @@
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024,2025
+ *  (c) Holger Berger 2021,2023,2024,2025,2026
  *  (c) Christoph Niethammer 2025
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
@@ -112,6 +112,23 @@ struct clean_stray_result_t {
 long releasekeeptime = 3600;  // TODO: make configurable
 const std::string CRLF = "\r\n";
 const std::string boundary = "_NextPart_01234567.89ABCDEF";
+
+// Format a time difference in seconds as a fixed-width string with 3 digits and appropriate unit
+static std::string formatTimedelta(long seconds) {
+    if (seconds < 0) seconds = 0;
+
+    long days = seconds / 86400;
+    long hours = (seconds % 86400) / 3600;
+    long minutes = (seconds % 3600) / 60;
+
+    if (days > 0) {
+        return fmt::format("{:3} days   ", days);
+    } else if (hours > 0) {
+        return fmt::format("{:3} hours  ", hours);
+    } else {
+        return fmt::format("{:3} minutes", minutes > 0 ? minutes : 1);
+    }
+}
 
 // own ws_expirer logging setup,
 // logs in color to console
@@ -252,15 +269,15 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     //////// stray directories /////////
     // move directories not having a DB entry to deleted
 
-    spdlog::info("Stray directory removal for filesystem {}", fs);
-    spdlog::info("  workspaces first...");
+    spdlog::info("* STRAY DIRECTORY REMOVAL for filesystem {}", fs);
+    spdlog::info("   workspaces first...");
 
     if (single_space != "") {
         if (canFind(spaces, single_space)) {
-            spdlog::info("only cleaning in space {}", single_space);
+            spdlog::info("   only cleaning in space {}", single_space);
             spaces = {single_space};
         } else {
-            spdlog::info("given space not in filesystem {}, skipping.", fs);
+            spdlog::info("   given space not in filesystem {}, skipping.", fs);
             return {0, 0, 0, 0};
         }
     }
@@ -269,6 +286,8 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     // workspaces getting created while this is running
     // also collect non-matching directories for logging
     std::vector<string> non_matching_dirs;
+    // Filter out the deleted directory path configured for the filesystem
+    const std::string deletedPath = config.deletedPath(fs);
     for (const auto& space : spaces) {
         // NOTE: *-* for compatibility with old expirer
         // collect all directories first to separate matching and non-matching
@@ -277,22 +296,21 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
                 if (entry.find('-') != string::npos) {
                     dirs.push_back({space, entry});
                 } else {
-                    non_matching_dirs.push_back(entry);
+                    if (entry != deletedPath) {
+                        non_matching_dirs.push_back(entry);
+                    }
                 }
             }
         }
     }
     // Log non-matching directories for manual intervention
-    // Filter out the deleted directory path configured for the filesystem
-    const std::string deletedPath = config.deletedPath(fs);
+
     if (!non_matching_dirs.empty()) {
-        spdlog::warn("Found {} directories not matching pattern '*-*' in filesystem {}: ", non_matching_dirs.size(), fs);
+        spdlog::warn(" Found {} directories not matching pattern '*-*' in filesystem {}: ", non_matching_dirs.size(), fs);
         for (const auto& dir : non_matching_dirs) {
-            if (dir != deletedPath) {
                 spdlog::warn("    {}", dir);
-            }
         }
-        spdlog::warn("These directories will be ignored and require manual intervention.");
+        spdlog::warn(" These directories will be ignored and require manual intervention.");
     }
 
     std::unique_ptr<Database> db;
@@ -345,7 +363,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
             // the same run in (3). Is this intended? dangerous with datarace #87
 
             string timestamp = fmt::format("{}", time(NULL));
-            spdlog::info("      {}move {} to {}", cleanermode ? "" : "would ",
+            spdlog::info("         {}move {} to {}", cleanermode ? "" : "would ",
                          (cppfs::path(founddir.space) / founddir.dir).string(),
                          (cppfs::path(founddir.space) / config.deletedPath(fs) /
                           (cppfs::path(founddir.dir).filename().string() + "-" + timestamp))
@@ -356,18 +374,19 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
                                   cppfs::path(founddir.space) / config.deletedPath(fs) /
                                       (cppfs::path(founddir.dir).filename().string() + "-" + timestamp));
                 } catch (cppfs::filesystem_error& e) {
-                    spdlog::error("      failed to move to deleted: {} ({})", founddir.dir, e.what());
+                    spdlog::error("       failed to move to deleted: {} ({})", founddir.dir, e.what());
                 }
             }
             result.invalid_ws++;
         } else {
+            spdlog::info("       found valid workspace: {}", founddir.dir);
             result.valid_ws++;
         }
     }
 
     spdlog::info("    {} valid, {} invalid directories found.", result.valid_ws, result.invalid_ws);
 
-    spdlog::info("  ... deleted workspaces second...");
+    spdlog::info("   ... deleted workspaces second...");
 
     ///// deleted workspaces /////  (3)
     // delete deleted workspaces that no longer have any DB entry
@@ -415,7 +434,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
         }
     }
 
-    spdlog::info("    {} valid expired, {} invalid expired directories found.", result.valid_deleted,
+    spdlog::info(" =>   {} valid expired, {} invalid expired directories found.", result.valid_deleted,
                  result.invalid_deleted);
     return result;
 }
@@ -460,7 +479,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         return result;
     }
 
-    spdlog::info("Checking DB for workspaces to be expired for filesystem {}", fs);
+    spdlog::info("* CHECKING DB FOR WORKSPACES TO BE EXPIRED for filesystem {}", fs);
 
     // search expired active workspaces in DB
     for (auto const& id : db->matchPattern("*", "*", {}, false, false)) {
@@ -496,7 +515,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
             result.expired_ws++;
             if (!dryrun) {
-                spdlog::info(" expiring {} (expired {})", id, utils::ctime(&expiration));
+                spdlog::info("  expiring {} (expired {})", id, utils::ctime(&expiration));
                 // db entry first
                 dbentry->expire(timestamp);
 
@@ -510,13 +529,14 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                     }
                     robust_rename(wspath, tgt);
                 } catch (cppfs::filesystem_error& e) {
-                    spdlog::error("  failed to move workspace: {} ({})", wspath, e.what());
+                    spdlog::error("   failed to move workspace: {} ({})", wspath, e.what());
                 }
             } else {
-                spdlog::info(" would expire {} (expired {})", id, utils::ctime(&expiration));
+                spdlog::info("  would expire {} (expired {})", id, utils::ctime(&expiration));
             }
         } else {
-            spdlog::info("  keeping {}     (until {})", id, utils::ctime(expiration));
+            spdlog::info("   keeping (until {}, {} left): {}", utils::ctime(expiration),
+                         formatTimedelta(expiration - time((long*)0L)), id);
             result.kept_ws++;
             // Send reminder emails
             auto reminder = dbentry->getReminder();
@@ -530,7 +550,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
                     std::string completeMail =
                         generateReminderMail(mail_from, mail_to, expiration, id, fs, clustername);
-                    spdlog::info("   sending reminder mail to {} for entry {}", mail_to, id);
+                    spdlog::info("    sending reminder mail to {} for entry {}", mail_to, id);
                     // fmt::print("{}", completeMail);
                     try {
                         if (!utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
@@ -546,9 +566,9 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         }
     }
 
-    spdlog::info("=>  {} workspaces expired, {} kept.", result.expired_ws, result.kept_ws);
+    spdlog::info(" =>  {} workspaces expired, {} kept.", result.expired_ws, result.kept_ws);
     spdlog::info("");
-    spdlog::info("Checking deleted DB for workspaces to be deleted for filesystem {}", fs);
+    spdlog::info("* CHECKING DELETED DB FOR WORKSPACES TO BE DELETED for filesystem {}", fs);
 
     // search in DB for expired/released workspaces for those over keeptime to delete them
     for (auto const& id : db->matchPattern("*", "*", {}, true, false)) {
@@ -582,14 +602,14 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
         auto released = dbentry->getReleaseTime(); // check if it was released by user, 0 if not
         if (debugflag) {
-            spdlog::debug("  released = {}, expiredtime (filename) = {}, expiration = {}", utils::ctime(released), utils::ctime(releasetime), utils::ctime(expiration));
+            spdlog::debug("   released = {}, expiredtime (filename) = {}, expiration = {}", utils::ctime(released), utils::ctime(releasetime), utils::ctime(expiration));
         }
         if (released > 1000000000L) { // released after 2001? if not ignore it
             releasetime = expiration = released;
             reason = "released";
         } else if (released != 0) {    // not released at all, expired, releasetime is taken from filename
             releasetime = 3000000000L; // date in future, 2065
-            spdlog::warn("  IGNORING released {} for {}", releasetime, id);
+            spdlog::warn("   IGNORING released {} for {}", releasetime, id);
         }
 
         // Only use releasekeeptime if workspace was actually released by user
@@ -604,7 +624,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
         if (should_delete) {
             result.deleted_ws++;
-            spdlog::info(" {}delete DB entry {}, was {} {}", cleanermode ? "" : "would ", id, reason,
+            spdlog::info("  {}delete DB entry {}, was {} {}", cleanermode ? "" : "would ", id, reason,
                          utils::ctime(&releasetime));
 
             if (cleanermode) {
@@ -612,7 +632,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             }
 
             auto wspath = cppfs::path(dbentry->getWSPath()).remove_filename() / config.getFsConfig(fs).deletedPath / id;
-            spdlog::info("   {}delete directory: {}", cleanermode ? "" : "would ", wspath.string());
+            spdlog::info("    {}delete directory: {}", cleanermode ? "" : "would ", wspath.string());
             if (cleanermode) {
                 try {
                     // timeout is now + deldirtimeout;
@@ -629,16 +649,16 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             long deadline;
             if (released > 1000000000L) {
                 deadline = releasetime + releasekeeptime;
-                spdlog::info("  keeping released {}     (until {}, {} seconds left)", id, utils::ctime(deadline),
-                             deadline - time((long*)0L));
+                spdlog::info("   keeping (until {}, {} left), was released: {}", utils::ctime(deadline),
+                             formatTimedelta(deadline - time((long*)0L)), id);
             } else {
                 deadline = expiration + keeptime * 24 * 3600;
-                spdlog::info("  keeping expired {}     (until {}, {} days left)", id, utils::ctime(deadline),
-                             (deadline - time((long*)0L)) / 86400);
+                spdlog::info("   keeping (until {}, {} left), was expired:  {}", utils::ctime(deadline),
+                             formatTimedelta(deadline - time((long*)0L)), id);
             }
         }
     }
-    spdlog::info("=>  {} workspaces deleted, {} workspaces kept", result.deleted_ws, result.kept_ws);
+    spdlog::info(" =>  {} workspaces deleted, {} workspaces kept", result.deleted_ws, result.kept_ws);
 
     return result;
 }
@@ -765,9 +785,9 @@ int main(int argc, char** argv) {
     spdlog::info("==== WS_EXPIRER {}RUN START {} =====", dryrun ? "DRY" : "", utils::ctime(std::time(nullptr)));
 
     if (cleanermode) {
-        spdlog::warn("Expirer - really cleaning!");
+        spdlog::warn("ws_expirer {} - REALLY CLEANING!", utils::getVersion());
     } else {
-        spdlog::info("Expirer - simulating cleaning - dryrun");
+        spdlog::info("ws_expirer {} - SIMULATING CLEANING - DRYRUN", utils::getVersion());
     }
 
     // go through filesystem and
@@ -778,9 +798,10 @@ int main(int argc, char** argv) {
     for (auto const& fs : fslist) {
         total_stray += clean_stray_directories(config, fs, single_space, dryrun);
     }
-    spdlog::info("Stray removal summary: {} valid, {} invalid, {} valid deleted, {} invalid", total_stray.valid_ws,
+    spdlog::info(" Stray removal summary: {} valid, {} invalid, {} valid deleted, {} invalid", total_stray.valid_ws,
                  total_stray.invalid_ws, total_stray.valid_deleted, total_stray.invalid_deleted);
-    spdlog::info("End of stray removal");
+    spdlog::info(" End of stray removal");
+    spdlog::info("");
 
     // go through database and
     // - expire workspaces beyond expiration age and
@@ -789,10 +810,10 @@ int main(int argc, char** argv) {
     for (auto const& fs : fslist) {
         total_expire += expire_workspaces(config, fs, dryrun);
     }
-    spdlog::info("Expiration summary: {} kept, {} expired, {} deleted, {} reminders sent, {} bad db entries",
+    spdlog::info(" Expiration summary: {} kept, {} expired, {} deleted, {} reminders sent, {} bad db entries",
                  total_expire.kept_ws, total_expire.expired_ws, total_expire.deleted_ws, total_expire.sent_mails,
                  total_expire.bad_db);
-    spdlog::info("End of expiration");
+    spdlog::info(" End of expiration");
 
     // Cleanup curl
     utils::cleanupCurl();
