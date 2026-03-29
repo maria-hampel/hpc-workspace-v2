@@ -165,7 +165,7 @@ void worker_thread(size_t worker_id, std::vector<StatResult>& local_results,
         }
 
         // Termination check: own queue empty, no work to steal, counter is 0
-        if (!work.has_value() && work_counter.load(std::memory_order_relaxed) == 0) {
+        if (!work.has_value() && work_counter.load(std::memory_order_acquire) == 0) {
             break;
         }
 
@@ -174,59 +174,65 @@ void worker_thread(size_t worker_id, std::vector<StatResult>& local_results,
             continue;
         }
 
-        // Decrement counter since we're processing a task
-        work_counter.fetch_sub(1, std::memory_order_relaxed);
-
         // Process this directory level
         std::vector<cppfs::path> files, subdirs;
         softlinks = 0;
         directories = 0;
 
+        // scan_ok stays true only for a fully successful directory scan.
+        // Using a flag instead of early `continue` ensures the counter update
+        // at the bottom of the loop always executes, even on error paths.
+        bool scan_ok = true;
         try {
             if (!cppfs::exists(*work) || !cppfs::is_directory(*work)) {
-                continue;
-            }
-
-            for (const auto& entry : cppfs::directory_iterator(*work)) {
-                if (entry.is_symlink()) {
-                    softlinks++;
-                } else if (entry.is_directory()) {
-                    directories++;
-                    subdirs.push_back(entry.path());
-                } else if (entry.is_regular_file()) {
-                    files.push_back(entry.path());
+                scan_ok = false;
+            } else {
+                for (const auto& entry : cppfs::directory_iterator(*work)) {
+                    if (entry.is_symlink()) {
+                        softlinks++;
+                    } else if (entry.is_directory()) {
+                        directories++;
+                        subdirs.push_back(entry.path());
+                    } else if (entry.is_regular_file()) {
+                        files.push_back(entry.path());
+                    }
                 }
             }
         } catch (const std::filesystem::filesystem_error& e) {
             spdlog::warn("Cannot read directory {}: {} - skipping", work->string(), e.what());
-            continue;
+            scan_ok = false;
+            subdirs.clear(); // discard any partial results from a failed iteration
         } catch (const std::exception& e) {
             spdlog::warn("Error reading directory {}: {} - skipping", work->string(), e.what());
-            continue;
+            scan_ok = false;
+            subdirs.clear();
         }
 
-        local.directories += directories;
-        local.softlinks += softlinks;
+        if (scan_ok) {
+            local.directories += directories;
+            local.softlinks += softlinks;
 
-        for (const auto& entry : files) {
-            try {
-                auto [bytes, blocks] = getfilesize(entry);
-                local.files++;
-                local.bytes += bytes;
-                local.blocks += blocks;
-            } catch (const std::exception& e) {
-                spdlog::warn("Cannot stat file {}: {} - skipping", entry.string(), e.what());
+            for (const auto& entry : files) {
+                try {
+                    auto [bytes, blocks] = getfilesize(entry);
+                    local.files++;
+                    local.bytes += bytes;
+                    local.blocks += blocks;
+                } catch (const std::exception& e) {
+                    spdlog::warn("Cannot stat file {}: {} - skipping", entry.string(), e.what());
+                }
             }
         }
 
-        // Push discovered subdirs to own queue
-        if (!subdirs.empty()) {
-            for (auto& subdir : subdirs) {
-                worker_queues[worker_id].push(std::move(subdir));
-            }
-            // Increment counter for each new work item
-            work_counter.fetch_add(subdirs.size(), std::memory_order_relaxed);
+        // Push discovered subdirs to own queue (empty on error paths after clear())
+        for (auto& subdir : subdirs) {
+            worker_queues[worker_id].push(std::move(subdir));
         }
+        // Net update: -1 for the consumed task, +N for newly discovered subdirs.
+        // Done atomically AFTER pushing so the counter only reaches 0 when all
+        // work is truly finished — preventing other workers from terminating
+        // while this task's children are still in flight.
+        work_counter.fetch_add(static_cast<int64_t>(subdirs.size()) - 1, std::memory_order_acq_rel);
     }
 
     local_results[worker_id] = local;

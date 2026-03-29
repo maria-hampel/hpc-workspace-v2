@@ -6,6 +6,7 @@
  *  PathWorkStealingQueue
  *
  *  - helper class for work stealing queue for ws_stat
+ *    (qwen3.5:122b)
  *
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
@@ -124,24 +125,29 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
 
         std::int64_t t = top_.load(std::memory_order_relaxed);
 
-        std::optional<T> item;
-        if (t <= b) {
-            item = std::move(array_[static_cast<size_t>(b)].item);
-
-            if (t == b) {
-                // This might be the last item - check for race with thief
-                if (!top_.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst, std::memory_order_relaxed)) {
-                    // Thief stole the item
-                    item.reset();
-                }
-                bottom_.store(b + 1, std::memory_order_relaxed);
-            }
-        } else {
+        if (t > b) {
             // Queue was empty
             bottom_.store(b + 1, std::memory_order_relaxed);
+            return std::nullopt;
         }
 
-        return item;
+        if (t == b) {
+            // Last item: must win the CAS *before* moving to avoid a data race with steal().
+            // steal() does CAS-then-move. The original move-then-CAS pattern here allowed
+            // steal() to win the CAS after pop already moved the item, causing steal() to
+            // return a moved-from (empty) path that would silently skip entire subtrees.
+            if (!top_.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst, std::memory_order_relaxed)) {
+                // Thief stole the item; steal() will move it safely on its own
+                bottom_.store(b + 1, std::memory_order_relaxed);
+                return std::nullopt;
+            }
+            // We won: steal()'s CAS will now fail, so we have exclusive access to the item
+            bottom_.store(b + 1, std::memory_order_relaxed);
+            return std::move(array_[static_cast<size_t>(b)].item);
+        }
+
+        // t < b: multiple items — pop from bottom, thieves target top, no overlap possible
+        return std::move(array_[static_cast<size_t>(b)].item);
     }
 
     /**
