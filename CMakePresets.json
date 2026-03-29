@@ -30,7 +30,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTS": true,
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -g3 -fstack-protector-all -fcf-protection=full -fsanitize=address -fsanitize=undefined -fsanitize=leak -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE"
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -g3 -fstack-protector-all -fcf-protection=full -fsanitize=address -fsanitize=undefined -fsanitize=leak -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE -Wno-interference-size"
       }
     },
     {
@@ -51,7 +51,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTS": true,
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -g3 -fstack-protector-all -fsanitize=address -fsanitize=undefined -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE"
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -g3 -fstack-protector-all -fsanitize=address -fsanitize=undefined -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE -Wno-interference-size"
       }
     },
     {
@@ -64,7 +64,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTS": true,
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -g3 -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE"
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -g3 -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE -Wno-interference-size"
       }
     },
     {
@@ -76,7 +76,7 @@
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -O3 -DNDEBUG -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE"
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -O3 -DNDEBUG -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE -Wno-interference-size"
       }
     },
     {
@@ -110,7 +110,7 @@
       "binaryDir": "${sourceDir}/build/minsize",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "MinSizeRel",
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Os -DNDEBUG -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE"
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Os -DNDEBUG -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE -Wno-interference-size"
       }
     }
   ],
