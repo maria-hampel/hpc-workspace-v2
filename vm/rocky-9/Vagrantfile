@@ -123,6 +123,7 @@ Vagrant.configure("2") do |config|
     cd hpc-workspace-v2
     git pull
     rm -rf build
+    cd ..
     echo .......................................
     echo ...debug build.........................
     echo .......................................
@@ -131,7 +132,7 @@ Vagrant.configure("2") do |config|
     echo .......................................
     echo ...unit tests..........................
     echo .......................................
-    cd hpc-workspace-v2 
+    #cd hpc-workspace-v2 
     ctest --preset debug .
 
     cd
@@ -145,7 +146,7 @@ Vagrant.configure("2") do |config|
     sudo rm -rf /tmp/ws
     mkdir /tmp/ws
 
-    cd hpc-workspace-v2 
+    #cd hpc-workspace-v2 
     echo .......................................
     echo ...bats tests as user..................
     echo .......................................
@@ -158,7 +159,7 @@ Vagrant.configure("2") do |config|
     sudo mkdir /tmp/ws
     sudo chown daemon:daemon /tmp/ws
 
-    cd hpc-workspace-v2 
+    #cd hpc-workspace-v2 
     sudo chown root build/release/bin/ws_restore build/release/bin/ws_allocate build/release/bin/ws_release build/release/bin/ws_restore_notest
     sudo chmod u+s build/release/bin/ws_restore build/release/bin/ws_allocate build/release/bin/ws_release build/release/bin/ws_restore_notest
 
