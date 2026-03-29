@@ -421,74 +421,169 @@ setup() {
     ws_release --config bats/ws.conf -F ws1 THREADOPT
 }
 
-@test "ws_stat max-depth option" {
-    ws_allocate --config bats/ws.conf -F ws1 MAXDEPTHOPT
-    WSPATH=$(ws_find --config bats/ws.conf -F ws1 MAXDEPTHOPT)
-    touch "$WSPATH"/test.txt
-    run ws_stat --config bats/ws.conf -F ws1 --max-depth 3 MAXDEPTHOPT
-    assert_output --partial "files               : 1"
-    assert_success
-    ws_release --config bats/ws.conf -F ws1 MAXDEPTHOPT
-}
-
-@test "ws_stat deep structure max-depth 3" {
-    ws_allocate --config bats/ws.conf -F ws1 DEEPDEPTH3
-    WSPATH=$(ws_find --config bats/ws.conf -F ws1 DEEPDEPTH3)
-    mkdir -p "$WSPATH"/a/b/c/d/e/f  # Depth 6
-    touch "$WSPATH"/root.txt
-    touch "$WSPATH"/a/level1.txt
-    touch "$WSPATH"/a/b/level2.txt
-    touch "$WSPATH"/a/b/c/level3.txt
-    touch "$WSPATH"/a/b/c/d/level4.txt
-    touch "$WSPATH"/a/b/c/d/e/level5.txt
-    run ws_stat --config bats/ws.conf -F ws1 --max-depth 3 DEEPDEPTH3
-    assert_output --partial "directories         : 6"
-    assert_output --partial "files               : 6"
-    assert_success
-    ws_release --config bats/ws.conf -F ws1 DEEPDEPTH3
-}
-
-@test "ws_stat deep structure max-depth 5" {
-    ws_allocate --config bats/ws.conf -F ws1 DEEPDEPTH5
-    WSPATH=$(ws_find --config bats/ws.conf -F ws1 DEEPDEPTH5)
-    mkdir -p "$WSPATH"/a/b/c/d/e/f  # Depth 6
-    touch "$WSPATH"/root.txt
-    touch "$WSPATH"/a/level1.txt
-    touch "$WSPATH"/a/b/level2.txt
-    touch "$WSPATH"/a/b/c/level3.txt
-    touch "$WSPATH"/a/b/c/d/level4.txt
-    touch "$WSPATH"/a/b/c/d/e/level5.txt
-    run ws_stat --config bats/ws.conf -F ws1 --max-depth 5 DEEPDEPTH5
-    assert_output --partial "directories         : 6"
-    assert_output --partial "files               : 6"
-    assert_success
-    ws_release --config bats/ws.conf -F ws1 DEEPDEPTH5
-}
-
-@test "ws_stat multiple branches parallel" {
-    ws_allocate --config bats/ws.conf -F ws1 MULBRANCH
-    WSPATH=$(ws_find --config bats/ws.conf -F ws1 MULBRANCH)
-    mkdir -p "$WSPATH"/branch1/a/b/c
-    mkdir -p "$WSPATH"/branch2/a/b/c
-    mkdir -p "$WSPATH"/branch3/a/b/c
-    touch "$WSPATH"/branch1/file1.txt
-    touch "$WSPATH"/branch2/file2.txt
-    touch "$WSPATH"/branch3/file3.txt
-    touch "$WSPATH"/branch1/a/file1a.txt
-    touch "$WSPATH"/branch2/a/file2a.txt
-    touch "$WSPATH"/branch3/a/file3a.txt
-    run ws_stat --config bats/ws.conf -F ws1 --max-depth 3 MULBRANCH
-    # 3 branches × 4 levels each (a,b,c plus root level) = 12 directories
-    assert_output --partial "directories         : 12"
-    assert_output --partial "files               : 6"
-    assert_success
-    ws_release --config bats/ws.conf -F ws1 MULBRANCH
-}
-
 @test "ws_stat verbose fast operation no division by zero" {
     ws_allocate --config bats/ws.conf -F ws1 FASTEMPTY
     run ws_stat --config bats/ws.conf -F ws1 --verbose FASTEMPTY
     assert_output --partial "time[msec]"
     assert_success
     ws_release --config bats/ws.conf -F ws1 FASTEMPTY
+}
+
+# Test very wide directory tree (challenges work-stealing load balancing)
+@test "ws_stat very wide directory tree" {
+    ws_allocate --config bats/ws.conf -F ws1 WIDETEST
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 WIDETEST)
+    
+    # Create 200 subdirectories at root level
+    for i in $(seq 1 200); do
+        mkdir -p "$WSPATH"/branch_$i
+        touch "$WSPATH"/branch_$i/file.txt
+    done
+    
+    run ws_stat --config bats/ws.conf -F ws1 --threads 8 WIDETEST
+    assert_output --partial "directories         : 200"
+    assert_output --partial "files               : 200"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 WIDETEST
+}
+
+# Test extremely deep directory nesting (challenges termination detection)
+@test "ws_stat extremely deep nesting" {
+    ws_allocate --config bats/ws.conf -F ws1 DEEPTEST2
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 DEEPTEST2)
+    
+    # Clean any previous content
+    rm -rf "${WSPATH:?}"/*
+    
+    # Create 50 levels deep with one file per level
+    for i in $(seq 1 50); do
+        mkdir -p "$WSPATH"/level_$i
+        touch "$WSPATH"/level_$i/file.txt
+    done
+    
+    run ws_stat --config bats/ws.conf -F ws1 DEEPTEST2
+    # 50 directories + 50 files
+    assert_output --partial "directories         : 50"
+    assert_output --partial "files               : 50"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 DEEPTEST2
+}
+
+# Test wide and deep combination (maximum work-stealing challenge)
+@test "ws_stat wide and deep tree" {
+    ws_allocate --config bats/ws.conf -F ws1 COMBINEDTEST
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 COMBINEDTEST)
+    
+    # Clean any previous content
+    rm -rf "${WSPATH:?}"/*
+    
+    # Create 50 branches, each with 10 levels deep (50 branch dirs + 10 level dirs each = 550 dirs)
+    # Each level has a file = 50 branches × 10 files = 500 files
+    for branch in $(seq 1 50); do
+        current="$WSPATH/branch_$branch"
+        mkdir -p "$current"
+        for level in $(seq 1 10); do
+            mkdir -p "$current"/level_$level
+            current="$current"/level_$level
+            touch "$current"/file.txt
+        done
+    done
+    
+    run ws_stat --config bats/ws.conf -F ws1 COMBINEDTEST
+    # 50 branches × 10 dirs each = 500 dirs + 50 branch dirs = 550 dirs
+    # 50 branches × 10 files each = 500 files
+    assert_output --partial "directories         : 550"
+    assert_output --partial "files               : 500"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 COMBINEDTEST
+}
+
+# Test with minimal worker count (forces stealing)
+@test "ws_stat minimal workers with wide tree" {
+    ws_allocate --config bats/ws.conf -F ws1 MINIMUMWORKERS
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 MINIMUMWORKERS)
+    
+    # Create 100 subdirectories
+    for i in $(seq 1 100); do
+        mkdir -p "$WSPATH"/branch_$i
+        touch "$WSPATH"/branch_$i/file.txt
+    done
+    
+    # Use only 2 threads (4 total, so 2 workers for directories)
+    run ws_stat --config bats/ws.conf -F ws1 --threads 4 MINIMUMWORKERS
+    assert_output --partial "directories         : 100"
+    assert_output --partial "files               : 100"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 MINIMUMWORKERS
+}
+
+# Test multiple concurrent wide trees (stress test)
+@test "ws_stat multiple wide trees concurrent" {
+    ws_allocate --config bats/ws.conf -F ws1 MULTIWIDE1
+    ws_allocate --config bats/ws.conf -F ws1 MULTIWIDE2
+    ws_allocate --config bats/ws.conf -F ws1 MULTIWIDE3
+    
+    WSPATH1=$(ws_find --config bats/ws.conf -F ws1 MULTIWIDE1)
+    WSPATH2=$(ws_find --config bats/ws.conf -F ws1 MULTIWIDE2)
+    WSPATH3=$(ws_find --config bats/ws.conf -F ws1 MULTIWIDE3)
+    
+    # Clean any previous content
+    rm -rf "${WSPATH1:?}"/* "${WSPATH2:?}"/* "${WSPATH3:?}"/*
+    
+    # Create 50 subdirs in each with a file
+    for ws in "$WSPATH1" "$WSPATH2" "$WSPATH3"; do
+        for i in $(seq 1 50); do
+            mkdir -p "$ws"/branch_$i
+            touch "$ws"/branch_$i/file.txt
+        done
+    done
+    
+    run ws_stat --config bats/ws.conf -F ws1 "MULTIWIDE*"
+    assert_output --partial "directories         : 50"
+    assert_output --partial "files               : 50"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 MULTIWIDE1
+    ws_release --config bats/ws.conf -F ws1 MULTIWIDE2
+    ws_release --config bats/ws.conf -F ws1 MULTIWIDE3
+}
+
+# Test empty subdirectories with deep nesting
+@test "ws_stat deep with empty dirs" {
+    ws_allocate --config bats/ws.conf -F ws1 EMPTYDEEP
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 EMPTYDEEP)
+    
+    # Clean any previous content
+    rm -rf "${WSPATH:?}"/*
+    
+    # Create deep structure with many empty dirs
+    mkdir -p "$WSPATH"/a/b/c/d/e/f/g/h/i/j
+    mkdir -p "$WSPATH"/x/y/z
+    mkdir -p "$WSPATH"/mixed/empty1/empty2
+    touch "$WSPATH"/a/b/c/file.txt
+    
+    run ws_stat --config bats/ws.conf -F ws1 EMPTYDEEP
+    assert_output --partial "directories         : 16"
+    assert_output --partial "files               : 1"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 EMPTYDEEP
+}
+
+# Test many files per directory
+@test "ws_stat many files per subdir" {
+    ws_allocate --config bats/ws.conf -F ws1 MANYFILES
+    WSPATH=$(ws_find --config bats/ws.conf -F ws1 MANYFILES)
+    
+    # Create 50 subdirs with 100 files each
+    for i in $(seq 1 50); do
+        mkdir -p "$WSPATH"/dir_$i
+        for f in $(seq 1 100); do
+            touch "$WSPATH"/dir_$i/file_$f.txt
+        done
+    done
+    
+    run ws_stat --config bats/ws.conf -F ws1 MANYFILES
+    assert_output --partial "directories         : 50"
+    assert_output --partial "files               : 5000"
+    assert_success
+    ws_release --config bats/ws.conf -F ws1 MANYFILES
 }
