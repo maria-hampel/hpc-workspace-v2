@@ -4,6 +4,7 @@
  *  ws_stat
  *
  *  - tool to get statistics about workspaces (bshoshany/thread-pool version)
+ *  - within a workspace directory, parallel processing with a lock free work stealing queue
  *
  *  relies on statx(), not available in RH7 and older.
  *
@@ -35,13 +36,18 @@
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
-#include <mutex>
+#include <memory>
+#include <optional>
+#include <thread>
 #include <utility>
 #include <vector>
 
 // Include bshoshany thread-pool
 #define BS_THREAD_POOL_NATIVE_EXTENSIONS
 #include "BS_thread_pool.hpp"
+
+// Include work-stealing queue for paths
+#include "PathWorkStealingQueue.hpp"
 
 #include "config.h"
 #include <boost/program_options.hpp>
@@ -117,25 +123,6 @@ std::pair<uint64_t, uint64_t> getfilesize(const cppfs::path& path) {
 // Mutex for synchronizing output from multiple threads
 std::mutex output_mutex;
 
-// Helper function to collect all entries recursively (for serial subtree processing)
-void collect_all_entries_recursive(const cppfs::path& path, std::vector<cppfs::path>& files, uint64_t& softlinks,
-                                   uint64_t& directories) {
-    if (!cppfs::is_directory(path)) {
-        return;
-    }
-
-    for (const auto& entry : cppfs::directory_iterator(path)) {
-        if (entry.is_symlink()) {
-            softlinks++;
-        } else if (entry.is_directory()) {
-            directories++;
-            collect_all_entries_recursive(entry.path(), files, softlinks, directories);
-        } else if (entry.is_regular_file()) {
-            files.push_back(entry.path());
-        }
-    }
-}
-
 // Collect only files and subdirectories at current level (no recursion)
 void collect_level(const cppfs::path& path, std::vector<cppfs::path>& files, std::vector<cppfs::path>& subdirs,
                    uint64_t& softlinks, uint64_t& directories) {
@@ -155,88 +142,169 @@ void collect_level(const cppfs::path& path, std::vector<cppfs::path>& files, std
     }
 }
 
-// Process entire subtree serially (for depth-limited parallel traversal)
-StatResult process_subtree_serial(const cppfs::path& path) {
-    std::vector<cppfs::path> all_files;
+// Worker thread using per-queue work-stealing
+void worker_thread(size_t worker_id, std::vector<StatResult>& local_results,
+                   std::vector<PathWorkStealingQueue<cppfs::path>>& worker_queues, std::atomic<int64_t>& work_counter) {
+    StatResult local{};
     uint64_t softlinks = 0;
     uint64_t directories = 0;
 
-    collect_all_entries_recursive(path, all_files, softlinks, directories);
+    while (true) {
+        // Try to pop from own queue
+        std::optional<cppfs::path> work = worker_queues[worker_id].pop();
 
-    StatResult result;
-    result.directories = directories;
-    result.softlinks = softlinks;
+        // If own queue empty, try to steal from others (fair round-robin)
+        if (!work.has_value()) {
+            for (size_t i = 1; i < worker_queues.size(); i++) {
+                size_t victim = (worker_id + i) % worker_queues.size();
+                work = worker_queues[victim].steal();
+                if (work.has_value()) {
+                    break;
+                }
+            }
+        }
 
-    for (const auto& entry : all_files) {
-        auto [bytes, blocks] = getfilesize(entry);
-        result.files++;
-        result.bytes += bytes;
-        result.blocks += blocks;
-    }
+        // Termination check: own queue empty, no work to steal, counter is 0
+        if (!work.has_value() && work_counter.load(std::memory_order_relaxed) == 0) {
+            break;
+        }
 
-    return result;
-}
+        if (!work.has_value()) {
+            std::this_thread::yield();
+            continue;
+        }
 
-// Depth-limited parallel directory traversal
-StatResult process_directory_parallel(const cppfs::path& path, unsigned int current_depth, unsigned int max_depth,
-                                      BS::thread_pool<BS::tp::none>& dir_pool) {
-    std::vector<cppfs::path> files, subdirs;
-    uint64_t softlinks = 0;
-    uint64_t directories = 0;
+        // Decrement counter since we're processing a task
+        work_counter.fetch_sub(1, std::memory_order_relaxed);
 
-    // At max depth: process entire subtree serially (includes all counting)
-    if (current_depth >= max_depth) {
-        return process_subtree_serial(path);
-    }
+        // Process this directory level
+        std::vector<cppfs::path> files, subdirs;
+        softlinks = 0;
+        directories = 0;
 
-    // Below max depth: collect this level and recurse
-    collect_level(path, files, subdirs, softlinks, directories);
-
-    // Process files at this level
-    StatResult result;
-    result.directories = directories;
-    result.softlinks = softlinks;
-
-    for (const auto& entry : files) {
-        auto [bytes, blocks] = getfilesize(entry);
-        result.files++;
-        result.bytes += bytes;
-        result.blocks += blocks;
-    }
-
-    // Submit subdirectories in parallel
-    std::vector<std::future<StatResult>> futures;
-    for (const auto& subdir : subdirs) {
         try {
-            auto fut = dir_pool.submit_task([subdir, current_depth, max_depth, &dir_pool]() {
-                return process_directory_parallel(subdir, current_depth + 1, max_depth, dir_pool);
-            });
-            futures.push_back(std::move(fut));
+            if (!cppfs::exists(*work) || !cppfs::is_directory(*work)) {
+                continue;
+            }
+
+            for (const auto& entry : cppfs::directory_iterator(*work)) {
+                if (entry.is_symlink()) {
+                    softlinks++;
+                } else if (entry.is_directory()) {
+                    directories++;
+                    subdirs.push_back(entry.path());
+                } else if (entry.is_regular_file()) {
+                    files.push_back(entry.path());
+                }
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            spdlog::warn("Cannot read directory {}: {} - skipping", work->string(), e.what());
+            continue;
         } catch (const std::exception& e) {
-            spdlog::warn("Failed to enqueue subdirectory {}: {} - data might be incomplete", subdir.string(), e.what());
+            spdlog::warn("Error reading directory {}: {} - skipping", work->string(), e.what());
+            continue;
+        }
+
+        local.directories += directories;
+        local.softlinks += softlinks;
+
+        for (const auto& entry : files) {
+            try {
+                auto [bytes, blocks] = getfilesize(entry);
+                local.files++;
+                local.bytes += bytes;
+                local.blocks += blocks;
+            } catch (const std::exception& e) {
+                spdlog::warn("Cannot stat file {}: {} - skipping", entry.string(), e.what());
+            }
+        }
+
+        // Push discovered subdirs to own queue
+        if (!subdirs.empty()) {
+            for (auto& subdir : subdirs) {
+                worker_queues[worker_id].push(std::move(subdir));
+            }
+            // Increment counter for each new work item
+            work_counter.fetch_add(subdirs.size(), std::memory_order_relaxed);
         }
     }
 
-    // Wait and aggregate results
-    for (auto& fut : futures) {
-        try {
-            result += fut.get();
-        } catch (const std::exception& e) {
-            spdlog::warn("Subdirectory processing failed: {} - data might be incomplete", e.what());
-        }
-    }
-
-    return result;
+    local_results[worker_id] = local;
 }
 
-// Wrapper function
-StatResult stat_workspace(const std::string& wspath, BS::thread_pool<BS::tp::none>& dir_pool, unsigned int max_depth) {
+// Work-stealing based directory traversal
+StatResult stat_workspace(const std::string& wspath) {
     if (!cppfs::is_directory(wspath)) {
         spdlog::error("workspace <{}> does not exist!", wspath);
         return StatResult{};
     }
 
-    return process_directory_parallel(wspath, 0, max_depth, dir_pool);
+    std::vector<cppfs::path> files, subdirs;
+    uint64_t root_softlinks = 0;
+    uint64_t root_directories = 0;
+
+    try {
+        collect_level(wspath, files, subdirs, root_softlinks, root_directories);
+    } catch (const std::filesystem::filesystem_error& e) {
+        spdlog::error("Cannot read workspace root {}: {}", wspath, e.what());
+        return StatResult{};
+    }
+
+    StatResult result{};
+    result.softlinks = root_softlinks;
+    result.directories = root_directories;
+
+    for (const auto& entry : files) {
+        try {
+            auto [bytes, blocks] = getfilesize(entry);
+            result.files++;
+            result.bytes += bytes;
+            result.blocks += blocks;
+        } catch (const std::exception& e) {
+            spdlog::warn("Cannot stat file {}: {} - skipping", entry.string(), e.what());
+        }
+    }
+
+    if (subdirs.empty()) {
+        return result;
+    }
+
+    size_t worker_count = std::max<size_t>(1, thread_count / 2);
+    if (debugflag) {
+        spdlog::debug("Using {} workers for directory traversal (thread_count={})", worker_count, thread_count);
+    }
+
+    // Create one queue per worker
+    std::vector<PathWorkStealingQueue<cppfs::path>> worker_queues(worker_count);
+
+    // Round-robin distribute initial work
+    for (size_t i = 0; i < subdirs.size(); i++) {
+        worker_queues[i % worker_count].push(std::move(subdirs[i]));
+    }
+
+    // Work counter for termination detection
+    std::atomic<int64_t> work_counter(static_cast<int64_t>(subdirs.size()));
+
+    std::vector<StatResult> local_results(worker_count);
+    std::vector<std::thread> workers;
+
+    // Spawn workers with their own queues
+    for (size_t i = 0; i < worker_count; i++) {
+        workers.emplace_back(worker_thread, i, std::ref(local_results), std::ref(worker_queues),
+                             std::ref(work_counter));
+    }
+
+    // Wait for all workers to complete
+    for (auto& w : workers) {
+        w.join();
+    }
+
+    // Aggregate results
+    for (const auto& lr : local_results) {
+        result += lr;
+    }
+
+    return result;
 }
 
 // helper for fmt:: formatter for boost program_options
@@ -258,7 +326,6 @@ int main(int argc, char** argv) {
     bool sortbycreation = false;
     bool sortbyremaining = false;
     bool sortreverted = false;
-    int max_depth_param = -1; // -1 means auto-calculate
 
     po::variables_map opts;
 
@@ -284,7 +351,6 @@ int main(int argc, char** argv) {
         ("remaining,R", "sort by remaining time")
         ("reverted,r", "revert sort")
         ("verbose,v", "verbose listing")
-        ("max-depth,m", po::value<int>(&max_depth_param)->default_value(-1), "max parallel traversal depth (-1 = auto)")
         ("threads,t", po::value<unsigned int>(&thread_count)->default_value(0), "threads for parallel operation (default: hardware_concurrency)");
     // clang-format on
 
@@ -351,24 +417,6 @@ int main(int argc, char** argv) {
             spdlog::debug("thread count {} too low, increasing to 4", thread_count);
         }
         thread_count = 4;
-    }
-
-    // Calculate max_depth from thread count if not specified
-    unsigned int max_depth;
-    if (max_depth_param < 0) {
-        max_depth = std::min(6u, std::max(3u, thread_count / 4));
-        if (debugflag) {
-            spdlog::debug("Derived max_depth={} from threads={}", max_depth, thread_count);
-        }
-    } else {
-        max_depth = static_cast<unsigned int>(max_depth_param);
-        if (max_depth < 3) {
-            spdlog::warn("max_depth {} is below minimum of 3, using 3", max_depth_param);
-            max_depth = 3;
-        }
-        if (debugflag) {
-            spdlog::debug("Using user-specified max_depth={}", max_depth);
-        }
     }
 
     // handle options exiting here
@@ -502,9 +550,9 @@ int main(int argc, char** argv) {
         }
         workspace_pool
             .submit_loop(0, entrylist.size(),
-                         [&entrylist, &username, &dir_pool, max_depth](size_t i) {
+                         [&entrylist, &username](size_t i) {
                              auto begin = std::chrono::steady_clock::now();
-                             auto result = stat_workspace(entrylist[i]->getWSPath(), dir_pool, max_depth);
+                             auto result = stat_workspace(entrylist[i]->getWSPath());
                              auto end = std::chrono::steady_clock::now();
                              auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
@@ -533,7 +581,7 @@ int main(int argc, char** argv) {
         // Serial processing when sorted or for small lists
         for (auto& entry : entrylist) {
             auto begin = std::chrono::steady_clock::now();
-            auto result = stat_workspace(entry->getWSPath(), dir_pool, max_depth);
+            auto result = stat_workspace(entry->getWSPath());
             auto end = std::chrono::steady_clock::now();
             auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
