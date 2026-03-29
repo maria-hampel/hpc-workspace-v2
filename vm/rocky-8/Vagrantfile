@@ -87,12 +87,15 @@ Vagrant.configure("2") do |config|
     sudo groupadd  $OTHER_USER 
     sudo groupadd  usera
     sudo adduser --home-dir /home/$OTHER_USER -m -g userb -G $DOCKER_USER,usera --system $OTHER_USER   
+    sudo adduser --home-dir /home/mean-user-name -m -g userb -G $DOCKER_USER,usera --system mean-user-name
     sudo usermod -G usera vagrant
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' | sudo tee -a /etc/sudoers
 
+    sudo dnf config-manager --enable crb
+    sudo dnf install -y git cmake ninja-build libasan libubsan boost-devel ncurses-devel libcap-devel wget which gcc-c++ lld libcurl-devel openssl-devel libpsl-devel postfix s-nail
 
-    sudo dnf install -y git cmake libasan libubsan boost-devel ncurses-devel libcap-devel wget which gcc-toolset-14.x86_64 gcc-toolset-14-libasan-devel.x86_64 gcc-toolset-14-libubsan-devel lld libcurl-devel openssl-devel 
-
+    sudo sed -i 's/^inet_interfaces = localhost$/inet_interfaces = loopback-only/' /etc/postfix/main.cf
+    sudo systemctl enable --now postfix
 
     #sudo mkfs.xfs /dev/sdb
     #sudo mount /dev/sdb /mnt
@@ -115,10 +118,13 @@ Vagrant.configure("2") do |config|
 
     cd /home/vagrant
     git clone https://github.com/holgerBerger/hpc-workspace-v2
+    cd hpc-workspace-v2
+    git pull
+    rm -rf build
     echo .......................................
     echo ...debug build.........................
     echo .......................................
-    scl enable gcc-toolset-14 "cd hpc-workspace-v2/external; ./get_externals.sh; cd ..;  cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"; cmake --build --preset debug -j 8; cp build/debug/bin/ws_restore build/debug/bin/ws_restore_notest"
+    cd hpc-workspace-v2/external; ./get_externals.sh; cd ..;  cmake --preset debug-ninja -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"; cmake --build --preset debug -j 8; sudo cp build/debug/bin/ws_restore build/debug/bin/ws_restore_notest
 
     echo .......................................
     echo ...unit tests..........................
@@ -130,7 +136,7 @@ Vagrant.configure("2") do |config|
     echo .......................................
     echo ...release build.......................
     echo .......................................
-    scl enable gcc-toolset-14 "cd hpc-workspace-v2/external; ./get_externals.sh; cd ..;  cmake --preset release -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"; cmake --build --preset release -j 8; cp build/release/bin/ws_restore build/release/bin/ws_restore_notest"
+    cd hpc-workspace-v2/external; ./get_externals.sh; cd ..;  cmake --preset release-ninja -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"; cmake --build --preset release -j 8; sudo cp build/release/bin/ws_restore build/release/bin/ws_restore_notest
     echo .......................................
 
     # user tests
@@ -141,6 +147,7 @@ Vagrant.configure("2") do |config|
     echo .......................................
     echo ...bats tests as user..................
     echo .......................................
+    sudo rm -f /tmp/ws_expirer.log
     env PATH=/home/vagrant/hpc-workspace-v2/build/debug/bin:$PATH /usr/local/bin/bats bats/test
 
     # prepare tests with privileges
@@ -163,6 +170,7 @@ Vagrant.configure("2") do |config|
     echo .......................................
     echo ...bats tests with setuid..............
     echo .......................................
+    sudo rm -f /tmp/ws_expirer.log
     env PATH=/home/vagrant/hpc-workspace-v2/build/release/bin:$PATH /usr/local/bin/bats bats/test_setuid
 
     sudo chmod u-s build/release/bin/ws_restore build/release/bin/ws_allocate build/release/bin/ws_release build/release/bin/ws_restore_notest
@@ -174,6 +182,7 @@ Vagrant.configure("2") do |config|
     echo .......................................
     echo ...bats tests with setcap..............
     echo .......................................
+    sudo rm -f /tmp/ws_expirer.log
     env PATH=/home/vagrant/hpc-workspace-v2/build/release/bin:$PATH /usr/local/bin/bats bats/test_cap
    
 EOF
