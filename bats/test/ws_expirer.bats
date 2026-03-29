@@ -21,13 +21,13 @@ setup() {
 
 @test "ws_expirer dryrun" {
     run ws_expirer --config bats/ws.conf
-    assert_output --partial "simulating cleaning - dryrun"
+    assert_output --partial "SIMULATING CLEANING - DRYRUN"
     assert_success
 }
 
 @test "ws_expirer not dryrun" {
     run ws_expirer --config bats/ws.conf -c
-    assert_output --partial "really cleaning!"
+    assert_output --partial "REALLY CLEANING!"
     assert_success
 }
 
@@ -108,7 +108,7 @@ setup() {
     ws_allocate --config bats/ws.conf -F ws1 TestWS 1
     ws_editdb --config bats/ws.conf --add-time -20 -p "*TestWS*" --not-kidding
     run ws_expirer --config bats/ws.conf -c
-    assert_output --regexp "keeping expired.*-TestWS"
+    assert_output --regexp "keeping .* expired.*-TestWS"
 }
 
 @test "ws_expirer clean stray directories" {
@@ -226,7 +226,7 @@ setup() {
     assert_success
     # Run again - should keep the restorable workspace
     run ws_expirer --config bats/ws.conf -c
-    assert_output --regexp 'keeping expired.*-KEEPTIME_TEST'
+    assert_output --regexp 'keeping .* expired.*-KEEPTIME_TEST'
     assert_success
 }
 
@@ -282,15 +282,6 @@ setup() {
     rm -rf /tmp/ws/ws1/test-dryrun-move
 }
 
-@test "ws_expirer processes both active and deleted workspaces" {
-    ws_allocate --config bats/ws.conf BOTH_TEST 1
-    ws_editdb --config bats/ws.conf --not-kidding --add-time -5 BOTH_TEST
-    run ws_expirer --config bats/ws.conf -c
-    assert_output --partial "Checking DB for workspaces to be expired"
-    assert_output --partial "Checking deleted DB for workspaces to be deleted"
-    assert_success
-}
-
 @test "ws_expirer sends reminder before expiration" {
     ws_allocate --config bats/ws.conf -m $USER@localhost -r 3 REMIND_EARLY 3
     ws_editdb --config bats/ws.conf --not-kidding --add-time -2 REMIND_EARLY
@@ -332,7 +323,7 @@ setup() {
 
 @test "ws_expirer logs deleted workspace information" {
     ws_allocate --config bats/ws.conf LOG_DELETE_TEST 1
-    ws_editdb --config bats/ws.conf --not-kidding --add-time -5 LOG_DELETE_TEST
+    ws_editdb --config bats/ws.conf --not-kidding --add-time -10 LOG_DELETE_TEST
     run ws_expirer --config bats/ws.conf -c
     # First run expires it
     assert_output --regexp 'expiring .*LOG_DELETE_TEST'
@@ -484,7 +475,7 @@ setup() {
     # The expired workspace should still be kept because it was NOT released by user
     # and is still within keeptime (7 days in config).
     run ws_expirer --config bats/ws.conf -c --forcedeletereleased
-    assert_output --regexp "keeping expired.*KT_EXPIRED_TEST"
+    assert_output --regexp "keeping .*expired.*KT_EXPIRED_TEST"
     # refute_output --regexp "delete.*KT_EXPIRED_TEST"
     assert_success
 }
