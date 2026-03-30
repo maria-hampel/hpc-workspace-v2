@@ -152,15 +152,15 @@ ws1"
 
 @test "ws_list list fs detailed" {
     run ws_list --config bats/ws.conf -L
-    assert_output --partial "ws2          32           3         7        true        true        true   one hell of a comment"
-    assert_output --partial "ws1          31           3         7        true        true        true"
+    assert_output --partial "ws2          32           3         7                7        true        true        true   one hell of a comment"
+    assert_output --partial "ws1          31           3         7                7        true        true        true"
 }
 
 # check if sorting of config files is correct and later definition overwrites previous definition
 @test "ws_list list fs detailed with config directory" {
     run ws_list --config bats/ws.d -L
-    assert_output --partial "ws2          32           3         7        true        true        true   one hell of a comment"
-    assert_output --partial "ws1          31           3         7        true        true        true"
+    assert_output --partial "ws2          32           3         7                7        true        true        true   one hell of a comment"
+    assert_output --partial "ws1          31           3         7                7        true        true        true"
     refute_output --partial "this should not"
 }
 
@@ -269,7 +269,7 @@ ws1"
     run ws_list --config bats/ws.conf fsname
     assert_output --partial "filesystem name"
     assert_success
-    ws_release --config bats/ws.conf fsname 
+    ws_release --config bats/ws.conf fsname
 }
 
 @test "ws_list shows available extensions" {
