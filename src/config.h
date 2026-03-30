@@ -76,7 +76,8 @@ struct Filesystem_config {
     strings userdefault;   // users having this filesytem as default
     strings user_acl;      // if present, users have to match ACL, user or +user grant access, -user denies
     strings group_acl;     // if present, users have to match ACL
-    int keeptime;          // max time in days to keep deleted workspace
+    int keeptime;          // max time in days to keep deleted workspace after expiration
+    int releasekeeptime;   // max time in days to keep deleted workspace after release
     int maxduration;       // max duration a user can choose for this filesystem
     int maxextensions;     // max extensiones a user can do for this filesystem
     // migration helpers
