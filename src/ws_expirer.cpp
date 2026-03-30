@@ -71,6 +71,7 @@ bool traceflag = false;
 int debuglevel = 0;
 
 bool cleanermode = false;
+bool forcedeletereleased = false;
 
 // type for statistics
 struct expire_result_t {
@@ -108,8 +109,6 @@ struct clean_stray_result_t {
     }
 };
 
-// time to keep released workspaces before deletion in seconds
-long releasekeeptime = 3600; // TODO: make configurable
 const std::string CRLF = "\r\n";
 const std::string boundary = "_NextPart_01234567.89ABCDEF";
 
@@ -483,6 +482,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
     spdlog::info("* CHECKING DB FOR WORKSPACES TO BE EXPIRED for filesystem: {}", fs);
 
+    spdlog::info("  (keeptime: {} days, releasekeeptime: {} days)", config.getFsConfig(fs).keeptime, config.getFsConfig(fs).releasekeeptime);
+
     // search expired active workspaces in DB
     for (auto const& id : db->matchPattern("*", "*", {}, false, false)) {
         std::unique_ptr<DBEntry> dbentry;
@@ -591,6 +592,15 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         // we take the bigger one here, expired is 0 initialized and should remain 0 till expirer touches it
         auto expiration = std::max(dbentry->getExpiration(), dbentry->getExpired());
         auto keeptime = config.getFsConfig(fs).keeptime;
+
+        // time to keep released workspaces
+        long releasekeeptime;
+        if (forcedeletereleased) {
+            releasekeeptime = 0;
+        } else {
+            releasekeeptime = config.getFsConfig(fs).releasekeeptime;
+        }
+
         std::string reason = "expired";
 
         // get released time from name = id
@@ -619,7 +629,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         bool should_delete = false;
         if (released > 1000000000L) {
             // Released by user, use releasekeeptime
-            should_delete = (time((long*)0L) >= releasetime + releasekeeptime);
+            should_delete = (time((long*)0L) >= (releasetime + releasekeeptime * 24 * 3600)); // SPEC: releaskeeptime now also in days
         } else {
             // Expired, use keeptime
             should_delete = (time((long*)0L) > (expiration + keeptime * 24 * 3600));
@@ -651,7 +661,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             result.kept_ws++;
             long deadline;
             if (released > 1000000000L) {
-                deadline = releasetime + releasekeeptime;
+                deadline = releasetime + (releasekeeptime * 24 * 3600);
                 spdlog::info("   keeping (until {}, {} left), was released: {}", utils::ctime(deadline),
                              formatTimedelta(deadline - time((long*)0L)), id);
             } else {
@@ -743,7 +753,7 @@ int main(int argc, char** argv) {
     }
 
     if (opts.count("forcedeletereleased")) {
-        releasekeeptime = 0;
+        forcedeletereleased = true;
     }
 
     // read config
