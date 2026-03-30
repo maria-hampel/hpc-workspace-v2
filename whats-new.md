@@ -5,8 +5,8 @@ including internals.
 
 ## new tools
 
-- `ws_stat` allow to see how much diskspace a workspace uses
-- `ws_editdb` allows the administrator to change DB entries, currently implemented is mass extension
+- `ws_stat` allow to see how much diskspace a workspace uses (based on statx() with lazy size, running parallel)
+- `ws_editdb` allows the administrator to change DB entries, currently implemented is mass extension and useful features for testing
 
 ## new functionality
 
@@ -24,6 +24,7 @@ including internals.
 - in config file: ACL syntax has `-` and `+`
 - in config file: extended ACL syntax `[+|-]id[:[permission{,permission}]]` with permission in `list,use,create,extend,release,restore`
   allows to restrict single users or groups e.g. to use old workspaces in a filesystem but not extend them
+- in config file: `releasekeeptime` is the time in days a user released workspace is kept, default to `keeptime` 
 - same executable can be used with setuid or capabilities (if capability support is detected at build time)
 - `--version` switch can be used to see if capability or setuid is available and used
 - most tools have `--config` option, which allows using workspace tools without privileges in users own directories and with own config file. This is usefull for testing.
@@ -31,7 +32,7 @@ including internals.
 ## changed behaviour
 
 - field `adminmail` as a list of email addresses is required in config (gives warning when not present)
-- `ws_release` does not keep the workspace for `keeptime` but for a shorter time, only expired workspace are kept `keeptime`
+- `ws_release` does not keep the workspace for `keeptime` but for a `releasekeeptime`, only expired workspace are kept `keeptime`
 - `ws_release` bails out if workspace name is not unique
 - `ws_allocate -x` bails out if workspace name is not unique
 - `ws_allocate -g` can take an groupname as well, -G can have no groupname
@@ -48,5 +49,5 @@ including internals.
 - no python dependency, more C++ tools with higher speed and consistent behaviour
 - some tools use threading
 - abstraction of the DB, allowing easier tool development and will allow new functionality in DB in a coming version, planned is more privacy through better isolation of users/groups
-- added dependencies to Catch2, curl, fmt, GSL, rapidyaml, spdlog, bshoshany/thread-pool
-- curl and boost have to be installed from distribution, all others are compiled as part of building hpc-workspace-v2
+- dependencies to `Catch2`, `curl`, `{fmt}`, `GSL`, `yaml-cpp`, `rapidyaml`, `spdlog`, `bshoshany/thread-pool`
+- `curl` and `boost` have to be installed from distribution, all others are compiled as part of building hpc-workspace-v2

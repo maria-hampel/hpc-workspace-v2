@@ -112,7 +112,7 @@ for testing:
 - [x] migrate and check/correct/add documentation, guides and man pages
 - [x] test with more compilers and distributions
 - [ ] do real live tests and fix bugs
-- [ ] ws_editdb manpage
+- [x] ws_editdb manpage
 - [ ] bash completion
 - [ ] keep externals download? or use package manager like vcpkg or conan? (vcpkg does now support rapidyaml)
 - [ ] installation tool? installation through CMake?

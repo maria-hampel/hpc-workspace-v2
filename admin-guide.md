@@ -286,7 +286,16 @@ cleaner. The cleaner will move the expired workspace to a hidden location
 Users or administrators can still recover the data. After `keeptime` days,
 it will be removed and can not be recovered anymore.
 
-**Note:** `keeptime` does not apply to user released workspaces.
+If this is not set for a workspace, it defaults to value of 10 days.
+
+**Note:** `keeptime` does not apply to user released workspaces, only to expired workspaces.
+
+#### `releasekeeptime`
+
+Time in days to keep data after it was released by user using `ws_release`.
+When this is not set for a workspace, it defaults to the value of `keeptime`.
+
+**Note:** compare to `keeptime` above, besides targeting released workspaces, it behaves otherwise the same, 
 
 #### `spaces`
 
