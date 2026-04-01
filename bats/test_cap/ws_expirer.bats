@@ -25,7 +25,7 @@ setup() {
 }
 
 @test "ws_expirer username with dash" {
-        rm /tmp/ws_expirer.log 2>/dev/null
+        sudo rm /tmp/ws_expirer.log 2>/dev/null
         export WS_EXPIRER=$(which ws_expirer)
         run sudo --preserve-env=ASAN_OPTIONS $WS_EXPIRER -F ws1
         assert_output --partial "keeping restorable mean-user-name-TEST_MEAN"
