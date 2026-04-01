@@ -342,6 +342,13 @@ int main(int argc, char** argv) {
         auto keeptime = ws.keeptime;
         fmt::println("    keeptime: {}", keeptime);
 
+        auto releasekeeptime = ws.releasekeeptime;
+        fmt::println("    releasekeeptime: {}", releasekeeptime);
+
+        if (keeptime < releasekeeptime) {
+            fmt::println("    keeptime < releasekeeptime, continuing");
+        }
+
         int duration = ws.maxduration;
         fmt::println("    maxduration: {}", duration);
 
