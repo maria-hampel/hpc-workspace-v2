@@ -482,7 +482,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
     spdlog::info("* CHECKING DB FOR WORKSPACES TO BE EXPIRED for filesystem: {}", fs);
 
-    spdlog::info("  (keeptime: {} days, releasekeeptime: {} days)", config.getFsConfig(fs).keeptime, config.getFsConfig(fs).releasekeeptime);
+    spdlog::info("  (keeptime: {} days, releasekeeptime: {} days)", config.getFsConfig(fs).keeptime,
+                 config.getFsConfig(fs).releasekeeptime);
 
     // search expired active workspaces in DB
     for (auto const& id : db->matchPattern("*", "*", {}, false, false)) {
@@ -629,7 +630,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         bool should_delete = false;
         if (released > 1000000000L) {
             // Released by user, use releasekeeptime
-            should_delete = (time((long*)0L) >= (releasetime + releasekeeptime * 24 * 3600)); // SPEC: releaskeeptime now also in days
+            should_delete = (time((long*)0L) >=
+                             (releasetime + releasekeeptime * 24 * 3600)); // SPEC: releaskeeptime now also in days
         } else {
             // Expired, use keeptime
             should_delete = (time((long*)0L) > (expiration + keeptime * 24 * 3600));

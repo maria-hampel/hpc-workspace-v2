@@ -388,8 +388,8 @@ int main(int argc, char** argv) {
         }
     } else if (listfilesystemdetails) { // -L
         fmt::println("available filesystems (sorted according to priority):\n");
-        //fmt::println("{:>10}{:>12}{:>12}{:>10}{:>12}{:>12}{:>12}{:>10}", "name", "maxduration", "extensions",
-        //             "keeptime", "allocatable", "extendable", "restorable", "comment");
+        // fmt::println("{:>10}{:>12}{:>12}{:>10}{:>12}{:>12}{:>12}{:>10}", "name", "maxduration", "extensions",
+        //              "keeptime", "allocatable", "extendable", "restorable", "comment");
         fmt::println("{:>10}{:>12}{:>12}{:>10}{:>17}{:>12}{:>12}{:>12}{:>10}", "name", "maxduration", "extensions",
                      "keeptime", "releasekeeptime", "allocatable", "extendable", "restorable", "comment");
         for (auto fs : config.validFilesystems(username, grouplist, ws::LIST)) {
@@ -397,18 +397,19 @@ int main(int argc, char** argv) {
             bool allocateable = config.hasAccess(username, grouplist, fs, ws::CREATE) && fsc.allocatable;
             bool extendable = config.hasAccess(username, grouplist, fs, ws::EXTEND) && fsc.extendable;
             bool restorable = config.hasAccess(username, grouplist, fs, ws::RESTORE) && fsc.restorable;
-            fmt::print("{:>10}{:>12}{:>12}{:>10}{:>17}{:>12}{:>12}{:>12}   {}\n", fs, fsc.maxduration, fsc.maxextensions,
-                       fsc.keeptime, fsc.releasekeeptime, allocateable, extendable, restorable, fsc.comment);
+            fmt::print("{:>10}{:>12}{:>12}{:>10}{:>17}{:>12}{:>12}{:>12}   {}\n", fs, fsc.maxduration,
+                       fsc.maxextensions, fsc.keeptime, fsc.releasekeeptime, allocateable, extendable, restorable,
+                       fsc.comment);
         }
 
         if (verbose) {
             fmt::println("\nExplanation:");
             fmt::println("      maxduration: maximum number of days you can specify with ws_allocate as lifetime");
             fmt::println("       extensions: the numer of times you can extend the workspace");
+            fmt::println("         keeptime: the number of days an expired workspace can be restored (unless data "
+                         "was deleted)");
             fmt::println(
-                "         keeptime: the number of days an expired workspace can be restored (unless data "
-                "was deleted)");
-            fmt::println("  releasekeeptime: the number of days a released workspace can be restored (unless data was deleted)");
+                "  releasekeeptime: the number of days a released workspace can be restored (unless data was deleted)");
 
             fmt::println("      allocatable: flag if new workspaces can be created here");
             fmt::println("       extendable: flag if workspaces can be extended here");

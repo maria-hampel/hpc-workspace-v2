@@ -8,7 +8,7 @@
  *  c++ version of workspace utility
  *  a workspace is a temporary directory created in behalf of a user with a limited lifetime.
  *
- *  (c) Holger Berger 2021,2023,2024,2025
+ *  (c) Holger Berger 2021,2023,2024,2025,2026
  *
  *  hpc-workspace-v2 is based on workspace by Holger Berger, Thomas Beisel and Martin Hecht
  *
@@ -251,7 +251,7 @@ void Config::readYAML(string yamlstr) {
                         node >> fs.database;
                     if (node = ws["keeptime"]; node.has_val())
                         node >> fs.keeptime;
-                     // FIXME: no default?
+                    // FIXME: no default?
                     if (node = ws["releasekeeptime"]; node.has_val())
                         node >> fs.releasekeeptime;
                     // FIXME: no default?
@@ -370,7 +370,7 @@ void Config::readYAML(const string yaml) {
                     if (ws["releasekeeptime"])
                         fs.releasekeeptime = ws["releasekeeptime"].as<int>();
                     else
-                        fs.releasekeeptime = fs.keeptime;  // SPEC: releasekeeptime defaults to keeptime
+                        fs.releasekeeptime = fs.keeptime; // SPEC: releasekeeptime defaults to keeptime
                     if (ws["maxduration"])
                         fs.maxduration = ws["maxduration"].as<int>();
                     else
