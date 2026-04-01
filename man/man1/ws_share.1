@@ -1,12 +1,12 @@
-.TH WS_SHARE 1 "January 2022" "USER COMMANDS"
+.TH WS_SHARE 1 "April 2026" "USER COMMANDS"
 .SH NAME
-ws_share \- allows to share an owned workspace with other users
+ws_share \- allows to share an owned workspace with other users or groups
 .SH SYNOPSIS
 .B ws_share [\-h] [\-F FILESYSTEM] <command> [<args>]
 .SH DESCRIPTION
-The ws_share tool allows a user to manage read access permissions for his
-workspaces.  It can be used to quickly grant, remove, and list
-read access to other users for a workspace that the calling user owns.
+The ws_share tool allows a user to manage access permissions for his
+workspaces. It can be used to quickly grant, remove, and list
+access to other users and groups for a workspace that the calling user owns.
 Different commands are provided therefore that are described in the COMMANDS section.
 .PP
 .SH OPTIONS
@@ -20,37 +20,44 @@ select the workspace filesystem to work on
 .PP
 .B share
 .RS 4
-Grant read access to WORKSPACE for USER
+Grant read-only access to WORKSPACE for USER
 .sp
 ws_share share [\-F FILESYSTEM] WORKSPACE USER
 .RE
 .PP
 .B unshare
 .RS 4
-Remove access to WORKSPACE for USER
+Remove read-only access to WORKSPACE for USER
 .sp
 ws_share unshare [\-F FILESYSTEM] WORKSPACE USER
 .RE
 .PP
 .B unshare-all
 .RS 4
-Remove access to WORKSPACE for all users
+Remove all access to WORKSPACE for all users and groups
 .sp
 ws_share unshare-all [\-F FILESYSTEM] WORKSPACE
 .RE
 .PP
-.B list
+.B sharegroup
 .RS 4
-List users with access to WORKSPACE
+Grant read-only or read-write access to WORKSPACE for GROUP
 .sp
-ws_share list [\-F FILESYSTEM] WORKSPACE
+ws_share sharegroup [\-F FILESYSTEM] [--readwrite] WORKSPACE GROUP [GROUP...]
+.RE
+.PP
+.B unsharegroup
+.RS 4
+Remove access to WORKSPACE for GROUP
+.sp
+ws_share unsharegroup [\-F FILESYSTEM] WORKSPACE GROUP [GROUP...]
 .RE
 .SH NOTES
 UNIX ACL support of the filesystem storing the workspaces is necessary for
 ws_share to work.
 .SH EXAMPLES
 .TP
-In the following the users alice and bob are granted read access to a workspace named my_workspace:
+In the following the users alice and bob are granted read-only access to a workspace named my_workspace:
 .RS 4
 $ ws_share share my_workspace alice
 .sp 0
@@ -71,11 +78,11 @@ To revoke/remove access for bob
 $ ws_share unshare my_workspace bob
 .RE
 .TP
-To remove access for all
+To remove access for all users and groups
 .RS 4
 $ ws_share unshare-all my_workspace
 .RE
 .SH AUTHOR
-Written by Christoph Niethammer
+Written by Christoph Niethammer and Holger Berger
 .SH SEE ALSO
-.BR ws_allocate "(1), " ws_release "(1), " ws_list "(1), " ws_restore "(1), " ws_find "(1), " acl "(5)
+.BR ws_allocate "(1), " ws_release "(1), " ws_list "(1), " ws_restore "(1), " ws_find "(1), " acl "(5)"
