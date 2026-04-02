@@ -548,22 +548,26 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                 if (smtpUrl == "" || mail_from == "") {
                     spdlog::warn("No smtphost or mailfrom available to contact users, please check your system config");
                 } else {
-                    std::vector<std::string> mail_to;
-                    mail_to.push_back(dbentry->getMailaddress());
-                    std::string clustername = config.clustername();
+                    if (dryrun) {
+                        spdlog::info("    would send reminder mail to {} for entry {}", dbentry->getMailaddress(), id);
+                    } else {
+                        std::vector<std::string> mail_to;
+                        mail_to.push_back(dbentry->getMailaddress());
+                        std::string clustername = config.clustername();
 
-                    std::string completeMail =
-                        generateReminderMail(mail_from, mail_to, expiration, id, fs, clustername);
-                    spdlog::info("    sending reminder mail to {} for entry {}", mail_to, id);
-                    // fmt::print("{}", completeMail);
-                    try {
-                        if (!utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
-                            spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
-                        } else {
-                            result.sent_mails++;
+                        std::string completeMail =
+                            generateReminderMail(mail_from, mail_to, expiration, id, fs, clustername);
+                        spdlog::info("    sending reminder mail to {} for entry {}", mail_to, id);
+                        // fmt::print("{}", completeMail);
+                        try {
+                            if (!utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
+                                spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
+                            } else {
+                                result.sent_mails++;
+                            }
+                        } catch (const std::exception& e) {
+                            spdlog::error("Exception while sending email: {}", e.what());
                         }
-                    } catch (const std::exception& e) {
-                        spdlog::error("Exception while sending email: {}", e.what());
                     }
                 }
             }
@@ -639,7 +643,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
         if (should_delete) {
             result.deleted_ws++;
-            spdlog::info("  {}delete DB entry {}, was {} {}", cleanermode ? "" : "would ", id, reason,
+            spdlog::info("   {}delete DB entry {}, was {} {}", cleanermode ? "" : "would ", id, reason,
                          utils::ctime(&releasetime));
 
             if (cleanermode) {
