@@ -164,6 +164,13 @@ cmake --preset release
 cmake --build --preset release  -j 12
 ```
 
+or for static builds (works only with gcc currently)
+
+```
+cmake --preset release-static
+cmake --build --preset release-static  -j 12
+```
+
 or mix and combine all of above examples.
 
 ### Source Code Formatting
