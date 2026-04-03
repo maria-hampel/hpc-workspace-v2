@@ -43,6 +43,7 @@
 #include "build_info.h"
 #include "caps.h"
 #include "config.h"
+#include "mail.h"
 #include "user.h"
 #include "utils.h"
 #include "ws.h"
@@ -262,12 +263,12 @@ std::string generateMail(const std::unique_ptr<DBEntry>& entry, std::string ics,
     std::string resource = entry->getFilesystem();
 
     std::stringstream mail;
-    std::string expirationtimestr = utils::generateMailDateFormat(entry->getExpiration());
-    std::string createtimestr = utils::generateMailDateFormat(now);
-    std::string boundary = "_NextPart_01234567.89ABCDEF";
-    std::string messageID = utils::generateMessageID();
-    std::string to_header = utils::generateToHeader(mail_to);
+    std::string expirationtimestr = mail::generateMailDateFormat(entry->getExpiration());
+    std::string createtimestr = mail::generateMailDateFormat(now);
+    std::string to_header = mail::generateToHeader(mail_to);
 
+    std::string messageID = mail::generateMessageID("ws_send_ical");
+    std::string boundary = "_NextPart_01234567.89ABCDEF";
     std::string encodedICS = base64Encode(ics);
 
     mail << "From: " << mail_from << CRLF;
@@ -325,7 +326,7 @@ int main(int argc, char** argv) {
     time_t now = time(nullptr);
 
     // setup curl
-    utils::initCurl();
+    mail::initCurl();
 
     // Get Userconf
     string user_conf_filename = user::getUserhome() + "/.ws_user.conf";
@@ -453,7 +454,7 @@ int main(int argc, char** argv) {
             spdlog::debug("Generated email content:");
             spdlog::debug("{}", completeMail);
         }
-        if (utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
+        if (mail::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
             spdlog::info("Success: Calendar invitation sent to {}", mailaddress);
         } else {
             spdlog::error("Failed to send calendar invitation to {}", mailaddress);
@@ -463,5 +464,5 @@ int main(int argc, char** argv) {
         // fmt::print("success; filesystem {}, workspacename {}, mailaddress {}", filesystem, name, mailaddress);
     }
 
-    utils::cleanupCurl();
+    mail::cleanupCurl();
 }
