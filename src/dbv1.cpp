@@ -367,11 +367,13 @@ void DBEntryV1::readFromFile(const WsID id, const string filesystem, const strin
         throw DatabaseException(fmt::format("while reading file <{}>\n{}", filename, e.what()));
     }
 
+    /* NOT ENABLED TO AVOID LEAKING DETAILS
     if (debugflag) {
         spdlog::debug("  id={} creation={} released={} expiration={} reminder={} workspace={} extensions={} "
                       "mailaddress={} comment={} group={}",
                       id, creation, released, expiration, reminder, workspace, extensions, mailaddress, comment, group);
     }
+    */
 }
 
 #ifndef WS_RAPIDYAML_DB
