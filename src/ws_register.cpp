@@ -145,6 +145,13 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
+    // check if user is in debugusers list
+    if (!config.isDebugUser(user::getUsername())) {
+        debugflag = false;
+        traceflag = false;
+        spdlog::warn("debug mode disabled, not in debugusers list");
+    }
+
     // main logic from here
 
     if (!cppfs::exists(cppfs::path(directory))) {

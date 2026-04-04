@@ -478,6 +478,13 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
+    // check if user is in debugusers list
+    if (!config.isDebugUser(user::getUsername())) {
+        debugflag = false;
+        traceflag = false;
+        spdlog::warn("debug mode disabled, not in debugusers list");
+    }
+
     // read user config
     string user_conf_filename = user::getUserhome() + "/.ws_user.conf";
     if (!cppfs::is_symlink(user_conf_filename)) {

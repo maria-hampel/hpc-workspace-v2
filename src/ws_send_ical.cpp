@@ -359,6 +359,13 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
+    // check if user is in debugusers list
+    if (!config.isDebugUser(user::getUsername())) {
+        debugflag = false;
+        traceflag = false;
+        spdlog::warn("debug mode disabled, not in debugusers list");
+    }
+
     // root and admins can choose usernames
     string userpattern; // used for pattern matching in DB
     if (user::isRoot() || config.isAdmin(user::getUsername())) {

@@ -681,6 +681,13 @@ int main(int argc, char** argv) {
         duration = config.durationdefault();
     }
 
+    // check if user is in debugusers list
+    if (!config.isDebugUser(user::getUsername())) {
+        debugflag = false;
+        traceflag = false;
+        spdlog::warn("debug mode disabled, not in debugusers list");
+    }
+
     openlog("ws_allocate", 0, LOG_USER); // SYSLOG
 
     // spdlog::info("maxuserworkspaces = {}", config.maxuserworkspaces());
