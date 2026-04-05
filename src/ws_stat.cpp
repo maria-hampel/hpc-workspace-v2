@@ -162,12 +162,24 @@ void worker_thread(size_t worker_id, std::vector<StatResult>& local_results,
         // Try to pop from own queue
         std::optional<cppfs::path> work = worker_queues[worker_id].pop();
 
-        // If own queue empty, try to steal from others (fair round-robin)
+        // If own queue empty, try to steal from others in batches (fair round-robin)
         if (!work.has_value()) {
+            static thread_local std::vector<cppfs::path> stolen_batch;
+            if (stolen_batch.capacity() < 16) {
+                stolen_batch.reserve(16);
+            }
+
             for (size_t i = 1; i < worker_queues.size(); i++) {
                 size_t victim = (worker_id + i) % worker_queues.size();
-                work = worker_queues[victim].steal();
-                if (work.has_value()) {
+                stolen_batch.clear();
+                if (worker_queues[victim].steal(stolen_batch, 16) > 0) {
+                    work = std::move(stolen_batch.back());
+                    stolen_batch.pop_back();
+
+                    // Push remaining stolen items to own queue for future pop() calls
+                    for (auto& p : stolen_batch) {
+                        worker_queues[worker_id].push(std::move(p));
+                    }
                     break;
                 }
             }

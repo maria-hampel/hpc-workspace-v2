@@ -35,8 +35,10 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <algorithm>
 #include <thread>
 #include <utility>
+#include <vector>
 
 /**
  * @class PathWorkStealingQueue
@@ -179,6 +181,40 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
         }
 
         return std::nullopt;
+    }
+
+    /**
+     * @brief Steal multiple items from the queue (any thread)
+     *
+     * @param out_items Vector to store stolen items
+     * @param max_steal Maximum number of items to steal (default: 16)
+     * @return size_t Number of items actually stolen
+     */
+    size_t steal(std::vector<T>& out_items, size_t max_steal = 16) {
+        std::int64_t t = top_.load(std::memory_order_acquire);
+
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+
+        std::int64_t b = bottom_.load(std::memory_order_acquire);
+
+        if (t < b) {
+            std::int64_t available = b - t;
+            std::int64_t n = std::max<std::int64_t>(1, available / 2);
+            if (n > static_cast<std::int64_t>(max_steal)) {
+                n = max_steal;
+            }
+
+            if (!top_.compare_exchange_strong(t, t + n, std::memory_order_seq_cst, std::memory_order_relaxed)) {
+                return 0;
+            }
+
+            for (std::int64_t i = 0; i < n; ++i) {
+                out_items.push_back(std::move(array_[static_cast<size_t>((t + i) & (capacity_ - 1))].item));
+            }
+            return static_cast<size_t>(n);
+        }
+
+        return 0;
     }
 
     /**
