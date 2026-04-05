@@ -244,6 +244,12 @@ tools (as long as GID 0 is not required). Can be a shared GID, but be aware
 users assigned to that GID can mess with the DB. It is strongly suggested
 to use a dedicated GID or a GID of another daemon.
 
+#### `debugusers`
+
+A list of users who can use the `--debug` and `--trace` flags.
+If a user sees unexpected behaviour add the username to this list
+and run again and check journal for debug output.
+
 #### `admins`
 
 A list of users who can see any workspace when calling ```ws_list```, not
