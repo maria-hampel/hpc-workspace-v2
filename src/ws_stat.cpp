@@ -33,6 +33,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
@@ -223,7 +224,7 @@ void worker_thread(size_t worker_id, std::vector<StatResult>& local_results,
 }
 
 // Work-stealing based directory traversal
-StatResult stat_workspace(const std::string& wspath) {
+StatResult stat_workspace(const std::string& wspath, unsigned int override_workers = 0) {
     if (!cppfs::is_directory(wspath)) {
         spdlog::error("workspace <{}> does not exist!", wspath);
         return StatResult{};
@@ -243,7 +244,7 @@ StatResult stat_workspace(const std::string& wspath) {
         return result;
     }
 
-    size_t worker_count = std::max<size_t>(1, thread_count / 2);
+    size_t worker_count = (override_workers > 0) ? override_workers : thread_count;
     if (debugflag) {
         spdlog::debug("Using {} workers for directory traversal (thread_count={})", worker_count, thread_count);
     }
@@ -518,12 +519,16 @@ int main(int argc, char** argv) {
 
     std::locale::global(std::locale("en_US.UTF-8"));
 
-    // Create two thread pools: workspace_pool for workspace-level parallelism,
-    // dir_pool for directory-level parallelism (shared across workspaces)
-    BS::thread_pool<BS::tp::none> workspace_pool(thread_count);
-    BS::thread_pool<BS::tp::none> dir_pool(thread_count);
+    // Calculate sqrt for nested parallelism: sqrt(thread_count) per level
+    // This ensures total threads ~= thread_count when processing multiple workspaces
+    unsigned int n = static_cast<unsigned int>(std::sqrt(thread_count));
+    if (n < 2) n = 2; // minimum for effective parallelism
+    if (n > thread_count) n = thread_count;
+
+    // Create thread pool for workspace-level parallelism
+    BS::thread_pool<BS::tp::none> workspace_pool(n);
     if (debugflag) {
-        spdlog::debug("Creating workspace_pool and dir_pool with {} threads each", thread_count);
+        spdlog::debug("Creating workspace_pool with {} threads (sqrt of total {})", n, thread_count);
     }
 
     // Process workspaces
@@ -533,9 +538,9 @@ int main(int argc, char** argv) {
         }
         workspace_pool
             .submit_loop(0, entrylist.size(),
-                         [&entrylist, &username](size_t i) {
+                         [&entrylist, &username, n](size_t i) {
                              auto begin = std::chrono::steady_clock::now();
-                             auto result = stat_workspace(entrylist[i]->getWSPath());
+                             auto result = stat_workspace(entrylist[i]->getWSPath(), n);
                              auto end = std::chrono::steady_clock::now();
                              auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
@@ -564,7 +569,7 @@ int main(int argc, char** argv) {
         // Serial processing when sorted or for small lists
         for (auto& entry : entrylist) {
             auto begin = std::chrono::steady_clock::now();
-            auto result = stat_workspace(entry->getWSPath());
+            auto result = stat_workspace(entry->getWSPath(), thread_count);
             auto end = std::chrono::steady_clock::now();
             auto secs = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 

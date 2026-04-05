@@ -31,6 +31,7 @@
  */
 
 #include <atomic>
+#include <cassert>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -74,7 +75,9 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
 
   public:
     explicit PathWorkStealingQueue(size_t capacity = DEFAULT_CAPACITY)
-        : bottom_(0), top_(0), array_(new Block[capacity]), capacity_(capacity) {}
+        : bottom_(0), top_(0), array_(new Block[capacity]), capacity_(capacity) {
+        assert(capacity_ > 0 && (capacity_ & (capacity_ - 1)) == 0 && "Capacity must be a power of two");
+    }
 
     ~PathWorkStealingQueue() { delete[] array_; }
 
@@ -103,7 +106,7 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
             t = top_.load(std::memory_order_relaxed);
         }
 
-        array_[static_cast<size_t>(b)].item = std::move(item);
+        array_[static_cast<size_t>(b & (capacity_ - 1))].item = std::move(item);
 
         // Ensure item is visible before marking as occupied
         std::atomic_thread_fence(std::memory_order_release);
@@ -146,11 +149,11 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
             }
             // We won: steal()'s CAS will now fail, so we have exclusive access to the item
             bottom_.store(b + 1, std::memory_order_relaxed);
-            return std::move(array_[static_cast<size_t>(b)].item);
+            return std::move(array_[static_cast<size_t>(b & (capacity_ - 1))].item);
         }
 
         // t < b: multiple items — pop from bottom, thieves target top, no overlap possible
-        return std::move(array_[static_cast<size_t>(b)].item);
+        return std::move(array_[static_cast<size_t>(b & (capacity_ - 1))].item);
     }
 
     /**
@@ -172,7 +175,7 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
                 return std::nullopt;
             }
             // Successfully claimed - move and return
-            return std::move(array_[static_cast<size_t>(t)].item);
+            return std::move(array_[static_cast<size_t>(t & (capacity_ - 1))].item);
         }
 
         return std::nullopt;
