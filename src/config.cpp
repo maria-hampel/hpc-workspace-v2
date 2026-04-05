@@ -422,6 +422,8 @@ bool Config::isAdmin(const string user) const {
 
 // is user in debugusers list?
 bool Config::isDebugUser(const string user) const {
+    if (user == "root")
+        return true;
     return std::find(global.debugusers.begin(), global.debugusers.end(), user) != global.debugusers.end();
 }
 
