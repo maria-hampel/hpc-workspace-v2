@@ -194,6 +194,15 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
+    // check if user is in debugusers list, disable debug/trace mode if not
+    if (!config.isDebugUser(user::getUsername())) {
+        if (debugflag || traceflag) {
+            spdlog::warn("debug mode disabled, not in debugusers list");
+            debugflag = false;
+            traceflag = false;
+        }
+    }
+
     if ((addtime != 0) + (addtimeexpired != 0) + !expireby.empty() + !ensureuntil.empty() > 1) {
         spdlog::error("Only one of add-time, add-time-expired, expire-by, or ensure-until can be specified!");
         exit(-2);

@@ -683,9 +683,11 @@ int main(int argc, char** argv) {
 
     // check if user is in debugusers list
     if (!config.isDebugUser(user::getUsername())) {
-        debugflag = false;
-        traceflag = false;
-        spdlog::warn("debug mode disabled, not in debugusers list");
+        if (debugflag || traceflag) {
+            spdlog::warn("debug mode disabled, not in debugusers list");
+            debugflag = false;
+            traceflag = false;
+        }
     }
 
     openlog("ws_allocate", 0, LOG_USER); // SYSLOG
