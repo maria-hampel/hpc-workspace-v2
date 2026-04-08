@@ -126,6 +126,15 @@ int main(int argc, char** argv) {
 
     spdlog::info("validating config from {}", configfile);
 
+    // check if user is in debugusers list, disable debug/trace mode if not
+    if (!config.isDebugUser(user::getUsername())) {
+        if (debugflag || traceflag) {
+            spdlog::warn("debug mode disabled, not in debugusers list");
+            debugflag = false;
+            traceflag = false;
+        }
+    }
+
     // see if there are workspaces/filesystems defined
     auto wsnames = config.Filesystems();
 

@@ -1,4 +1,3 @@
-find_package(CURL)
 find_package(Threads REQUIRED)
 
 # Check for C++17 thread support
@@ -32,10 +31,24 @@ target_link_libraries(ws_common
         yaml-cpp::yaml-cpp
         ${LIBCAP}
         spdlog
-        CURL::libcurl
     PRIVATE
         Microsoft.GSL::GSL
 )
+
+# Mail library with curl dependency
+add_library(mail
+    mail.cpp
+    mail.h
+)
+target_compile_features(mail PUBLIC cxx_std_17)
+target_link_libraries(mail
+    PUBLIC
+        CURL::libcurl
+        spdlog
+    PRIVATE
+        fmt::fmt
+)
+target_include_directories(mail PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 add_executable(ws_list
     ws_list.cpp
@@ -131,6 +144,7 @@ add_executable(ws_expirer
 target_link_libraries(ws_expirer
     PRIVATE
         ws_common
+        mail
         ${Boost_LIBRARIES}
         fmt::fmt
         spdlog
@@ -168,6 +182,7 @@ add_executable(ws_send_ical
 target_link_libraries(ws_send_ical
     PRIVATE
         ws_common
+        mail
         ${Boost_LIBRARIES}
         fmt::fmt
         spdlog

@@ -48,6 +48,9 @@
 #include "user.h"
 
 #include "caps.h"
+#include "config.h"
+#include "mail.h"
+#include "user.h"
 #include "utils.h"
 
 #include "spdlog/sinks/daily_file_sink.h" // IWYU pragma: keep
@@ -181,11 +184,11 @@ std::string generateReminderMail(const std::string& mail_from, std::vector<std::
                                  const std::string& clustername) {
 
     std::stringstream mail;
-    std::string expirationtimestr = utils::generateMailDateFormat(expirationtime);
-    std::string messageID = utils::generateMessageID();
-    std::string createtimestr = utils::generateMailDateFormat(time((long*)0L));
+    std::string expirationtimestr = mail::generateMailDateFormat(expirationtime);
+    std::string messageID = mail::generateMessageID("ws_expirer");
+    std::string createtimestr = mail::generateMailDateFormat(time((long*)0L));
 
-    std::string to_header = utils::generateToHeader(mail_to);
+    std::string to_header = mail::generateToHeader(mail_to);
 
     mail << "From: " << mail_from << CRLF;
     mail << "To: " << to_header << CRLF;
@@ -215,10 +218,10 @@ std::string generateReminderMail(const std::string& mail_from, std::vector<std::
 std::string generateErrorMail(const std::string& mail_from, std::vector<std::string> mail_to,
                               const std::string& subject) {
     std::stringstream mail;
-    std::string messageID = utils::generateMessageID();
-    std::string createtimestr = utils::generateMailDateFormat(time((long*)0L));
+    std::string messageID = mail::generateMessageID("ws_expirer");
+    std::string createtimestr = mail::generateMailDateFormat(time((long*)0L));
 
-    std::string to_header = utils::generateToHeader(mail_to);
+    std::string to_header = mail::generateToHeader(mail_to);
 
     mail << "From: " << mail_from << CRLF;
     mail << "To: " << to_header << CRLF;
@@ -331,7 +334,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
         } else {
             std::string completeMail = generateErrorMail(mail_from, adminmails, subject);
             try {
-                if (!utils::sendCurl(smtpUrl, mail_from, adminmails, completeMail)) {
+                if (!mail::sendCurl(smtpUrl, mail_from, adminmails, completeMail)) {
                     spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
                 }
             } catch (const std::exception& e) {
@@ -470,7 +473,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         } else {
             std::string completeMail = generateErrorMail(mail_from, adminmails, subject);
             try {
-                if (!utils::sendCurl(smtpUrl, mail_from, adminmails, completeMail)) {
+                if (!mail::sendCurl(smtpUrl, mail_from, adminmails, completeMail)) {
                     spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
                 }
             } catch (const std::exception& e) {
@@ -548,22 +551,26 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                 if (smtpUrl == "" || mail_from == "") {
                     spdlog::warn("No smtphost or mailfrom available to contact users, please check your system config");
                 } else {
-                    std::vector<std::string> mail_to;
-                    mail_to.push_back(dbentry->getMailaddress());
-                    std::string clustername = config.clustername();
+                    if (dryrun) {
+                        spdlog::info("    would send reminder mail to {} for entry {}", dbentry->getMailaddress(), id);
+                    } else {
+                        std::vector<std::string> mail_to;
+                        mail_to.push_back(dbentry->getMailaddress());
+                        std::string clustername = config.clustername();
 
-                    std::string completeMail =
-                        generateReminderMail(mail_from, mail_to, expiration, id, fs, clustername);
-                    spdlog::info("    sending reminder mail to {} for entry {}", mail_to, id);
-                    // fmt::print("{}", completeMail);
-                    try {
-                        if (!utils::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
-                            spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
-                        } else {
-                            result.sent_mails++;
+                        std::string completeMail =
+                            generateReminderMail(mail_from, mail_to, expiration, id, fs, clustername);
+                        spdlog::info("    sending reminder mail to {} for entry {}", mail_to, id);
+                        // fmt::print("{}", completeMail);
+                        try {
+                            if (!mail::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
+                                spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
+                            } else {
+                                result.sent_mails++;
+                            }
+                        } catch (const std::exception& e) {
+                            spdlog::error("Exception while sending email: {}", e.what());
                         }
-                    } catch (const std::exception& e) {
-                        spdlog::error("Exception while sending email: {}", e.what());
                     }
                 }
             }
@@ -639,7 +646,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
         if (should_delete) {
             result.deleted_ws++;
-            spdlog::info("  {}delete DB entry {}, was {} {}", cleanermode ? "" : "would ", id, reason,
+            spdlog::info("   {}delete DB entry {}, was {} {}", cleanermode ? "" : "would ", id, reason,
                          utils::ctime(&releasetime));
 
             if (cleanermode) {
@@ -692,7 +699,7 @@ int main(int argc, char** argv) {
     utils::setCLocal();
 
     // initialize curl
-    utils::initCurl();
+    mail::initCurl();
 
     // set custom logging format, this different than other tools, as this tool is for root anyhow
     // setup minimal logging fist, config is not yet read for file logging
@@ -831,7 +838,7 @@ int main(int argc, char** argv) {
     spdlog::info(" End of expiration");
 
     // Cleanup curl
-    utils::cleanupCurl();
+    mail::cleanupCurl();
 
     spdlog::info("==== WS_EXPIRER {}RUN END {} =====", dryrun ? "DRY" : "", utils::ctime(std::time(nullptr)));
 

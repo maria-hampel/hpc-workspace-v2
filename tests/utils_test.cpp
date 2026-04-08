@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "../src/mail.h"
 #include "../src/utils.h"
 #include "../src/ws.h"
 
@@ -52,10 +53,10 @@ TEST_CASE("utils", "[utils]") {
     }
 
     SECTION("mail") {
-        REQUIRE(utils::generateToHeader({"a"}) == std::string("a"));
-        REQUIRE(utils::generateToHeader({"a", "b", "c"}) == std::string("a, b, c"));
+        REQUIRE(mail::generateToHeader({"a"}) == std::string("a"));
+        REQUIRE(mail::generateToHeader({"a", "b", "c"}) == std::string("a, b, c"));
 
-        REQUIRE(utils::generateMessageID(".test") != utils::generateMessageID(".test"));
+        REQUIRE(mail::generateMessageID(".test") != mail::generateMessageID(".test"));
     }
 
     SECTION("Valid email addresses") {

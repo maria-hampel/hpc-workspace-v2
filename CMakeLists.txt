@@ -73,6 +73,7 @@ add_subdirectory(src)
 if(BUILD_TESTS)
     add_subdirectory(${workspace_SOURCE_DIR}/external/Catch2)
     include(Catch)
+    enable_testing()
     add_subdirectory(tests)
 endif()
 

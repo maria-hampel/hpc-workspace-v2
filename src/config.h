@@ -52,6 +52,7 @@ struct Global_config {
     string mail_from;        // sender for mails
     string defaultWorkspace; // workspace to use if several are allowed
     strings admins;          // people allowed to see all workspaces
+    strings debugusers;      // users allowed to see debug output
     strings adminmail;       // mail addresses to alert in case of problems
     int maxduration;         // max duration user can choose
     int durationdefault;     // default duration
@@ -115,6 +116,8 @@ class Config {
 
     // check if user is an admin
     bool isAdmin(const string user) const;
+    // check if user is in debugusers list
+    bool isDebugUser(const string user) const;
     // get list of valid filesystems for user
     vector<string> validFilesystems(const string user, const vector<string> groups, const ws::intent intent) const;
     // check if given user can assess given filesystem with current config

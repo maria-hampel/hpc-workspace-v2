@@ -221,6 +221,7 @@ void Config::readYAML(string yamlstr) {
     readRyamlSequence(config, "maxuserworkspaces", global.maxuserworkspaces);
 
     readRyamlSequence(config, "admins", global.admins);
+    readRyamlSequence(config, "debugusers", global.debugusers);
     readRyamlSequence(config, "adminmail", global.adminmail);
 
     // SPEC:CHANGE accept filesystem as alias for workspaces to better match the -F option of the tools
@@ -323,6 +324,8 @@ void Config::readYAML(const string yaml) {
         global.dbgid = config["dbgid"].as<int>();
     if (config["admins"])
         global.admins = config["admins"].as<vector<string>>();
+    if (config["debugusers"])
+        global.debugusers = config["debugusers"].as<vector<string>>();
     if (config["adminmail"])
         global.adminmail = config["adminmail"].as<vector<string>>();
     if (config["deldirtimeout"])
@@ -415,6 +418,13 @@ void Config::readYAML(const string yaml) {
 // unittest: yes
 bool Config::isAdmin(const string user) const {
     return std::find(global.admins.begin(), global.admins.end(), user) != global.admins.end();
+}
+
+// is user in debugusers list?
+bool Config::isDebugUser(const string user) const {
+    if (user == "root")
+        return true;
+    return std::find(global.debugusers.begin(), global.debugusers.end(), user) != global.debugusers.end();
 }
 
 // check if given user can assess given filesystem with current config

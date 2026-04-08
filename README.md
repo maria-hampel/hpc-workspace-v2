@@ -53,9 +53,13 @@ test platforms:
   - Cmake 3.26.5
   - gcc 11.5
 
+- Alma Linux 10.1
+  - Cmake 3.30.5
+  - gcc 14.3.1
+
 this list can be extended.
 
-no intention to support old platforms like centos7, but it might work.
+no intention to support old platforms like centos7, but it might work (except ws_stat).
 
 language level requirement might evolve from c++17 to c++20 if there is reasons.
 
@@ -113,11 +117,13 @@ for testing:
 - [x] remove tbb dependency
 - [x] migrate and check/correct/add documentation, guides and man pages
 - [x] test with more compilers and distributions
-- [ ] do real live tests and fix bugs
 - [x] ws_editdb manpage
-- [ ] bash completion
+- [ ] do real live tests and fix bugs
+- [x] bash completion
+- [ ] review what gets logged for security reasons, should not leak details of other workspaces
+- [ ] bash completion testing
 - [ ] keep externals download? or use package manager like vcpkg or conan? (vcpkg does now support rapidyaml)
-- [ ] installation tool? installation through CMake?
+- [ ] installation tool? installation through CMake? 
 
 ## Future
 - [ ] define and implement new DB format
@@ -164,6 +170,13 @@ for production
 ```
 cmake --preset release
 cmake --build --preset release  -j 12
+```
+
+or for static builds (works only with gcc currently)
+
+```
+cmake --preset release-static
+cmake --build --preset release-static  -j 12
 ```
 
 or mix and combine all of above examples.

@@ -31,11 +31,14 @@
  */
 
 #include <atomic>
+#include <cassert>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <algorithm>
 #include <thread>
 #include <utility>
+#include <vector>
 
 /**
  * @class PathWorkStealingQueue
@@ -74,7 +77,9 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
 
   public:
     explicit PathWorkStealingQueue(size_t capacity = DEFAULT_CAPACITY)
-        : bottom_(0), top_(0), array_(new Block[capacity]), capacity_(capacity) {}
+        : bottom_(0), top_(0), array_(new Block[capacity]), capacity_(capacity) {
+        assert(capacity_ > 0 && (capacity_ & (capacity_ - 1)) == 0 && "Capacity must be a power of two");
+    }
 
     ~PathWorkStealingQueue() { delete[] array_; }
 
@@ -103,7 +108,7 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
             t = top_.load(std::memory_order_relaxed);
         }
 
-        array_[static_cast<size_t>(b)].item = std::move(item);
+        array_[static_cast<size_t>(b & (capacity_ - 1))].item = std::move(item);
 
         // Ensure item is visible before marking as occupied
         std::atomic_thread_fence(std::memory_order_release);
@@ -146,11 +151,11 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
             }
             // We won: steal()'s CAS will now fail, so we have exclusive access to the item
             bottom_.store(b + 1, std::memory_order_relaxed);
-            return std::move(array_[static_cast<size_t>(b)].item);
+            return std::move(array_[static_cast<size_t>(b & (capacity_ - 1))].item);
         }
 
         // t < b: multiple items — pop from bottom, thieves target top, no overlap possible
-        return std::move(array_[static_cast<size_t>(b)].item);
+        return std::move(array_[static_cast<size_t>(b & (capacity_ - 1))].item);
     }
 
     /**
@@ -172,10 +177,44 @@ template <typename T = std::filesystem::path> class PathWorkStealingQueue {
                 return std::nullopt;
             }
             // Successfully claimed - move and return
-            return std::move(array_[static_cast<size_t>(t)].item);
+            return std::move(array_[static_cast<size_t>(t & (capacity_ - 1))].item);
         }
 
         return std::nullopt;
+    }
+
+    /**
+     * @brief Steal multiple items from the queue (any thread)
+     *
+     * @param out_items Vector to store stolen items
+     * @param max_steal Maximum number of items to steal (default: 16)
+     * @return size_t Number of items actually stolen
+     */
+    size_t steal(std::vector<T>& out_items, size_t max_steal = 16) {
+        std::int64_t t = top_.load(std::memory_order_acquire);
+
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+
+        std::int64_t b = bottom_.load(std::memory_order_acquire);
+
+        if (t < b) {
+            std::int64_t available = b - t;
+            std::int64_t n = std::max<std::int64_t>(1, available / 2);
+            if (n > static_cast<std::int64_t>(max_steal)) {
+                n = max_steal;
+            }
+
+            if (!top_.compare_exchange_strong(t, t + n, std::memory_order_seq_cst, std::memory_order_relaxed)) {
+                return 0;
+            }
+
+            for (std::int64_t i = 0; i < n; ++i) {
+                out_items.push_back(std::move(array_[static_cast<size_t>((t + i) & (capacity_ - 1))].item));
+            }
+            return static_cast<size_t>(n);
+        }
+
+        return 0;
     }
 
     /**

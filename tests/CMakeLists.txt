@@ -4,6 +4,7 @@ add_executable(utils_test
 target_link_libraries(utils_test
     PRIVATE
         ws_common
+        mail
         Catch2::Catch2WithMain
 )
 catch_discover_tests(utils_test)
