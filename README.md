@@ -4,12 +4,13 @@ This is the construction site of next major version of hpc-workspace++ tool.
 
 **DO NOT USE IN PRODUCTION - unless you know what you do and want to test**
 
-This version now has reached a usable state, it offers some tools
-and features not present in v1.
-please note that some tools are still missing, and that documentation
-is not yet up-to-date or complete.
+This is the next major version of the hpc-workspace tool set for managing temporary workspace directories
+on HPC systems.
 
-Please use the discussion tab if you would like to share input.
+This version has reached a usable state and offers several new tools
+and features not present in v1. The database format is backwards compatible with v1.
+
+Please use the [discussion tab](https://github.com/holgerBerger/hpc-workspace-v2/discussions) if you would like to share input.
 
 ## Motivation/Goals
 
@@ -89,6 +90,7 @@ for testing:
 - [x] ws_send_ical (new in C++)
 - [x] ws_editdb (new tool in C++)
 - [x] ws_share (will remain a shell script)
+- [x] ws_stat (new in C++)
 - [x] ws_expirer (migrated to C++)
 - [x] ws_validate_config (migrated to C++)
 - [x] ws_prepare (new in C++)
@@ -124,6 +126,12 @@ for testing:
 
 - how to automate testing? VMs? container?
 - missing features in current version?
+
+## Documentation
+
+- [Admin Guide](admin-guide.md) - Installation, configuration, and administration
+- [User Guide](user-guide.md) - End-user documentation for all workspace commands
+- [What's New in v2](whats-new.md) - Overview of changes compared to v1
 
 ## Howto Build
 

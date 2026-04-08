@@ -53,11 +53,18 @@ The deletion process also does extensive logging.
 ## Basic components
 
 The tool set's main components are user-visible commands (`ws_allocate`,
-`ws_release`, `ws_list`, `ws_restore` and others), the configuration file ```/etc/ws.conf```
-and the administrator's tools like the cleaner removing the workspaces and
-other helpers like a validation tool for the configuration file.
+`ws_release`, `ws_list`, `ws_restore`, `ws_extend`, `ws_find`, `ws_register`,
+`ws_send_ical`, `ws_stat`, `ws_share`) and the administrator's tools
+(`ws_expirer`, `ws_editdb`, `ws_validate_config`, `ws_prepare`),
+and the configuration file.
 
-All configuration is in ```/etc/ws.conf``` or - new in v2 - in ```/etc/ws.d``` in several files
+All configuration is in ```/etc/ws.d``` (files read in alphabetical order and merged, new in v2)
+or in ```/etc/ws.conf``` as a fallback for compatibility.
+
+Using ```/etc/ws.d``` allows splitting the configuration into multiple files, e.g. one file per
+filesystem or one base config and separate filesystem definitions. Files are read in alphabetical
+order, so you can use naming like ```00-global.yaml```, ```10-scratch.yaml```, ```20-lustre.yaml```
+to control the merge order.
 
 ## Installation
 
@@ -119,9 +126,9 @@ spend most of their time with the privileges of that user. Therefore, it makes
 sense to have a dedicated user and group ID, but it is not a hard requirement,
 you could also reuse a user and group of another daemon or tool.
 
-It is good practice to create the ```/etc/ws.conf``` and validate it with
-```sbin/ws_validate```.
-**TODO** needs work, no ```ws_validate``` yet in V2.
+It is good practice to create the configuration and validate it with
+```ws_validate_config```. This tool checks for required fields
+and configuration consistency.
 
 It is also good practice to use ```ws_prepare``` to create the
 filesystem structure according to the config file.
@@ -206,7 +213,7 @@ expiring workspaces and to send calendar entries.
 
 Used as sender in any mail, should be of the form ```user@domain```.
 
-#### `default`
+#### `default` (alias: `default_workspace`)
 
 Important mandantory option, this determines which workspace location to use if not
 otherwise specified.
@@ -215,14 +222,14 @@ If there is more than one workspace location (i.e. more than one entry in
 `workspaces`), then the location specified here will be used for all workspaces
 by all users. A user may still manually choose the location with ```-F```.
 
-#### `duration`, `maxduration`
+#### `duration` (alias: `maxduration`)
 
 Maximum lifetime in days of a workspace, can be overwritten in each filesystem
 location specific section.
 
 #### `durationdefault`
 
-Lifetimes in days attached to a workspace if user does not specify it.
+Lifetime in days attached to a workspace if user does not specify it.
 Defaults to 1 day.
 
 #### `maxextensions`
@@ -254,27 +261,27 @@ just their own.
 A list of email addresses to inform when a bad condition is discovered by ws_expirer
 which needs intervention.
 
-### `expirerlogpath`
+#### `expirerlogpath`
 
 A path including filename where ```ws_expirer``` will place a logfile per day.
 The logfile contains additional timestamps compared to normal output.
 
-### `deldirtimeout`
+#### `deldirtimeout`
 
-A timeout value in seconds that a single workspace is allowed to last.
-If this time is exceeded, the workspace might be not be fully deleted, but
+A timeout value in seconds that a single workspace deletion is allowed to take.
+If this time is exceeded, the workspace might not be fully deleted, but
 deletion will be resumed in the next instance of the ```ws_expirer```.
 **remark** This timeout is not hard and might be missed in current implementation.
 
-### `maxuserworkspaces`
+#### `maxuserworkspaces`
 
-A maximal number of workspaces a user can create in total in all workspaces.
+A maximal number of workspaces a user can create in total across all filesystem locations.
 This is to prevent e.g. endless creation of workspaces by malformed loops.
 If this is 0, it is ignored.
 
-### filesystem specific options
+### Filesystem specific options
 
-In the config entry `filesystems` (alias for compatibility is `workspaces`), multiple workspace location entries may be
+In the config entry `filesystems` (alias `workspaces` for v1 compatibility), multiple workspace location entries may be
 specified, each with its own set of options. The following options may be
 specified on a per-workspace-location basis:
 
@@ -333,10 +340,10 @@ not be performance-relevant, only ```ws_list``` might feel faster if the
 filesystem with the DB is fast in terms of iops and metadata.
 For lustre, a DOM directory might make sense.
 
-#### `duration`/`maxduration`
+#### `duration` (alias: `maxduration`)
 
-Maximum allowed lifetime of a workspace in days. User may not specify a longer
-duration for his workspaces than this value.
+Maximum allowed lifetime of a workspace in days for this filesystem location. User may not specify a longer
+duration for his workspaces than this value. Overrides the global `duration` setting.
 
 #### `groupdefault`
 
@@ -532,6 +539,13 @@ and study the output of a manual run before setting up a cronjob!
 
 v2 introduced a new logging scheme, you can use the ```expirerlogpath``` option in the config file to
 write a daily rotated logfile.
+
+The `ws_expirer` operates in two phases:
+1. **Stray directory cleanup**: Scans workspace spaces for directories without valid DB entries. Directories matching the `username-workspacename` pattern are moved to the deleted directory. Directories not matching the expected pattern are logged and ignored, requiring manual intervention.
+2. **Database-based expiration**: Processes all DB entries — active workspaces past their expiration are moved to the deleted directory, and deleted workspaces past their keeptime are permanently removed.
+
+The `ws_expirer` also sends **reminder emails** to users before their workspaces expire (if `smtphost` and `mail_from` are configured and the workspace has a mail address in its DB entry).
+It sends **error notifications** to administrators (via `adminmail`) when DB errors or critical conditions are encountered.
 
 ## Contributing
 

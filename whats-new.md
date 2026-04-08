@@ -5,20 +5,28 @@ including internals.
 
 ## new tools
 
-- `ws_stat` allow to see how much diskspace a workspace uses (based on statx() with lazy size, running parallel)
-- `ws_editdb` allows the administrator to change DB entries, currently implemented is mass extension and useful features for testing
+- `ws_stat` shows how much diskspace a workspace uses (based on statx() with lazy size, running parallel with work-stealing queue).
+  Sorting options same as `ws_list` (-N, -C, -R, -r). Thread count configurable via `-t` or `WS_THREADS` environment variable.
+- `ws_editdb` allows the administrator to change DB entries in bulk. Supports pattern matching on workspace names,
+  and modification modes: `--add-time`, `--add-time-expired`, `--ensure-until DATE`, `--expire-by DATE`.
+  Runs in dry-run mode by default, use `--not-kidding` to execute.
+- `ws_validate_config` validates configuration file syntax, required fields, and consistency (migrated from v1 and improved)
+- `ws_prepare` creates filesystem directory structure according to configuration file with correct ownership and permissions
 
 ## new functionality
 
 - `ws_list` is a lot faster due to no python startup and faster listing and reading of DB
 - `ws_list -g` is a lot faster as it does only read DB entries of owners sharing a group
-- `ws_list -L` shows information about avaible filesystems, including permissions and a comment given bu administrator
+- `ws_list -L` shows information about available filesystems, including permissions, max duration, extensions, keeptime and a comment given by administrator
+- `ws_list -T` shows a color-coded table format (red for <3 days remaining, orange for <7 days)
+- `ws_list -P` shows the permissions of each workspace
+- `ws_list` accepts a glob pattern argument to filter workspaces (e.g. `ws_list "experiment*"`)
 - `/etc/ws.d` is primary location of config, files are read in alphabetical order and merged, if no files there,
 `/etc/ws.conf` is read as fallbackt for compatibility
 - `ws_release --delete-data` to wipe data while releasing a workspace (also in v1 since a while)
 - `ws_restore --delete-data` to wipe data from an released or expired workspaces to reclaim disk space
 - `ws_restore -l` takes an optional globbing pattern argument
-- `ws_share` options for group sharing and writable sharing
+- `ws_share` new commands: `sharegroup`, `unsharegroup` for group-based ACL sharing, `--readwrite` option for granting write access to groups
 - in config file: `filesystems` can be used as alias for `workspaces`, to match `-F` option of tools
 - in config file: `default_workspace` is an alias for `default`
 - in config file: `maxduration` is an alias for `duration`
@@ -45,10 +53,12 @@ including internals.
 
 ## what's new under the hood
 
-- a lot more tests
+- a lot more tests (unit tests with Catch2, integration tests with bats)
 - CI pipeline
-- no python dependency, more C++ tools with higher speed and consistent behaviour
-- some tools use threading
+- no python dependency, all tools are C++ or shell scripts
+- some tools use threading for parallel processing
 - abstraction of the DB, allowing easier tool development and will allow new functionality in DB in a coming version, planned is more privacy through better isolation of users/groups
+- compile-time and runtime detection of capability/setuid/usermode privilege handling
 - dependencies to `Catch2`, `curl`, `{fmt}`, `GSL`, `yaml-cpp`, `rapidyaml`, `spdlog`, `bshoshany/thread-pool`
 - `curl` and `boost` have to be installed from distribution, all others are compiled as part of building hpc-workspace-v2
+- Docker and Vagrant (Rocky Linux 8/9) based testing infrastructure
