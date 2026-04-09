@@ -74,7 +74,7 @@ tested (on Ubuntu and Redhat compatible distributions).
 
 Furthermore, it uses the boost components ```system, program_options```, and
 it also needs ```libcurl``` from your distribution.
-You can use ```cd external; ./getexternals.sh; cd..``` to get and compile some additional
+You can use ```cd external; ./getexternals.sh; cd ..``` to get and compile some additional
 dependencies into the source directory. Using distribution based libraries for those is not supported at the moment.
 
 The complete list of dependencies is:
@@ -84,10 +84,10 @@ The complete list of dependencies is:
 - libcap2 (if using capabilities)
 - libcurl
 
-This version has compile-time detection if capability version can be built
-and checks at runtime if capabilities are set or setuid bit.
+This version has compile-time detection of whether the capability version can be built
+and checks at runtime if capabilities are set or the setuid bit is present.
 
-Following tools need privilges to work: `ws_allocate`, `ws_release` and `ws_restore`.
+The following tools need privileges to work: `ws_allocate`, `ws_release` and `ws_restore`.
 Be aware that root_squash filesystems (tested with lustre) might require
 the capability version, and some extra settings [^1] to allow the required capabilities.
 
@@ -113,12 +113,12 @@ regular intervals, only then will old workspaces be cleaned up. The
 `ws_expirer` setup is detailed below.
 
 [^1]: for lustre you might need for newer versions ```lctl set_param -P mdt.<fsname>-*.enable_cap_mask=+cap_dac_read_search,cap_chown,cap_dac_override,cap_fowner```
-to exclode those capabilites from being dropped in root_squash mode as well.
+to exclude those capabilities from being dropped in root_squash mode as well.
 
-## Further preparation
+## Further preparation (```ws_validate_config``` and ```ws_prepare```)
 
 You will need a uid and gid which will serve as owner of the directories above
-the workspaces and formost for the DB entry directory.
+the workspaces and foremost for the DB entry directory.
 
 You can reuse an existing user and group, but be aware that anybody able to use
 that user can manipulate other peoples' DB entries, and that the setuid tools
@@ -139,9 +139,9 @@ A very simple example `ws.conf` file:
 
 ```yaml
 admins: [root]			# users listed here can see all workspaces with ws_list
-adminmail: [root@localhost]      #! add somethingmeaningfull here, it is used to alarm of bad confitions
+adminmail: [root@localhost]      #! add something meaningful here, it is used to alert of bad conditions
 clustername: My Green Cluster	# some name for the cluster
-smtphost: mail.mydomain.com     # my smtp server for sending mais)
+smtphost: mail.mydomain.com     # my smtp server for sending mails
 dbuid: 85			#! a user id, this is the owner of some directories
 dbgid: 85			#! a group id, this is the group of some directories
 default: ws1			#! the default workspace location to use for everybody
@@ -158,7 +158,7 @@ filesystems:              #! or 'workspaces' for compatibility
     spaces: [/tmp/ws/ws1]	#! paths where workspaces are created, this is a list and path is picked randomly or based on uid or guid
 ```
 
-**Note:** the lines with ```#!``` as comment are mandantory for a valid config file.
+**Note:** the lines with ```#!``` as comment are mandatory for a valid config file.
 
 In this example, any workspace would be created in a directory in
 ```/tmp/ws/ws1``` whenever a user calls ```ws_allocate```, and he would be able
@@ -204,7 +204,7 @@ expiration.
 
 #### `smtphost`
 
-FQDN of SMTP server (no authentification supported), this is used to send
+FQDN of SMTP server (no authentication supported), this is used to send
 reminder mails for
 expiring workspaces and to send calendar entries.
 
@@ -215,7 +215,7 @@ Used as sender in any mail, should be of the form ```user@domain```.
 
 #### `default` (alias: `default_workspace`)
 
-Important mandantory option, this determines which workspace location to use if not
+Important mandatory option, this determines which workspace location to use if not
 otherwise specified.
 
 If there is more than one workspace location (i.e. more than one entry in
@@ -254,7 +254,7 @@ to use a dedicated GID or a GID of another daemon.
 #### `debugusers`
 
 A list of users who can use the `--debug` and `--trace` flags.
-If a user sees unexpected behaviour add the username to this list
+If a user sees unexpected behaviour, add the username to this list
 and run again and check journal for debug output.
 
 #### `admins`
@@ -281,7 +281,7 @@ deletion will be resumed in the next instance of the ```ws_expirer```.
 
 #### `maxuserworkspaces`
 
-A maximal number of workspaces a user can create in total across all filesystem locations.
+The maximum number of workspaces a user can create in total across all filesystem locations.
 This is to prevent e.g. endless creation of workspaces by malformed loops.
 If this is 0, it is ignored.
 
@@ -297,7 +297,7 @@ Time in days to keep data after it was expired. This is an option for the
 cleaner. The cleaner will move the expired workspace to a hidden location
 (specified by the `deleted` entry below), but does not delete it immediately.
 Users or administrators can still recover the data. After `keeptime` days,
-it will be removed and can not be recovered anymore.
+it will be removed and cannot be recovered anymore.
 
 If this is not set for a workspace, it defaults to value of 10 days.
 
@@ -308,7 +308,7 @@ If this is not set for a workspace, it defaults to value of 10 days.
 Time in days to keep data after it was released by user using `ws_release`.
 When this is not set for a workspace, it defaults to the value of `keeptime`.
 
-**Note:** compare to `keeptime` above, besides targeting released workspaces, it behaves otherwise the same, 
+**Note:** compare to `keeptime` above, besides targeting released workspaces, it behaves otherwise the same.
 
 #### `spaces`
 
@@ -322,7 +322,7 @@ or fileservers or metadata domains like DNE in Lustre.
 #### `spaceselection`
 
 can be `random` which is default, or `uid` or `gid` to select space based on
-modulo operation with uid or gid to select a stable space for user (useful to avoid cross filesystem
+modulo operation with uid or gid to select a stable space for a user (useful to avoid cross filesystem
 moves), or `mostspace` to choose the filesystem with most available disk space.
 
 #### `deleted`
@@ -385,11 +385,11 @@ two lists, he may not create a workspace in this location.
 
 With v2 there is a new extended ACL syntax introduced:
 An ACL list entry now has the format `[+|-]id[:[permission{,permission}]]` with permission being one of  `list,use,create,extend,release,restore`.
-Be carefull with the permission list, the comma seperator is the YAML list seperator as well, use quoting to overcome that proble,.
+Be careful with the permission list, the comma separator is the YAML list separator as well, use quoting to overcome that problem.
 
 Example: `user_acl: ["usera:list,release","userb:list,release"]`,
 To make a workspace at all usable for a user, `list` is always required,
-Extended ACL syntax is only needed in very special sitations, if single users should be prevented from carrying out some operations.
+Extended ACL syntax is only needed in very special situations, if single users should be prevented from carrying out some operations.
 
 **Caution:** in v1, the global `default` workspace enabled access to the named
 workspace for all users, this is no longer true in v2. Users have to have access
@@ -446,7 +446,7 @@ restored to this location anymore.
 
 V2 is the second rewrite of the tools, first version was in python with
 some horrible setuid hacks, second version was partially in C++.
-C++ aims to be fully C++ or shell scripts. V2 offers an internal abstraction of the DB and configuraton, which will allow to have
+C++ aims to be fully C++ or shell scripts. V2 offers an internal abstraction of the DB and configuration, which will allow having
 a new DB format in the future, and enables easier creation of tools with consistent behaviour.
 
 V2 first DB implementation is compatible with V1 DB.
@@ -465,7 +465,7 @@ privileges (```ws_list```, ```ws_extend```, ```ws_find```, ```ws_register```,
 The basic setup consists of at least two directory trees, one for the DB and
 one for the data. These trees have to be separate and neither may be a
 subdirectory of the other. They may reside on different filesystems, but do not
-have to. If they do, be carefull in mounting them at same time.
+have to. If they do, be careful to mount them at the same time.
 The database directory has to contain a file .ws_db_magic with the name
 of the workspace in it, this is used by the ws_expirer to verify that the DB is present
 and valid, to avoid e.g. problems with not mounted filesystems.
@@ -492,7 +492,7 @@ the ```deleted: .removed``` config file entry.
 
 Whenever a workspace is created, an empty directory is created in ```ws1```,
 this directory is owned by and writable for the user who created the workspace.
-Aditionally, a file with the DB entry will be created in ```ws1-db```, owned by
+Additionally, a file with the DB entry will be created in ```ws1-db```, owned by
 ```dbuid:dbgid``` but readable by all users. Both the directory and the file
 have the naming convention of ```username-workspacename```, so several users
 can have a workspace with the same name.
@@ -527,7 +527,7 @@ enabled if the `--cleaner` (or `-c`) option is specified when calling
 
 **Warning:** anything in a spaces directory can be deleted by the expirer!
 
-## Setting up the ws_expirer
+## Setting up the ```ws_expirer```
 
 The `ws_expirer` is the tool which takes care of expired Workspaces. To set
 it up, create a daily cron job that runs the `ws_expirer` script:
@@ -553,8 +553,46 @@ The `ws_expirer` operates in two phases:
 The `ws_expirer` also sends **reminder emails** to users before their workspaces expire (if `smtphost` and `mail_from` are configured and the workspace has a mail address in its DB entry).
 It sends **error notifications** to administrators (via `adminmail`) when DB errors or critical conditions are encountered.
 
+## Editing the Database (```ws_editdb```)
+
+`ws_editdb` is an admin-only tool for bulk-modifying workspace database entries by
+pattern matching on workspace names and/or usernames. It is useful for tasks like
+extending workspaces before a cluster maintenance window or enforcing a hard expiry
+date across a group of workspaces.
+
+**By default the tool runs in dry-run mode** and only shows what would be done. Pass
+`--not-kidding` to actually apply the changes.
+
+Only one modification option can be active at a time:
+
+| Option | Effect |
+|--------|--------|
+| `--add-time <DAYS>` | Add days to the expiration time of matching workspaces |
+| `--add-time-expired <DAYS>` | Add days to the expired time (workspaces in the recovery area) |
+| `--ensure-until <YYYY-MM-DD>` | Extend workspaces that would expire before the given date |
+| `--expire-by <YYYY-MM-DD>` | Shorten workspaces that would expire after the given date |
+
+Use `-e` to select expired workspaces (those in the recovery area) instead of active ones.
+Use `-u <USER>` or a glob pattern to narrow the selection.
+
+Examples:
+
+```
+# Preview: extend all workspaces matching "project*" by 7 days
+ws_editdb --add-time 7 "project*"
+
+# Apply: ensure all workspaces last until at least 2026-06-01
+ws_editdb --ensure-until 2026-06-01 --not-kidding
+
+# Apply: cap all workspaces to expire no later than 2026-05-01
+ws_editdb --expire-by 2026-05-01 --not-kidding
+
+# Apply: give expired workspaces of user alice 30 more days in the recovery area
+ws_editdb -e -u alice --add-time-expired 30 --not-kidding
+```
+
 ## Contributing
 
-Is highly welcome. Please refer to the
+Contributions are highly welcome. Please refer to the
 [issue tracker](https://github.com/holgerBerger/hpc-workspace-v2/issues) of this project and
-[dicussions](https://github.com/holgerBerger/hpc-workspace-v2/discussions)
+[discussions](https://github.com/holgerBerger/hpc-workspace-v2/discussions)
