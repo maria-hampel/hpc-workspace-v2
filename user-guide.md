@@ -8,16 +8,19 @@ For the latest version (which might not fit your installation) see
 
 | Tool | Purpose |
 |------|---------|
-| `ws_allocate` | Create, extend, or modify a workspace |
-| `ws_list` | List your workspaces and available filesystems |
-| `ws_stat` | Show disk usage statistics for workspaces |
-| `ws_find` | Print the path of a workspace by ID |
-| `ws_register` | Maintain a directory of symlinks to your workspaces |
-| `ws_release` | Release (expire) a workspace |
-| `ws_restore` | Restore a previously released workspace |
-| `ws_extend` | Extend the lifetime of a workspace |
-| `ws_share` | Share a workspace with other users via ACLs |
-| `ws_send_ical` | Send a calendar reminder for workspace expiry |
+| [`ws_allocate`](#creation-of-a-workspace-ws_allocate) | Create, extend, or modify a workspace |
+| [`ws_list`](#listing-workspaces-ws_list) | List your workspaces and available filesystems |
+| [`ws_stat`](#workspace-disk-usage-statistics-ws_stat) | Show disk usage statistics for workspaces |
+| [`ws_find`](#finding-a-workspace-ws_find) | Print the path of a workspace by ID |
+|[ `ws_register`](#registering-workspaces-as-symlinks-ws_register) | Maintain a directory of symlinks to your workspaces |
+| [`ws_release`](#releasing-and-restoring-workspaces-ws_release-and-ws_restore) | Release (expire) a workspace |
+| [`ws_restore`](#releasing-and-restoring-workspaces-ws_release-and-ws_restore) | Restore a previously released workspace |
+| [`ws_extend`](#extending-workspaces-ws_extend-or-ws_allocate--x) | Extend the lifetime of a workspace |
+| [`ws_share`](#cooperative-usage-group-workspaces-and-sharing-with-other-users) | Share a workspace with other users via ACLs |
+| [`ws_send_ical`](#creation-of-a-workspace-ws_allocate) | Send a calendar reminder for workspace expiry |
+
+For a full list of options, use -h or see the respective man page.
+
 
 ## Motivation
 
@@ -84,8 +87,6 @@ You can change reminder and email address of an existing workspace using ```ws_a
 
 You can also generate a calendar entry via email with ```ws_send_ical```, see manpage for more details.
 
-See ```man ws_allocate``` for a description of all options.
-
 ## Listing workspaces (```ws_list```)
 
 ```ws_list``` will list all your owned workspaces. This has many options for verbosity
@@ -96,8 +97,6 @@ See ```man ws_allocate``` for a description of all options.
 
 A short overview of the workspaces in table format listed for remaining time can be displayed
 with ```ws_list -RTt```.
-
-See ```man ws_list``` for a description of all options.
 
 ## Workspace disk usage statistics (```ws_stat```)
 
@@ -114,8 +113,6 @@ Sorting works the same as in ```ws_list``` (*-N* name, *-C* creation date, *-R* 
 The scan uses parallel directory traversal. The number of threads defaults to the number of
 CPU cores and can be overridden with *-t* or the ```WS_THREADS``` environment variable.
 
-See ```man ws_stat``` for a description of all options.
-
 ## Finding a workspace (```ws_find```)
 
 ```ws_find <ID>``` prints the path of a workspace by name, useful as an alternative to
@@ -125,8 +122,6 @@ By default it searches in all filesystems. Use ```-F <FILESYSTEM>``` to limit th
 to a specific one.
 
 To search for group workspaces, add ```-g```. To search workspaces of another user, use ```-u <USERNAME>```.
-
-See ```man ws_find``` for a description of all options.
 
 ## Registering workspaces as symlinks (```ws_register```)
 
