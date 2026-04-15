@@ -1,20 +1,27 @@
-.TH ws_register 1 "June 2025" "USER COMMANDS"
+.TH ws_register 1 "April 2026" "USER COMMANDS"
 
 .SH NAME
-ws_register \- create links to valid workspaces
+ws_register \- maintain a directory of symlinks to workspaces
 
 .SH SYNOPSIS
 .B ws_register
-[\-h] [\-F FILESYSTEM]  DIRECTORY
+[\-h] [\-V] [\-F FILESYSTEM] [\-d DIRECTORY] DIRECTORY
 
 .SH DESCRIPTION
-Create links to
+Create symbolic links to all
 .B workspaces
-of the calling user in DIRECTORY and remove links pointing to removed workspaces.
+of the calling user inside DIRECTORY, organized into subdirectories per filesystem.
+Links pointing to workspaces that no longer exist are removed automatically,
+keeping the directory in sync.
+
+This is useful if you want to browse or access your workspaces conveniently
+through a fixed location in your home directory.
+
 The action can be restricted to
 .B workspaces
-in a certain FILESYSTEM.
-
+in a certain FILESYSTEM with
+.B \-F
+\&.
 
 The idea of the
 .B workspace
@@ -25,7 +32,7 @@ and can be created e.g. for each job.
 
 From the system side,
 .B workspaces
-will be deleted after beeing expired. A friendly user can release workspaces before the expiration
+will be deleted after being expired. A friendly user can release workspaces before the expiration
 date using
 .B ws_release
 which will mark the
@@ -37,23 +44,37 @@ Deletion is probably a task done once a night and not immediately.
 If a
 .B workspace
 was forgotten and expired, it might make sense to contact the administrator,
-as he probaly can restore a workspace for some time, if disk space is not low.
+as he probably can restore a workspace for some time, if disk space is not low.
 
 .PP
 
 .SH OPTIONS
 .TP
-\-h
+\-h, \-\-help
 display usage help text
 .TP
-\-F
-select the filesystem to use the workspaces from.
+\-V, \-\-version
+show version
+.TP
+\-F, \-\-filesystem FILESYSTEM
+restrict links to workspaces in the specified filesystem.
+See
+.B ws_list \-l
+for a list of available filesystems.
+.TP
+\-d, \-\-directory DIRECTORY
+target directory for the symlinks. Can also be given as a positional argument.
+.TP
+\-\-config CONFIGFILE
+path to configfile, for root only or for unprivileged installations.
 
 .SH EXAMPLES
 .TP
-Create links in WS_LINKS
-.B ws_register WS_LINKS
-
+create and maintain symlinks to all workspaces in ~/ws_links:
+.B ws_register ~/ws_links
+.TP
+restrict links to a specific filesystem:
+.B ws_register -F scratch ~/ws_links
 
 .SH AUTHOR
 Written by Holger Berger

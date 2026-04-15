@@ -1,20 +1,42 @@
-.TH ws_extend 1 "March 2013" "USER COMMANDS"
+.TH ws_extend 1 "April 2026" "USER COMMANDS"
 
 .SH NAME
-ws_extend \- extend a workspace
+ws_extend \- extend the lifetime of a workspace
 
 .SH SYNOPSIS
-.B ws_extend WORKSPACE DAYS
+.B ws_extend
+[\-F FILESYSTEM] WORKSPACE DAYS
 
 .SH DESCRIPTION
-Extend a 
-.B
-workspace 
-to last until DAYS in the future.
-This is a convenience wrapper around 
-.B
-ws_allocate -x
+Extend an existing
+.B workspace
+to last until DAYS days from today.
+This is a convenience wrapper around
+.B ws_allocate \-x
 
+Each extension consumes one of the allowed extensions for the workspace,
+unless the new expiration date is shorter than the previous one.
+The number of available extensions can be seen with
+.B ws_list
+and is limited by the administrator.
+
+.SH OPTIONS
+.TP
+\-F FILESYSTEM
+select the filesystem the workspace resides in.
+See
+.B ws_list
+\-l
+for a list of available filesystems.
+
+.SH EXAMPLES
+.TP
+extend a workspace by 10 more days from today:
+.B ws_extend myworkspace 10
+
+.TP
+extend a workspace on a specific filesystem:
+.B ws_extend -F scratch myworkspace 10
 
 .SH AUTHOR
 Written by Holger Berger

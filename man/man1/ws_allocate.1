@@ -1,11 +1,11 @@
-.TH ws_allocate 1 "June 2025" "USER COMMANDS"
+.TH ws_allocate 1 "April 2026" "USER COMMANDS"
 
 .SH NAME
 ws_allocate \- create a workspace directory and return its path
 
 .SH SYNOPSIS
 .B ws_allocate
-[\-h] [\-x] [\-g [GROUPNAME]] [\-G [GROUPNAME]] [--] [\-u USER] [\-F FILESYSTEM] [\-d DURATION] [\-n NAME] [\-r DAYS] [\-m MAILADDRESS] [\-c COMMENT] NAME DURATION
+[\-h] [\-V] [\-x] [\-g [GROUPNAME]] [\-G [GROUPNAME]] [--] [\-u USERNAME] [\-F FILESYSTEM] [\-d DURATION] [\-n NAME] [\-r DAYS] [\-m MAILADDRESS] [\-c COMMENT] NAME DURATION
 
 .SH DESCRIPTION
 Create a
@@ -17,6 +17,13 @@ A
 .B workspace
 has a limited lifetime, which can be restricted by the administrator.
 The DURATION might be cut to that maximum, a warning will be printed in that case.
+If no DURATION is specified, a default lifetime will be used (typically 1 day).
+
+.B Important:
+If a workspace with the given NAME already exists, it will be reused and the same path is
+returned \(em the duration is not reset. It is therefore safe and encouraged to use
+.B ws_allocate
+in batch jobs that are part of a series of jobs working on the same data.
 
 A
 .B workspace
@@ -39,12 +46,12 @@ and can be created e.g. for each job.
 
 For the administrator,
 .B workspaces
-offer further advantages, like beeing able to migrate users to another filesystem over time
+offer further advantages, like being able to migrate users to another filesystem over time
 and to perform loadbalancing over directories and filesystems.
 
 From the system side,
 .B workspaces
-will be deleted after beeing expired. A friendly user can release workspaces before the expiration
+will be deleted after being expired. A friendly user can release workspaces before the expiration
 date using
 .B ws_release
 which will mark the
@@ -56,7 +63,7 @@ Deletion is probably a task done once a night and not immediately.
 If a
 .B workspace
 was forgotten and expired, it might make sense to contact the administrator,
-as he probaly can restore a workspace for some time, if disk space is not low.
+as he probably can restore a workspace for some time, if disk space is not low.
 Check if
 .B ws_restore
 is available to restore workspaces by yourself that are still in the hidden area.
@@ -65,69 +72,79 @@ is available to restore workspaces by yourself that are still in the hidden area
 
 .SH OPTIONS
 .TP
-\-h
+\-h, \-\-help
 display usage help text
 .TP
-\-x
+\-V, \-\-version
+show version
+.TP
+\-x, \-\-extension
 extend an existing workspace until today + DURATION days.
 The number of extensions can be limited. Can be combined with
-.B -m
+.B \-m
 to add a mail address
 and with
-.B -r
-to add reminder to existing workspaces. If used with 0 as duration, it does
-not consume an extension.
+.B \-r
+to add reminder to existing workspaces. If used with duration 0 or without a duration,
+it does not consume an extension.
 .TP
-\-F
+\-F, \-\-filesystem FILESYSTEM
 select the filesystem to create the workspace in, there is always a default for this.
 See
 .B ws_list
 \-l
 for a list of available filesystems and their order of allocation.
 .TP
-\-m
+\-m, \-\-mailaddress MAILADDRESS
 mailaddress to send reminder mail to, can be combined with
-.B -x
+.B \-x
 to add mailaddress to existing workspace (combine with duration 0).
 .TP
-\-n NAME
+\-n, \-\-name NAME
 name of workspace, can also be given as first positional parameter
 .TP
-\-c
-comment to attach to workspace, can be combined with \
-.B -x
-to change comment of an existing workspace (combine with duration 0).
+\-c, \-\-comment COMMENT
+comment to attach to workspace, can be combined with
+.B \-x
+to change comment of an existing workspace (combine with duration 0 or omit duration).
 .TP
-\--config configfile
-path to configfile, for root only or for unpriviledged installations
+\-u, \-\-username USERNAME
+act on behalf of USERNAME (for extending group members' workspaces, requires
+.B \-x
+and a workspace created with
+.B \-G
+).
 .TP
-\-d DURATION
-duration in days, can also be given as positional paramter after the NAME.
+\-\-config CONFIGFILE
+path to configfile, for root only or for unprivileged installations
 .TP
-\-r DAYS
+\-d, \-\-duration DURATION
+duration in days, can also be given as positional parameter after the NAME.
+.TP
+\-r, \-\-reminder DAYS
 reminder email will be sent DAYS days before the
 .B
 workspace
-will expire, can be combined with -x to add reminder to existing workspace. This could be sent in the night after the exact point in time, during a cleanup.
+will expire, can be combined with \-x to add reminder to existing workspace. This could be sent in the night after the exact point in time, during a cleanup.
 See
 .B ws_send_ical
 for a way to send calendar entries.
 .TP
-\-g [GROUPNAME]
+\-g, \-\-groupreadable [GROUPNAME]
 a group-workspace will be created, that is a workspace that can be seen by other members of specified group with
-.B ws_list -g
+.B ws_list \-g
 and the workspace itself is created group readable, and with group sticky bit.
-If no group is given, the current group is taken (or group in .ws_user.conf file if present). Be carefull to have another option behind it or append -- to the option
+If no group is given, the current group is taken (or group in .ws_user.conf file if present). Be careful to have another option behind it or append -- to the option
 list to make it clear that next argument is not the GROUPNAME argument.
 .TP
-\-G [GROUPNAME]
+\-G, \-\-groupwritable [GROUPNAME]
 use your group GROUPNAME as group for the workspace and make the workspace group writable and set the group sticky bit.
 A group writable workspace can be seen as well with
-.B ws_list -g
+.B ws_list \-g
 and it can be extended by group members with
-.B ws_allocate -x -u <user> <workspace-id> <days>
+.B ws_allocate \-x \-u <user> <workspace-id> <days>
 in behalf of the owner.
-If no group is given, the current group is taken (or group in .ws_user.conf file if present). Be carefull to have another option behind it or append -- to the option
+If no group is given, the current group is taken (or group in .ws_user.conf file if present). Be careful to have another option behind it or append -- to the option
 list to make it clear that next argument is not the GROUPNAME argument.
 
 
@@ -146,8 +163,12 @@ create a writable group workspace using the current group:
 .B ws_allocate -G -- mygrouworkspace 20
 
 .TP
-add a comment to an existing workspace (without vasting an extension)
-.B ws_allocate -x -c "usefull" myworkspace
+add a comment to an existing workspace (without wasting an extension)
+.B ws_allocate -x -c "useful" myworkspace
+
+.TP
+change reminder and mail address of an existing workspace (without wasting an extension)
+.B ws_allocate -x -r 3 -m user@domain myworkspace 0
 
 .SH FILES
 .B
@@ -173,4 +194,4 @@ duration: 10
 Written by Holger Berger
 
 .SH SEE ALSO
-ws_release, ws_list, ws_find, ws_restore, ws_send_ical
+ws_release, ws_list, ws_find, ws_restore, ws_extend, ws_send_ical

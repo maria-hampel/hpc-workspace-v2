@@ -1,0 +1,122 @@
+.TH ws_editdb 8 "April 2026" "SYSTEM ADMINISTRATION COMMANDS"
+
+.SH NAME
+ws_editdb \- bulk-edit workspace database entries
+
+.SH SYNOPSIS
+.B ws_editdb
+[\-h] [\-V] [\-F FILESYSTEM] [\-u USERNAME] [\-e] [\-p PATTERN] [\-v] [\-\-dry\-run] [\-\-not\-kidding] [\-\-add\-time DAYS] [\-\-add\-time\-expired DAYS] [\-\-ensure\-until DATE] [\-\-expire\-by DATE] [PATTERN]
+
+.SH DESCRIPTION
+.B ws_editdb
+is an administrator-only tool for bulk-modifying workspace database entries by
+pattern matching on workspace names and usernames. It is useful for tasks like
+extending workspaces before a cluster maintenance window or enforcing a hard
+expiry date across a group of workspaces.
+
+.B By default the tool runs in dry-run mode
+and only shows what would be done. Pass
+.B \-\-not\-kidding
+to actually apply the changes.
+
+Only one modification option can be active at a time:
+.B \-\-add\-time\fR,
+.B \-\-add\-time\-expired\fR,
+.B \-\-ensure\-until\fR,
+or
+.B \-\-expire\-by\fR.
+
+.B PATTERN
+is a unix glob expression, * matches all characters, please be aware that
+quoting might be required by your shell.
+
+.PP
+
+.SH OPTIONS
+.TP
+\-h, \-\-help
+display usage help text
+.TP
+\-V, \-\-version
+show version information
+.TP
+\-F, \-\-filesystem FILESYSTEM
+specify the filesystem to operate on. If not specified, all valid filesystems are processed.
+.TP
+\-u, \-\-username USERNAME
+select workspaces belonging to the specified user. Root or admin only.
+.TP
+\-e, \-\-expired
+operate on expired workspaces in the recovery area instead of active workspaces.
+.TP
+\-p, \-\-pattern PATTERN
+pattern matching workspace names (glob syntax). Can also be given as a positional argument.
+.TP
+\-v, \-\-verbose
+verbose listing.
+.TP
+\-\-dry\-run
+default mode: only show what would be done without making changes.
+.TP
+\-\-not\-kidding
+execute the actual modifications (disables dry-run mode).
+.TP
+\-\-add\-time DAYS
+add the specified number of days to the expiration time of selected active workspaces.
+.TP
+\-\-add\-time\-expired DAYS
+add the specified number of days to the expiration time of workspaces in the recovery area.
+Use together with
+.B \-e
+to select expired workspaces.
+.TP
+\-\-ensure\-until DATE
+extend workspaces that would expire before DATE so that they expire not earlier
+than DATE (format: YYYY\-MM\-DD, time is set to 23:59:59).
+Workspaces already expiring after DATE are not modified.
+.TP
+\-\-expire\-by DATE
+shorten workspaces that would expire after DATE so that they expire no later
+than DATE (format: YYYY\-MM\-DD, time is set to 00:00:00).
+Workspaces already expiring before DATE are not modified.
+.TP
+\-\-config CONFIGFILE
+path to config file.
+
+.SH RESTRICTIONS
+This tool requires root privileges. Non-root users can only use the tool with
+a custom config file via
+.B \-\-config\fR.
+
+Only one modification option
+.RB ( \-\-add\-time ,
+.BR \-\-add\-time\-expired ,
+.BR \-\-ensure\-until ,
+.BR \-\-expire\-by )
+can be used at a time.
+
+.SH EXAMPLES
+.TP
+preview: show all workspaces matching a pattern without making changes:
+.B ws_editdb "project*"
+.TP
+preview: extend all workspaces matching "project*" by 7 days:
+.B ws_editdb --add-time 7 "project*"
+.TP
+apply: extend all workspaces matching "project*" by 7 days:
+.B ws_editdb --add-time 7 --not-kidding "project*"
+.TP
+apply: ensure all workspaces last until at least 2026-06-01:
+.B ws_editdb --ensure-until 2026-06-01 --not-kidding
+.TP
+apply: cap all workspaces to expire no later than 2026-05-01:
+.B ws_editdb --expire-by 2026-05-01 --not-kidding
+.TP
+apply: give expired workspaces of user alice 30 more days in the recovery area:
+.B ws_editdb -e -u alice --add-time-expired 30 --not-kidding
+
+.SH AUTHOR
+Written by Holger Berger
+
+.SH SEE ALSO
+ws_allocate, ws_release, ws_restore, ws_list, ws_find
