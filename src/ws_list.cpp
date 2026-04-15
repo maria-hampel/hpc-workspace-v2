@@ -476,7 +476,7 @@ int main(int argc, char** argv) {
                                                  // Don't hold mtx - let print functions manage their own locks
                                                  if (shortlisting) {
                                                      lock_guard<mutex> out_lock(print_entry_mtx);
-                                                     fmt::println(getMaskedID(entry.get()));
+                                                     fmt::println("{}", getMaskedID(entry.get()));
                                                  } else {
                                                      if (!tableformat)
                                                          print_entry(entry.get(), verbose, terselisting, permissions);
@@ -521,7 +521,7 @@ int main(int argc, char** argv) {
 
             for (const auto& entry : entrylist) {
                 if (shortlisting) {
-                    fmt::println(getMaskedID(entry.get()));
+                    fmt::println("{}", getMaskedID(entry.get()));
                 } else {
                     if (!tableformat)
                         print_entry(entry.get(), verbose, terselisting, permissions);
