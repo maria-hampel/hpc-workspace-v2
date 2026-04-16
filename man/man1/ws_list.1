@@ -1,11 +1,11 @@
-.TH ws_list 1 "June 2025" "USER COMMANDS"
+.TH ws_list 1 "April 2026" "USER COMMANDS"
 
 .SH NAME
 ws_list \- list workspaces
 
 .SH SYNOPSIS
 .B ws_list
-[\-h] [\-F FILESYSTEM] [\-g] [\-l] [\-L] [\-s] [\-v] [\-s] [\-r] [\-N] [\-R] [\-C] [\-P] [PATTERN]
+[\-h] [\-V] [\-F FILESYSTEM] [\-g] [\-l] [\-L] [\-s] [\-t] [\-T] [\-v] [\-e] [\-r] [\-N] [\-R] [\-C] [\-P] [\-u USERNAME] [\-p PATTERN] [PATTERN]
 
 .SH DESCRIPTION
 List
@@ -13,12 +13,11 @@ List
 of the calling user.
 The output can be restricted to
 .B workspaces
-in a certain FILESYSTEM, matching a certain PATTERN, and can be sorted according to different criterias.
+in a certain FILESYSTEM, matching a certain PATTERN, and can be sorted according to different criteria.
 
 .B PATTERN
 is a unix glob expression, * matches all characters, please be aware that quoting might be required
 by your shell.
-
 
 The idea of the
 .B workspace
@@ -29,7 +28,7 @@ and can be created e.g. for each job.
 
 From the system side,
 .B workspaces
-will be deleted after beeing expired. A friendly user can release workspaces before the expiration
+will be deleted after being expired. A friendly user can release workspaces before the expiration
 date using
 .B ws_release
 which will mark the
@@ -41,72 +40,88 @@ Deletion is probably a task done once a night and not immediately.
 If a
 .B workspace
 was forgotten and expired, it might make sense to contact the administrator,
-as he probaly can restore a workspace for some time, if disk space is not low.
+as he probably can restore a workspace for some time, if disk space is not low.
 Check if
-.ws_restore
+.B ws_restore
 is available allowing you to restore workspaces on your own.
 
 .PP
 
 .SH OPTIONS
 .TP
-\-h
+\-h, \-\-help
 display usage help text
 .TP
-\-l
+\-V, \-\-version
+show version
+.TP
+\-l, \-\-listfilesystems
 list the available filesystems, only filesystems the user has list access to will be shown.
 The shown order is the order workspaces are searched in, from top to bottom.
 .TP
-\-L
+\-L, \-\-listfilesystemdetails
 list the available filesystems you have list access to with properties like maximum duration and number of extensions granted
 as well as retention time after expiration or release, as well as permissions like right to allocate, extend and restore.
 Add
-.B -v
+.B \-v
 to see an explanation of the fields.
 .TP
-\-F
+\-F, \-\-filesystem FILESYSTEM
 select the filesystem to list the workspaces from.
 .TP
-\-g
+\-g, \-\-groupname
 show group-workspaces visible for current group in addition to own workspaces.
-You can extend visible workspace in behalf of the owner if the workspace is writable,
+You can extend a visible workspace on behalf of the owner if the workspace is writable,
 either as it was created with
-.B ws_allocate -G <groupname>
-or because it was made
-writable later with
+.B ws_allocate \-G <groupname>
+or because it was made writable later with
 .B chmod
 . See
 .B ws_allocate
 manpage for details.
 .TP
-\-s
+\-u, \-\-username USERNAME
+only show workspaces for the specified user.
+.TP
+\-e, \-\-expired
+show expired workspaces. Use together with
+.B ws_restore
+to list names available for restoration.
+.TP
+\-s, \-\-short
 short listing, only workspace names will be listed.
 .TP
-\-t
-terse listing, less information is shown
+\-t, \-\-terse
+terse listing, less information is shown.
 .TP
-\-T
-table listing, supports -t and sorting. Remaining time in color, red for less than 3 days, orange for less than 7 days.
-Most usefull as
-.B -RTt
+\-T, \-\-table
+table listing, supports \-t and sorting. Remaining time is color-coded: red for less than 3 days, orange for less than 7 days.
+Most useful as
+.B \-RTt
 .TP
-\-v
-verbose listing, all information is shown
+\-v, \-\-verbose
+verbose listing, all information is shown.
 .TP
-\-P
-show permissions of workspace
+\-P, \-\-permissions
+show permissions of workspace directory.
 .TP
-\-N
-sort according to names of workspaces
+\-N, \-\-name
+sort by workspace name.
 .TP
-\-R
-sort according to remaining time of workspaces
+\-R, \-\-remaining
+sort by remaining time of workspaces.
 .TP
-\-C
-sort according to creation date of workspaces
+\-C, \-\-creation
+sort by creation date of workspaces.
 .TP
-\-r
-invert the sorting of \-N, \-C or \-R
+\-r, \-\-reverted
+invert the sorting of \-N, \-C or \-R.
+.TP
+\-p, \-\-pattern PATTERN
+pattern matching workspace name (glob syntax). Can also be given as a positional argument.
+.TP
+\-\-config CONFIGFILE
+path to configfile, for root only or for unprivileged installations.
 
 .SH EXAMPLES
 .TP
@@ -116,19 +131,26 @@ list all workspaces, unsorted:
 list available filesystems:
 .B ws_list -l
 .TP
+list available filesystems with details:
+.B ws_list -L
+.TP
 list all workspaces, sorted by remaining time, shortest first:
 .B ws_list -R
 .TP
 list all workspaces, sorted by creation time, oldest last:
-.B ws_list -R -r
-list a specific workspace
-.B ws_list my_workspace
-list workspaces starting with "experiment"
+.B ws_list -C -r
+.TP
+list a specific workspace:
+.B ws_list myworkspace
+.TP
+list workspaces starting with "experiment":
 .B ws_list "experiment*"
 .TP
 list workspaces in terse table format, shortest remaining days first (with color coding of remaining days)
 .B ws_list -RTt
 .TP
+list expired workspaces available for restoration:
+.B ws_list -e
 
 .SH AUTHOR
 Written by Holger Berger

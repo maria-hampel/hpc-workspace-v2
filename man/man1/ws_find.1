@@ -1,20 +1,22 @@
-.TH ws_find 1 "June 2025" "USER COMMANDS"
+.TH ws_find 1 "April 2026" "USER COMMANDS"
 
 .SH NAME
-ws_find \- give path to a workspace
+ws_find \- print the path of a workspace
 
 .SH SYNOPSIS
 .B ws_find
-[\-h] [\-F FILESYSTEM] [\-g] [\-u USER] WORKSPACE
+[\-h] [\-V] [\-F FILESYSTEM] [\-g] [\-u USERNAME] [\-n NAME] WORKSPACE
 
 .SH DESCRIPTION
-Return path to a
-.B workspaces
-of the calling user.
-The output can be restricted to
-.B workspaces
-in a certain FILESYSTEM.
-
+Print the path of an existing
+.B workspace
+by name. This is useful as an alternative to
+.B ws_allocate
+when you want to locate an existing workspace without accidentally creating one.
+By default all filesystems are searched. The search can be restricted to a specific filesystem
+with
+.B \-F
+\&.
 
 The idea of the
 .B workspace
@@ -25,7 +27,7 @@ and can be created e.g. for each job.
 
 From the system side,
 .B workspaces
-will be deleted after beeing expired. A friendly user can release workspaces before the expiration
+will be deleted after being expired. A friendly user can release workspaces before the expiration
 date using
 .B ws_release
 which will mark the
@@ -37,31 +39,49 @@ Deletion is probably a task done once a night and not immediately.
 If a
 .B workspace
 was forgotten and expired, it might make sense to contact the administrator,
-as he probaly can restore a workspace for some time, if disk space is not low.
+as he probably can restore a workspace for some time, if disk space is not low.
 
 .PP
 
 .SH OPTIONS
 .TP
-\-h
+\-h, \-\-help
 display usage help text
 .TP
-\-g
-find group readable workspaces as well
+\-V, \-\-version
+show version
 .TP
-\-F
-select the filesystem to list the workspace from.
+\-F, \-\-filesystem FILESYSTEM
+select the filesystem to search for the workspace.
+See
+.B ws_list \-l
+for a list of available filesystems.
 .TP
-\-u USER
-restrict search to workspaces belonging USER
+\-g, \-\-groupname
+search for group workspaces in addition to own workspaces.
 .TP
-\--config configfile
-specify path to config file, root only, or for testing with non-priviledged versions.
+\-u, \-\-username USERNAME
+search workspaces of the specified user instead of the calling user.
+.TP
+\-n, \-\-name NAME
+workspace name to search for. Can also be given as a positional argument.
+.TP
+\-\-config CONFIGFILE
+path to configfile, for root only or for unprivileged installations.
 
 .SH EXAMPLES
 .TP
-get a workspace path
+get the path of a workspace:
 .B ws_find myworkspace
+.TP
+search for a workspace on a specific filesystem:
+.B ws_find -F scratch myworkspace
+.TP
+search for a group workspace:
+.B ws_find -g myworkspace
+.TP
+search workspaces of another user:
+.B ws_find -u alice myworkspace
 
 .SH AUTHOR
 Written by Holger Berger
