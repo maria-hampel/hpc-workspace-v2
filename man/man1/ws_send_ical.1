@@ -1,38 +1,89 @@
-.TH ws_send_ical 1 "January 2017" "USER COMMANDS"
+.TH ws_send_ical 1 "April 2026" "USER COMMANDS"
 
 .SH NAME
-ws_send_ical \- send a reminder for a workspace as calender entry
+ws_send_ical \- send a calendar invitation by email for a workspace expiration date
 
 .SH SYNOPSIS
 .B ws_send_ical
-[\-F filesystem | \-\-filesystem filesystem] [\-n|\-\-workspace] workspacename [\-m | \-\-mail] mailadress
+[\-h] [\-F FILESYSTEM] [\-n NAME] [\-m MAILADDRESS] NAME
 
 .SH DESCRIPTION
-Sends a ical calendar entry for a specified
+Sends an iCal calendar invitation to the specified mail address as a reminder of the
+expiration date of a
+.B workspace
+\&. The calendar entry can be imported into most calendar applications.
+
+If no mail address is given on the command line, the address from
+.B ~/.ws_user.conf
+is used. If no mail address can be found, the command will abort.
+
+If the workspace name matches multiple filesystems, use
+.B \-F
+to specify the filesystem.
+
+The idea of the
+.B workspace
+is to allow the administrator to keep control of filespace in working filesystems,
+and to avoid the situations that data of past and finished projects/jobs is idling for
+ever on disks. A user can create and dispose arbitrary number of workspaces, they are cheap,
+and can be created e.g. for each job.
+
+From the system side,
 .B workspaces
-to the specified mail address.
+will be deleted after being expired. A friendly user can release workspaces before the expiration
+date using
+.B ws_release
+which will mark the
+.B workspace
+for future deletion and make the data unavailable for the user.
+
+Deletion is probably a task done once a night and not immediately.
 
 .PP
 
 .SH OPTIONS
 .TP
-\-F
-select the filesystem to list the workspaces from.
+\-h, \-\-help
+display usage help text
 .TP
-\-n | \-\-workspace 
-workspace name
+\-F, \-\-filesystem FILESYSTEM
+filesystem where the workspace is located. Required if the workspace name exists in
+multiple filesystems.
+See
+.B ws_list \-l
+for a list of available filesystems.
 .TP
-\-m 
-mailaddress
+\-n, \-\-workspace NAMEq
+name of the workspace to send the calendar entry for. Can also be given as the first
+positional argument.
+.TP
+\-m, \-\-mail MAILADDRESS
+mail address to send the calendar invitation to. If not given, the address from
+.B ~/.ws_user.conf
+is used.
+.TP
+\-\-config CONFIGFILE
+path to configfile, for root only or for unprivileged installations.
+
+.SH FILES
+.B
+~/.ws_user.conf
+user config file. If
+.B mail
+is set here, it will be used as the default mail address when
+.B \-m
+is not given on the command line.
 
 .SH EXAMPLES
 .TP
-send a calendar entry for workspace WS to user john
-.B ws_send_ical WS -m john@home
-
+send a calendar invitation for workspace myworkspace:
+.B ws_send_ical myworkspace -m user@domain
+.TP
+use mail address from ~/.ws_user.conf:
+.B ws_send_ical myworkspace
 
 .SH AUTHOR
-Written by Thomas Beisel
+Written by Thomas Beisel and Maria Hampel
 
 .SH SEE ALSO
 ws_allocate, ws_release, ws_list, ws_find, ws_restore

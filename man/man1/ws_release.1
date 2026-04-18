@@ -1,19 +1,28 @@
-.TH ws_release 1 "June 2025" "USER COMMANDS"
+.TH ws_release 1 "April 2026" "USER COMMANDS"
 
 .SH NAME
 ws_release \- release a workspace directory and free the workspace name
 
 .SH SYNOPSIS
 .B ws_release
-[\-h] [\-F filesystem] [\-n NAME] [\-u USERNAME] [\-\-delete\-data] NAME
+[\-h] [\-V] [\-F FILESYSTEM] [\-n NAME] [\-u USERNAME] [\-\-delete\-data] NAME
 
 .SH DESCRIPTION
 Release the
 .B workspace
 NAME for the calling user.
-This command will make the workspace data unavailable to the user, and make NAME usable for a new
-.B workspace
-.
+Releasing makes the workspace data unavailable and frees the NAME for reuse.
+The data is not deleted immediately and can be recovered using
+.B ws_restore
+as long as it has not been finally deleted. A released workspace gets deleted a lot
+earlier than an expired one, e.g. during the next night.
+
+Data in a released workspace can still account for quota usage. Delete the data before
+releasing, or use the
+.B \-\-delete\-data
+option. You can see the retention time after release with
+.B ws_list \-L
+\&.
 
 The idea of the
 .B workspace
@@ -24,62 +33,61 @@ and can be created e.g. for each job.
 
 From the system side,
 .B workspaces
-will be deleted after beeing expired. A friendly user can release workspaces before the expiration
+will be deleted after being expired. A friendly user can release workspaces before the expiration
 date using
 .B ws_release
 which will mark the
 .B workspace
 for deletion and make the data unavailable.
 
-Deletion is probably a task done once a night and not immediately. Data left in workspaces after releasing them therefore still accounts for disk
-quota if enabled by the administrator. If the user is short on available quota it makes sense to manually remove the content
-inside the workspace directory using
-.B rm
-before releasing the workspace, or usage of the
-.B --delete-data
-option.
+Deletion is probably a task done once a night and not immediately.
 
 If a
 .B workspace
 was forgotten and expired or released in error, check
-.B ws_restore -l
+.B ws_restore \-l
 which allows you to restore workspaces on your own.
-
-A expired workspace will be deleted after `keeptime` days, a released workspace gets probably deleted a lot earlier, e.g. during the next night.
-You can see `keeptime` in the workspace details with
-.B ws_list -L
 
 .PP
 
 .SH OPTIONS
 .TP
-\-h
+\-h, \-\-help
 display usage help text
 .TP
-\-F
-select the filesystem to release the workspace from, there is always a default for this.
+\-V, \-\-version
+show version
+.TP
+\-F, \-\-filesystem FILESYSTEM
+select the filesystem to release the workspace from.
 See
 .B ws_list \-l
 for a list of available filesystems and their search order.
 .TP
-\-\-delete-data
-delete the data in the workspace immediately. This will not allow you to recover the data in
-case of a mistake. This might be usefull if you have to free quota. Use with care! There is a warning
-and a 5 second grace period to stop this operation.
+\-n, \-\-name NAME
+name of workspace, can also be given as positional parameter.
 .TP
-\-u USER
-for root only: release a user's workspace, with the id as seen in
+\-u, \-\-username USERNAME
+for root only: release a workspace of the specified user, with the ID as seen in
 .B ws_list
+\&.
 .TP
-\-n NAME
-name of workspace, can also be given as positional parameter
+\-\-delete\-data
+delete all data in the workspace immediately. The workspace
+.B cannot be recovered
+after this. There is a 5-second grace period during which the operation can be
+interrupted with CTRL-C. Use with care.
 .TP
+\-c, \-\-config CONFIGFILE
+path to configfile, for root only or for unprivileged installations.
 
 .SH EXAMPLES
 .TP
 release a workspace:
-.B ws_release
-myworkspace
+.B ws_release myworkspace
+.TP
+release a workspace and immediately delete all data:
+.B ws_release --delete-data myworkspace
 
 .SH AUTHOR
 Written by Holger Berger

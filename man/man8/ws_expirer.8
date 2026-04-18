@@ -1,61 +1,72 @@
-.TH ws_expirer 8 "March 2025" "SYSTEM ADMINISTRATION COMMANDS"
+.TH ws_expirer 8 "April 2026" "SYSTEM ADMINISTRATION COMMANDS"
 
 .SH NAME
-ws_expirer \- expire and delete workspaces from a cronjob
+ws_expirer \- expire and delete workspaces, intended to be run from a cronjob
 
 .SH SYNOPSIS
 .B ws_expirer
-[\-h] [\-V] [\-F FILESYSTEMS] [\-s SINGLE_SPACE] [\-c] [\-\-configfile CONFIGFILE] [\-\-debug] [\-\-trace]
+[\-h] [\-V] [\-F FILESYSTEMS] [\-s SINGLE_SPACE] [\-c] [\-\-configfile CONFIGFILE]
 
 .SH DESCRIPTION
-.PP
 .B ws_expirer
 is a system administration tool designed to be run from a cronjob. It handles
 the expiration and deletion of workspaces based on their database entries and
-perform cleanup of stray directories on the filesystems.
+performs cleanup of stray directories on the filesystems.
 
-This tool operates in two phases:
-.TP 1i
-1.
-Clean stray directories (directories without valid DB entries)
-.TP 1i
-2.
-Process database entries (expire expired workspaces, delete old released/expired workspaces)
-
-By default, the tool runs in dry-run mode and only shows what actions would be
-performed without actually executing them. Use the
+By default, the tool runs in
+.B dry-run mode
+and only shows what actions would be performed without actually executing them.
+Pass
 .B \-c
-option to enable actual cleaning operations.
+to enable actual cleaning operations.
 
-The tool sends reminder emails to users before their workspaces expire and
-notifications to administrators when errors are encountered.
+.B It is strongly recommended to test a configuration in dry-run mode first
+and study the output of a manual run before setting up a cronjob.
+
+.B Warning:
+anything inside a configured workspace spaces directory can be deleted by
+.B ws_expirer
+if it matches the workspace naming pattern.
+
+The tool operates in two phases:
+.TP 1i
+1. Stray directory cleanup
+Scans workspace spaces for directories without valid DB entries. Directories
+containing a dash (\fIusername\-workspacename\fR pattern) are moved to the
+deleted directory. Directories not matching the expected pattern are logged
+and require manual intervention.
+.TP 1i
+2. Database-based expiration
+Processes all DB entries: active workspaces past their expiration time are
+moved to the deleted directory; workspaces in the deleted directory that
+have exceeded their
+.B keeptime
+(expired) or
+.B releasekeeptime
+(released by user) are permanently deleted.
+
+.PP
 
 .SH OPTIONS
 .TP
-\-h
+\-h, \-\-help
 display usage help text
 .TP
-\-V
+\-V, \-\-version
 show version information
 .TP
-\-F FILESYSTEMS
-comma\-separated list of filesystems to process. If not specified, all configured
-filesystems are processed.
+\-F, \-\-filesystems FILESYSTEMS
+comma-separated list of filesystems to process. If not specified, all
+configured filesystems are processed.
 .TP
-\-s SINGLE_SPACE
-process only the specified workspace space (path of a single space)
+\-s, \-\-space SINGLE_SPACE
+process only the specified workspace space (path of a single space directory).
 .TP
 \-c, \-\-cleaner
-enable cleaner mode: actually perform deletions instead of dry-run
+enable cleaner mode: actually perform deletions instead of dry-run.
 .TP
 \-\-configfile CONFIGFILE
-specify path to config file (default: /etc/ws.d, /etc/ws.conf)
-.TP
-\-\-debug
-show debugging information
-.TP
-\-\-trace
-show tracing information
+path to config file (default: \fI/etc/ws.d\fR, \fI/etc/ws.conf\fR).
 
 .SH OPERATION MODES
 .SS Dry-Run Mode (default)
@@ -64,121 +75,96 @@ When run without the
 option,
 .B ws_expirer
 only simulates the cleanup operations and logs what would be done. This is the
-recommended mode for testing configurations before enabling actual cleanup.
+recommended mode for testing a new configuration before enabling actual cleanup.
 
 .SS Cleaner Mode
-When the
+When
 .B \-c
-option is specified, the tool performs actual file operations:
+is specified, the tool performs actual file operations:
 .RS
 .IP \(bu 4
-Move expired workspaces to deleted directories
+Move expired workspaces to the deleted directory
 .IP \(bu 4
-Delete old released/expired workspaces beyond their keep time
+Permanently delete workspaces in the deleted directory that have exceeded
+.B keeptime
+(expired) or
+.B releasekeeptime
+(user-released)
 .IP \(bu 4
-Delete stray directories (no DB entry)
+Move stray directories (no DB entry) to the deleted directory
 .IP \(bu 4
-Remove old entries from the database
+Remove stray deleted directories (in deleted area, no DB entry)
 .RE
 
 .SH EMAIL NOTIFICATIONS
 The tool sends email notifications using the configured SMTP server:
 .TP
 Reminder emails
-Sent to users when their workspace is approaching expiration
+Sent to users when their workspace is within the configured reminder period
+before expiration. Requires a mail address stored in the workspace DB entry.
 .TP
 Error emails
-Sent to administrators (configured via adminmail) when database errors or
-other critical conditions are encountered
+Sent to administrators (configured via
+.B adminmail
+) when DB errors or other critical conditions are encountered.
 
-Email sending requires proper configuration of:
-.RS
-.IP \(bu 4
+Email sending requires
 .B smtphost
-in the configuration file
-.IP \(bu 4
+and
 .B mail_from
-address
-.IP \(bu 4
-Valid recipient email addresses in database entries
-.RE
+to be configured.
 
 .SH LOGGING
-The tool logs to both console (with colors) and optionally to daily-rotated
-log files when
+The tool logs to the console with colors. If
 .B expirerlogpath
-is configured in the configuration file.
+is set in the configuration file, log output is also written to daily-rotated
+log files with timestamps.
 
-Log entries include timestamps and categorize operations by:
-.RS
-.IP \(bu 4
-Workspace expiration status (kept, expired, deleted)
-.IP \(bu 4
-Stray directory handling (valid, invalid)
-.IP \(bu 4
-Database entry problems
-.IP \(bu 4
-Email sending status
-.RE
-
-.SH PROCESS DETAILS
-.SS Stray Directory Cleanup
-The tool scans workspace spaces for directories that do not have corresponding
-database entries. Directories matching the pattern
-.I name\-timestamp
-are moved to the deleted directory within the same space (for safety), then
-processed for deletion if they have no corresponding DB entry.
-
-Directories not matching the expected pattern (containing no dash) are logged
-and ignored, requiring manual intervention.
-
-.SS Database-Based Expiration
-The tool processes all database entries in two passes:
-.RS
-.IP \(bu 4
-.B Active workspaces: Check if expiration time has passed; if so, move to
-deleted directory and mark as expired in DB
-.IP \(bu 4
-.B Deleted workspaces: Check if workspace has been in deleted state beyond
-the configured
+.SH RETENTION TIMES
+Expired and released workspaces are not deleted immediately but kept in a
+recovery area for a configurable time:
+.TP
 .B keeptime
-; if so, remove DB entry and delete directory
-.RE
-
-User-released workspaces are kept for a short period (controlled by
+Number of days to keep an expired workspace before final deletion.
+Defaults to 10 days if not set.
+.TP
 .B releasekeeptime
-, currently hardcoded to 3600 seconds) before deletion. Expired workspaces
-are kept for the configured
+Number of days to keep a user-released workspace before final deletion.
+Defaults to the value of
 .B keeptime
-days before deletion.
+if not set.
 
-.SH RETURN VALUES
-.TP
-0
-Successful execution (regardless of dry-run or cleaner mode)
-.TP
-\-2
-Configuration errors or fatal database problems
+.SH SETUP
+Create a daily cronjob to run
+.B ws_expirer
+at a regular interval:
+.PP
+.RS
+10 1 * * * /usr/sbin/ws_expirer \-c
+.RE
+.PP
+Note the required
+.B \-c
+option. Without it,
+.B ws_expirer
+runs in dry-run mode and performs no file operations.
 
 .SH EXAMPLES
 .TP
-Run in dry-run mode (default) for all filesystems:
+run in dry-run mode for all filesystems (testing):
 .B ws_expirer
 .TP
-Run cleaner mode for all filesystems:
+run cleaner mode for all filesystems:
 .B ws_expirer \-c
 .TP
-Run cleaner mode for specific filesystems:
+run cleaner mode for specific filesystems:
 .B ws_expirer \-c \-F ws1,ws2,ws3
 .TP
-Run cleaner mode for a single space:
+run cleaner mode for a single space:
 .B ws_expirer \-c \-s /path/to/space
 .TP
-Setup daily cronjob (recommended):
+daily cronjob (recommended setup):
 .B 10 1 * * * /usr/sbin/ws_expirer \-c
-.TP
-Enable debug output:
-.B ws_expirer \-c \-\-debug
 
 .SH AUTHOR
 Written by Holger Berger
@@ -191,5 +177,5 @@ Written by Holger Berger
 .BR ws_extend (1),
 .BR ws_find (1),
 .BR ws_stat (1),
-.BR ws_editdb (1),
-.BR cron (8),
+.BR ws_editdb (8),
+.BR cron (8)

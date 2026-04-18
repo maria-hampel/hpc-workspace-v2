@@ -1,28 +1,43 @@
-.TH ws_stat 1 "July 2025" "USER COMMANDS"
+.TH ws_stat 1 "April 2026" "USER COMMANDS"
 
 .SH NAME
-ws_stat \- list workspaces
+ws_stat \- show disk usage statistics for workspaces
 
 .SH SYNOPSIS
 .B ws_stat
-[\-h] [\-V] [\-F FILESYSTEM] [\-g] [\-r] [\-N] [\-R] [\-C] [\-t THREADS] [PATTERN]
+[\-h] [\-V] [\-F FILESYSTEM] [\-u USERNAME] [\-g] [\-v] [\-N] [\-R] [\-C] [\-r] [\-t THREADS] [\-p PATTERN] [PATTERN]
 
 .SH DESCRIPTION
-Show statistics for
+Show disk usage statistics for
 .B workspaces
-of the calling user.
-The output can be restricted to
-.B workspaces
-in a certain FILESYSTEM, matching a certain PATTERN, and can be sorted according to different criterias.
+of the calling user: number of files, symlinks, directories, and total size in bytes.
+Without arguments all workspaces are scanned; a glob PATTERN can be given to limit
+the output to matching workspace IDs.
 
-The output includes number of files, symlinks and directories of the workspace and the total number of bytes (sum of filesizes).
-On Lustre Filesystems, this uses the size on metedata if possible which is cheaper than stat() calls and therefor
-.B du.
+By default only own workspaces are shown. Add
+.B \-g
+to also include group workspaces visible to the current group.
+
+The output can be sorted and restricted to a certain FILESYSTEM.
+Add
+.B \-v
+to also print the scan time and throughput per workspace.
 
 .B PATTERN
 is a unix glob expression, * matches all characters, please be aware that quoting might be required
 by your shell.
 
+On Lustre filesystems, file sizes are read from metadata if possible, which is cheaper than
+.B stat()
+calls and therefore faster than
+.B du.
+
+The scan uses parallel directory traversal. The number of threads defaults to the number of
+CPU cores and can be overridden with
+.B \-t
+or the
+.B WS_THREADS
+environment variable.
 
 The idea of the
 .B workspace
@@ -33,7 +48,7 @@ and can be created e.g. for each job.
 
 From the system side,
 .B workspaces
-will be deleted after beeing expired. A friendly user can release workspaces before the expiration
+will be deleted after being expired. A friendly user can release workspaces before the expiration
 date using
 .B ws_release
 which will mark the
@@ -45,53 +60,73 @@ Deletion is probably a task done once a night and not immediately.
 If a
 .B workspace
 was forgotten and expired, it might make sense to contact the administrator,
-as he probaly can restore a workspace for some time, if disk space is not low.
+as he probably can restore a workspace for some time, if disk space is not low.
 Check if
-.ws_restore
+.B ws_restore
 is available allowing you to restore workspaces on your own.
-
-The tool uses parallel processing to speed up statistics gathering on large workspaces.
-By default, the number of threads is determined automatically based on the hardware.
-The parallel directory traversal uses a work-stealing queue to avoid deadlocks
-and ensure efficient processing of deeply nested directory structures.
 
 .PP
 
 .SH OPTIONS
 .TP
-\-h
+\-h, \-\-help
 display usage help text
 .TP
-\-V
+\-V, \-\-version
 show version and build information
 .TP
-\-F
+\-F, \-\-filesystem FILESYSTEM
 select the filesystem to list the workspaces from.
+See
+.B ws_list \-l
+for a list of available filesystems.
 .TP
-\-g
-show group-workspaces visible for current group in addition to own workspaces
+\-u, \-\-username USERNAME
+only show workspaces for the specified user.
 .TP
-\-N
-sort according to names of workspaces
+\-g, \-\-groupname
+show group-workspaces visible for the current group in addition to own workspaces.
 .TP
-\-R
-sort according to remaining time of workspaces
+\-v, \-\-verbose
+verbose output: also print scan time in milliseconds and throughput in KFiles/sec per workspace.
 .TP
-\-C
-sort according to creation date of workspaces
+\-N, \-\-name
+sort by workspace name.
 .TP
-\-r
-invert the sorting of \-N, \-C or \-R
+\-R, \-\-remaining
+sort by remaining time of workspaces.
 .TP
-\-t THREADS
-set the number of threads for parallel operation.
-This affects both workspace-level and directory-level parallelism.
-Directory processing uses approximately half the specified threads, with the other
-half available for workspace-level parallelism.
-Default: hardware_concurrency (number of CPU cores).
-Minimum enforced value: 4 for effective parallelism.
-Environment variable WS_THREADS can also be used.
+\-C, \-\-creation
+sort by creation date of workspaces.
+.TP
+\-r, \-\-reverted
+invert the sorting of \-N, \-C or \-R.
+.TP
+\-t THREADS, \-\-threads THREADS
+number of threads for parallel directory traversal.
+Defaults to the number of CPU cores. Minimum enforced value is 4.
+The
+.B WS_THREADS
+environment variable can also be used; the
+.B \-t
+option takes precedence.
+.TP
+\-p, \-\-pattern PATTERN
+pattern matching workspace name (glob syntax). Can also be given as a positional argument.
+.TP
+\-\-config CONFIGFILE
+path to configfile, for root only or for unprivileged installations.
 
+.SH EXAMPLES
+.TP
+show statistics for all workspaces:
+.B ws_stat
+.TP
+show statistics for workspaces matching a pattern:
+.B ws_stat "myproject*"
+.TP
+show statistics sorted by remaining time, with scan throughput:
+.B ws_stat -R -v
 
 .SH AUTHOR
 Written by Holger Berger

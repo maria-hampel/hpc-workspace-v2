@@ -1,98 +1,125 @@
-.TH ws_restore 1 "October 2025" "USER COMMANDS"
+.TH ws_restore 1 "April 2026" "USER COMMANDS"
 
 .SH NAME
-ws_restore \- restore a workspace that was removed, but is still in recovery area
+ws_restore \- restore a workspace that was released or expired but is still in recovery area
 
 .SH SYNOPSIS
 .B ws_restore
-[\-h] [\-l] [\-b|\-\-brief] [\-n NAME] [\-t TARGET] [\-F FILESYSTEM] [--delete-data] NAME TARGET
-
-valid calls:
+[\-h] [\-V] [\-F FILESYSTEM] [\-u USERNAME] [\-b] \-l [PATTERN]
 
 .B ws_restore
-[\-b|\-\-brief] [\-F FILESYSTEM] -l [PATTERN]
-
-or
+[\-h] [\-V] [\-F FILESYSTEM] \-\-delete\-data NAME
 
 .B ws_restore
-[\-F FILESYSTEM] \-\-delete\-data NAME
-
-or
-
-.B ws_restore
-[\-F FILESYSTEM] NAME TARGET
+[\-h] [\-V] [\-F FILESYSTEM] [\-n NAME] [\-t TARGET] NAME TARGET
 
 .SH DESCRIPTION
 After a
 .B workspace
-was released by user or marked unavailable due to expiration, it can be (depending on administrator policy) kept for a while
-in an unaccessible area of the filesystem before beeing finally deleted to free the diskspace.
-In this case, it can be restored with this command. The decision how long it can be restored is up to administrator.
+was released by the user or has expired, it is (depending on administrator policy) kept for a
+while in an inaccessible area of the filesystem before being finally deleted.
+In this case it can be restored with this command.
 
-.B ws_restore \-l [PATTERN]
-has to be used to list the restorable workspaces and to restore a selected workspace into a new
-existing
-.B workspace
-.
-(attention, this name is
+Use
+.B ws_restore \-l
+to list restorable workspaces and obtain the NAME to pass to
+.B ws_restore
+\&. Note that this name is
 .B not
-identical with the name displayed by
+identical to the name shown by
 .B ws_list
-!)
-.B PATTERN
-is a shell glob pattern, quote if needed.
+\(em it contains the username and a timestamp suffix.
+
+TARGET must be an already-existing workspace.
+.B ws_restore
+restores the data into it; it does not create a new workspace.
+
+.B ws_restore \-\-delete\-data NAME
+permanently deletes the data of an already-released workspace without restoring it first.
+This is useful when you need to free quota. Use with care.
 
 .B ws_restore
-can not be automated, it has to be executed in an interactive session
-by a human.
+cannot be automated; it must be executed in an interactive session by a human.
+
+The idea of the
+.B workspace
+is to allow the administrator to keep control of filespace in working filesystems,
+and to avoid the situations that data of past and finished projects/jobs is idling for
+ever on disks. A user can create and dispose arbitrary number of workspaces, they are cheap,
+and can be created e.g. for each job.
+
+From the system side,
+.B workspaces
+will be deleted after being expired. A friendly user can release workspaces before the expiration
+date using
+.B ws_release
+which will mark the
+.B workspace
+for deletion and make the data unavailable.
+
+Deletion is probably a task done once a night and not immediately. How long a workspace is kept
+in the recovery area before final deletion can be seen with
+.B ws_list \-L
+\&.
 
 .PP
 
 .SH OPTIONS
 .TP
-\-h
+\-h, \-\-help
 display usage help text
 .TP
-\-F
-select the filesystem to search workspaces in, there is always a default for this.
+\-V, \-\-version
+show version
+.TP
+\-l, \-\-list
+list available workspaces for restoration. An optional PATTERN (glob syntax) can be given
+to filter the output. Shows unavailability date and time remaining until final deletion.
+.TP
+\-b, \-\-brief
+shorter output in list mode, omitting unavailability date information.
+.TP
+\-n, \-\-name NAME
+name of the workspace to restore, as printed by
+.B ws_restore \-l
+\&. Can also be given as the first positional argument.
+.TP
+\-t, \-\-target TARGET
+name of the existing target workspace to restore the data into.
+Can also be given as the second positional argument.
+.TP
+\-F, \-\-filesystem FILESYSTEM
+select the filesystem to search workspaces in.
 See
-.B ws_list
+.B ws_list \-l
+for a list of available filesystems.
 .TP
-\-l
-list available workspaces for restore
+\-u, \-\-username USERNAME
+for root and admins only: operate on workspaces of the specified user.
 .TP
-.B NAME
-the name of the expired workspace, see
-.B ws_restore -l
-for available names. This name contains username, workspace and a timestamp.
+\-\-delete\-data
+delete the data of the named workspace instead of restoring it.
+The workspace
+.B cannot be recovered
+after this. There is a 5-second grace period during which the operation can be
+interrupted with CTRL-C. Use with care.
 .TP
-\-b
-shorter output not showing unavailability information
-.TP
-.B TARGET
-the name of the workspace which is target of the restoration, it has to exist, can also be given as last positional argument.
-.TP
-.B \-\-delete-data
-.B use with care!
-.B This option deletes the data instead of restoring it!
-This is useful when you are running out of quota and need to free diskspace, it allows you to free diskspace of an expired
-workspace without restoring it first.
+\-c, \-\-config CONFIGFILE
+path to configfile, for root only or for unprivileged installations.
 
 .SH EXAMPLES
-
-List restorable workspaces starting with "Data"
-
-.B ws_restore -l "Data*"
-
-Restore a workspace with ID obtained with
+.TP
+list restorable workspaces:
 .B ws_restore -l
-into existing workspace SAVED
-
+.TP
+list restorable workspaces starting with "Data":
+.B ws_restore -l "Data*"
+.TP
+restore a workspace (NAME as printed by ws_restore -l) into existing workspace SAVED:
 .B ws_restore charlie-Data2025-1760123101 SAVED
-
-Free data
-
-.B ws_restore --delete-data  charlie-Data2025-1760123101
+.TP
+permanently delete data of a released workspace to free quota:
+.B ws_restore --delete-data charlie-Data2025-1760123101
 
 .SH AUTHOR
 Written by Holger Berger
