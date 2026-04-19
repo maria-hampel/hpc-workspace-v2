@@ -17,7 +17,8 @@
         "uninitialized": false
       },
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "FETCHCONTENT_BASE_DIR": "${sourceDir}/fetchdeps"
       }
     },
     {

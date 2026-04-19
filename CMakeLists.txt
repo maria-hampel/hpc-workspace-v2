@@ -18,9 +18,6 @@ project(workspace
 # Set version macro
 add_compile_definitions(WS_VERSION="${workspace_VERSION}")
 
-# Disable spdlog's internal fmt to use our own
-set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
-
 # Git commit hash if in repository
 if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/.git")
     add_compile_definitions(IS_GIT_REPOSITORY=1)
@@ -52,16 +49,60 @@ endif()
 # Find Boost with program_options
 find_package(Boost REQUIRED COMPONENTS program_options OPTIONAL_COMPONENTS system)
 
-# External dependencies
+find_package(CURL REQUIRED)
+
+# spdlog requires external fmt before it
+set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
 set(YAML_CPP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
 
-add_subdirectory(${workspace_SOURCE_DIR}/external/yaml-cpp)
-add_subdirectory(${workspace_SOURCE_DIR}/external/rapidyaml ryml)
-add_subdirectory(${workspace_SOURCE_DIR}/external/fmt)
-add_subdirectory(${workspace_SOURCE_DIR}/external/GSL)
-add_subdirectory(${workspace_SOURCE_DIR}/external/spdlog)
+include(FetchContent)
 
-find_package(CURL REQUIRED)
+# Speed up subsequent configures: skip re-fetching if deps are already present
+set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+
+FetchContent_Declare(yaml-cpp
+    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+    GIT_TAG yaml-cpp-0.9.0
+)
+FetchContent_MakeAvailable(yaml-cpp)
+
+FetchContent_Declare(rapidyaml
+    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
+    GIT_TAG v0.11.1
+)
+FetchContent_MakeAvailable(rapidyaml)
+
+FetchContent_Declare(fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG 12.1.0
+)
+FetchContent_MakeAvailable(fmt)
+
+FetchContent_Declare(GSL
+    GIT_REPOSITORY https://github.com/microsoft/GSL.git
+    GIT_TAG v4.2.1
+)
+FetchContent_MakeAvailable(GSL)
+
+FetchContent_Declare(spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.15.1
+)
+FetchContent_MakeAvailable(spdlog)
+
+FetchContent_Declare(thread_pool
+    GIT_REPOSITORY https://github.com/bshoshany/thread-pool.git
+    GIT_TAG v5.1.0
+)
+FetchContent_MakeAvailable(thread_pool)
+
+if(BUILD_TESTS)
+    FetchContent_Declare(Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v3.7.1
+    )
+    FetchContent_MakeAvailable(Catch2)
+endif()
 
 # Set runtime output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${workspace_BINARY_DIR}/bin)
@@ -71,7 +112,6 @@ add_subdirectory(src)
 
 # Tests (optional)
 if(BUILD_TESTS)
-    add_subdirectory(${workspace_SOURCE_DIR}/external/Catch2)
     include(Catch)
     enable_testing()
     add_subdirectory(tests)

@@ -53,7 +53,7 @@ target_include_directories(mail PUBLIC ${CMAKE_SOURCE_DIR}/src)
 add_executable(ws_list
     ws_list.cpp
 )
-target_include_directories(ws_list PRIVATE ${CMAKE_SOURCE_DIR}/external/thread-pool/include)
+target_include_directories(ws_list PRIVATE ${thread_pool_SOURCE_DIR}/include)
 target_link_libraries(ws_list
     PRIVATE
         ws_common
@@ -153,7 +153,7 @@ target_link_libraries(ws_expirer
 add_executable(ws_stat
     ws_stat.cpp
 )
-target_include_directories(ws_stat PRIVATE ${CMAKE_SOURCE_DIR}/external/thread-pool/include)
+target_include_directories(ws_stat PRIVATE ${thread_pool_SOURCE_DIR}/include)
 target_link_libraries(ws_stat
     PRIVATE
         ws_common
@@ -166,7 +166,7 @@ target_link_libraries(ws_stat
 add_executable(ws_editdb
     ws_editdb.cpp
 )
-target_include_directories(ws_editdb PRIVATE ${CMAKE_SOURCE_DIR}/external/thread-pool/include)
+target_include_directories(ws_editdb PRIVATE ${thread_pool_SOURCE_DIR}/include)
 target_link_libraries(ws_editdb
     PRIVATE
         ws_common
