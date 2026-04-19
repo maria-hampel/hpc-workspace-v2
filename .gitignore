@@ -19,3 +19,4 @@ build
 docker/coverage
 external
 .vagrant
+fetchdeps
