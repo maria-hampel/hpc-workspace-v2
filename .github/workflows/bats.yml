@@ -54,10 +54,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Fetch external sources
-      run: |
-        cd external
-        ./get_externals.sh
+    #- name: Fetch external sources
+      #run: |
+        #cd external
+        #./get_externals.sh
 
     - name: Configure and build code
       run: |

@@ -53,9 +53,9 @@ jobs:
         queries: security-extended,security-and-quality
     - name: Build code
       run: |
-        cd external
-        ./get_externals.sh
-        cd ..
+        #cd external
+        #./get_externals.sh
+        #cd ..
         cmake -DCMAKE_BUILD_TYPE=Release .
         cmake --build .
 
