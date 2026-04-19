@@ -64,8 +64,8 @@ bool debugflag = false;
 bool traceflag = false;
 int debuglevel = 0;
 
-// ThreadPool type alias
-using ThreadPool = BS::thread_pool<BS::tp::none>;
+// ThreadPool for database processing
+BS::thread_pool global_pool;
 
 // Mutex for synchronizing access to entrylist
 mutex entrylist_mutex;
@@ -265,7 +265,7 @@ int main(int argc, char** argv) {
     if (debugflag) {
         spdlog::debug("Creating thread pool");
     }
-    ThreadPool global_pool;
+    BS::thread_pool global_pool;
 
     // iterate over filesystems and collect entries to be edited
     for (auto const& fs : fslist) {

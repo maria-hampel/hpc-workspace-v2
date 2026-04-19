@@ -540,7 +540,7 @@ int main(int argc, char** argv) {
         n = thread_count;
 
     // Create thread pool for workspace-level parallelism
-    BS::thread_pool<BS::tp::none> workspace_pool(n);
+    BS::thread_pool workspace_pool(n);
     if (debugflag) {
         spdlog::debug("Creating workspace_pool with {} threads (sqrt of total {})", n, thread_count);
     }

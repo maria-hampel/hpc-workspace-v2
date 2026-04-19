@@ -73,9 +73,7 @@ bool traceflag = false;
 int debuglevel = 0;
 unsigned int thread_count = 0; // 0 = default (hardware_concurrency)
 
-// ThreadPool type alias
-using ThreadPool = BS::thread_pool<BS::tp::none>;
-
+// ThreadPool for database processing
 // Mutex for synchronizing output from multiple threads
 static mutex print_entry_mtx;
 
@@ -333,7 +331,7 @@ int main(int argc, char** argv) {
     if (debugflag) {
         spdlog::debug("Creating thread pool with {} threads", thread_count);
     }
-    ThreadPool global_pool(thread_count);
+    BS::thread_pool global_pool(thread_count);
 
     if (opts.count("help")) {
         fmt::print(stderr, "Usage: {} [options] [pattern]\n", argv[0]);
