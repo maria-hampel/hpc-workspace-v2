@@ -105,16 +105,6 @@ for testing: - Catch2 - bats
 
 === Build commands
 
-once
-
-....
-cd external
-./get_externals.sh
-....
-
-(this step might be integrated in final version or package management
-will be used).
-
 _for production_
 
 ....
@@ -236,13 +226,14 @@ is reasons. (building with c++26 seems to work as of early 2026)
 * [x] test with more compilers and distributions
 * [x] ws_editdb manpage
 * [x] bash completion
+* [x] Cmake fetch for Dependencies
+* [ ] Add package manager like vcpkg or conan?
 * [ ] do real live tests (general behaviour, expirer and ws_stat) and fix bugs on systems with
     * [ ] capabilities
     * [ ] setuid
     * [ ] root_squash
 * [ ] review what gets logged for security reasons, should not leak details of other workspaces
 * [ ] bash completion testing
-* [ ] keep externals download? or use package manager like vcpkg or conan? (vcpkg does now support rapidyaml)
 * [ ] installation tool? installation through CMake?
 
 
