@@ -534,8 +534,10 @@ int main(int argc, char** argv) {
     // Calculate sqrt for nested parallelism: sqrt(thread_count) per level
     // This ensures total threads ~= thread_count when processing multiple workspaces
     unsigned int n = static_cast<unsigned int>(std::sqrt(thread_count));
-    if (n < 2) n = 2; // minimum for effective parallelism
-    if (n > thread_count) n = thread_count;
+    if (n < 2)
+        n = 2; // minimum for effective parallelism
+    if (n > thread_count)
+        n = thread_count;
 
     // Create thread pool for workspace-level parallelism
     BS::thread_pool<BS::tp::none> workspace_pool(n);
