@@ -64,11 +64,11 @@ filesystems.
 
 == Documentation
 
-* link:documentation/admin-guide.md[Admin Guide] - Installation,
+* link:documentation/admin-guide.adoc[Admin Guide] - Installation,
 configuration, and administration
-* link:documentation/user-guide.md[User Guide] - End-user documentation
+* link:documentation/user-guide.adoc[User Guide] - End-user documentation
 for all workspace commands
-* link:documenation/whats-new.md[What’s New in v2] - Overview of changes
+* link:documenation/whats-new.adoc[What’s New in v2] - Overview of changes
 compared to v1
 
 == Motivation/Goals for a V2
@@ -129,6 +129,7 @@ cmake --preset release-static
 cmake --build --preset release-static  -j 12
 ....
 
+
 _for developers_
 
 ....
@@ -157,6 +158,13 @@ cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" -DCMAKE_CXX_COMPILE
 ....
 
 or mix and combine all of above examples.
+
+=== Install commands
+
+*TODO*
+
+
+
 
 == Developer informations
 
@@ -238,6 +246,7 @@ details of other workspaces
 conan? (vcpkg does now support rapidyaml)
 * [ ] installation tool? installation through CMake?
 
+ 
 === Future Development
 
 * [ ] define and implement new DB format
