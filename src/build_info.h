@@ -65,10 +65,9 @@ void printVersion(std::string program_name) {
 
 std::string getVersion() {
 #ifdef IS_GIT_REPOSITORY
-    return fmt::format("{} build from git commit hash {} on top of release {}", WS_VERSION, GIT_COMMIT_HASH,
-                       WS_VERSION);
+    return fmt::format("build from git commit hash {} on top of release {}", GIT_COMMIT_HASH, WS_VERSION);
 #else
-    return fmt::format("{} version {}", WS_VERSION);
+    return fmt::format("version {}", WS_VERSION);
 #endif
 }
 
