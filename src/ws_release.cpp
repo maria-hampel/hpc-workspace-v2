@@ -84,7 +84,7 @@ void commandline(po::variables_map& opt, string& name, string& filesystem, strin
         ("name,n", po::value<string>(&name), "workspace name")
         ("filesystem,F", po::value<string>(&filesystem), "filesystem")
         ("username,u", po::value<string>(&user), "username")
-        ("config,c", po::value<string>(&configfile), "config file")
+        ("config", po::value<string>(&configfile), "config file")
         ("delete-data", "delete all data, workspace can NOT BE RECOVERED!");
     // clang-format on
 

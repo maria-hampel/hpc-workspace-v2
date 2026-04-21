@@ -76,7 +76,7 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
         ("help,h", "produce help message")
         ("filesystem,F", po::value<string>(&filesystem), "filesystem where the workspace is located in")
         ("mail,m", po::value<string>(&mailaddress), "your mail address to send to")
-        ("workspace,n", po::value<string>(&name), "name of selected workspace")
+        ("name,n", po::value<string>(&name), "name of selected workspace")
         ("config", po::value<string>(&configfile), "config file");
     // clang-format on
 
@@ -85,7 +85,7 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
 
     // define options without names
     po::positional_options_description p;
-    p.add("workspace", 1);
+    p.add("name", 1);
     p.add("mail", 2);
 
     po::options_description all_options;
@@ -97,7 +97,7 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
         po::notify(opt);
     } catch (...) {
         fmt::println(stderr,
-                     "Usage: {} [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] "
+                     "Usage: {} [-F filesystem | --filesystem filesystem] [-n|--name] workspace_name [-m | --mail] "
                      "mailadress",
                      argv[0]);
         fmt::println(stderr, "{}", cmd_options);
@@ -108,7 +108,7 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
     if (opt.count("help")) {
         fmt::println(
             stderr,
-            "Usage: [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress",
+            "Usage: [-F filesystem | --filesystem filesystem] [-n|--name] workspace_name [-m | --mail] mailadress",
             argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         fmt::println(stderr, "this command is used to send a calendar invitation by Email to ensure users do not "
@@ -134,7 +134,7 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
 
     // check if Workspace name is correctly formatted
     static const regex e("^[[:alnum:]][[:alnum:]_.-]*$");
-    if (opt.count("workspace") && regex_match(name, e)) {
+    if (opt.count("name") && regex_match(name, e)) {
         // check if mail option is present and evaluate
         if (!opt.count("mail")) {
             mailaddress = userconfig.getMailaddress();
@@ -152,14 +152,14 @@ void commandline(po::variables_map& opt, string& filesystem, string& mailaddress
             }
         }
     } else {
-        if (opt.count("workspace")) {
+        if (opt.count("name")) {
             spdlog::error("Illegal workspace name, use ASCII characters and numbers, '-','.' and '_' only!");
         } else {
             spdlog::error("no workspace name!");
         }
         fmt::println(
             stderr,
-            "Usage: [-F filesystem | --filesystem filesystem] [-n|--workspace] workspacename [-m | --mail] mailadress",
+            "Usage: [-F filesystem | --filesystem filesystem] [-n|--name] workspace_name [-m | --mail] mailadress",
             argv[0]);
         fmt::println(stderr, "{}", cmd_options);
         fmt::println(stderr, "this command is used to send a calendar invitation by Email to ensure users do not "

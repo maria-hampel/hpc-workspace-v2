@@ -362,8 +362,7 @@ int main(int argc, char** argv) {
     }
 
     // get flags
-
-    listgroups = opts.count("group");
+    listgroups = opts.count("groupname");
     verbose = opts.count("verbose");
     sortbyname = opts.count("name");
     sortbycreation = opts.count("creation");
