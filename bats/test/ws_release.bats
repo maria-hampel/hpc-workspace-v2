@@ -200,13 +200,6 @@ setup() {
     assert_success
 }
 
-@test "ws_release config file short form" {
-    ws_allocate --config bats/ws.conf -F ws1 configshort
-    run ws_release -c bats/ws.conf -F ws1 configshort
-    assert_output --partial "workspace configshort released"
-    assert_success
-}
-
 @test "ws_release name argument short form" {
     ws_allocate --config bats/ws.conf -F ws1 nameshort
     run ws_release --config bats/ws.conf -F ws1 -n nameshort

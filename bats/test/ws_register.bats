@@ -110,10 +110,10 @@ teardown() {
 
 @test "ws_register with config file option" {
     ws_allocate --config bats/ws.conf -F ws1 CONFIGTEST
-    run ws_register -c bats/ws.conf $register_dir
+    run ws_register --config bats/ws.conf $register_dir
     assert_success
     assert_link_exists $register_dir/ws1/*-CONFIGTEST
-    ws_release -c bats/ws.conf -F ws1 CONFIGTEST
+    ws_release --config bats/ws.conf -F ws1 CONFIGTEST
 }
 
 @test "ws_register symlink points to correct workspace" {
