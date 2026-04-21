@@ -91,8 +91,10 @@ Vagrant.configure("2") do |config|
     sudo usermod -G usera vagrant
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' | sudo tee -a /etc/sudoers
 
-    sudo dnf config-manager --enable crb
-    sudo dnf install -y git cmake ninja-build libasan libubsan boost-devel ncurses-devel libcap-devel wget which gcc-c++ lld libcurl-devel openssl-devel libpsl-devel postfix s-nail
+    sudo dnf config-manager --enable powertools
+    sudo dnf install -y git cmake libasan libubsan boost-devel ncurses-devel libcap-devel wget which gcc-c++ lld libcurl-devel openssl-devel postfix
+    sudo dnf install -y gcc-toolset-15
+
 
     sudo sed -i 's/^inet_interfaces = localhost$/inet_interfaces = loopback-only/' /etc/postfix/main.cf
     sudo systemctl enable --now postfix
@@ -125,7 +127,7 @@ Vagrant.configure("2") do |config|
     echo .......................................
     echo ...debug build.........................
     echo .......................................
-    cd hpc-workspace-v2/external; ./get_externals.sh; cd ..;  cmake --preset debug-ninja -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"; cmake --build --preset debug -j 8; sudo cp build/debug/bin/ws_restore build/debug/bin/ws_restore_notest
+    cd hpc-workspace-v2; scl enable gcc-toolset-15 cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"; cmake --build --preset debug -j; sudo cp build/debug/bin/ws_restore build/debug/bin/ws_restore_notest
 
     echo .......................................
     echo ...unit tests..........................
@@ -137,7 +139,7 @@ Vagrant.configure("2") do |config|
     echo .......................................
     echo ...release build.......................
     echo .......................................
-    cd hpc-workspace-v2/external; ./get_externals.sh; cd ..;  cmake --preset release-ninja -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"; cmake --build --preset release -j 8; sudo cp build/release/bin/ws_restore build/release/bin/ws_restore_notest
+    cd hpc-workspace-v2;  scl enable gcc-toolset-15 cmake --preset release -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"; cmake --build --preset release -j; sudo cp build/release/bin/ws_restore build/release/bin/ws_restore_notest
     echo .......................................
 
     # user tests
