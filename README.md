@@ -52,6 +52,8 @@ $ ws_release MyData
 For the administrator, the **workspace** is a way to make sure users do not store their data
 forever on your fast storage, but have to stage it to slower and cheaper storage.
 It also allows migration to new filesystems over time as well as load balancing over several filesystems.
+It also allows migration to new filesystems over time as well as load balancing over several
+filesystems.
 
 ## Documentation
 
@@ -101,45 +103,97 @@ for testing:
 
 ### Build commands
 
-once 
 
-```
-cd external
-./get_externals.sh
-```
+#### For production use
 
-(this step might be integrated in final version or package management will be used).
-
-*for production*
 
 ```
 cmake --preset release
-cmake --build --preset release  -j 12
+cmake --build --preset release  -j 
 ```
 
 or for static builds (works only with gcc currently)
 
 ```
 cmake --preset release-static
-cmake --build --preset release-static  -j 12
+cmake --build --preset release-static  -j 
+```
+
+##### Distribution remarks
+
+###### Rocky 8
+
+**TODO** this seems to be not working
+
+enable some development packages
+
+```
+dnf config-manager --enable powertools
+dnf install -y gcc-toolset-15
+scl enable gcc-toolset-15 bash
+```
+
+and install some dependencies
+
+```
+dnf install -y git cmake boost-devel ncurses-devel libcap-devel gcc-c++ libcurl-devel openssl-devel 
+```
+
+you will need some SMTP agent.
+
+
+for debug builds you need in addition
+
+```
+dnf install -y libasan libubsan
+```
+
+
+###### Rocky 9/Rocky 10
+
+enable some development packages
+
+```
+dnf config-manager --enable crb
+```
+
+and install some dependencies
+
+```
+dnf install -y git cmake boost-devel ncurses-devel libcap-devel gcc-c++ libcurl-devel openssl-devel libpsl-devel 
+```
+
+you will need some SMTP agent, minimal would be
+
+```
+dnf install -y postfix s-nail
+
+```
+
+for debug builds you need in addition
+
+```
+dnf install -y libasan libubsan
 ```
 
 
 
-*for developers*
+
+#### For developers
+
 
 ```
 cmake --preset debug
-cmake --build --preset debug  -j 12
+cmake --build --preset debug  -j 
 ```
 
 for mold and ninja users (fastest builds):
 ```
 cmake --preset debug-ninja -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
-cmake --build --preset debug -j 12
+cmake --build --preset debug -j 
 ```
 
-for lld users:
+for lld users (also fast, but slower than mold:
 ```
 cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
 cmake --build --preset debug -j 12
@@ -151,6 +205,13 @@ cmake --preset debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" -DCMAKE_CXX_COMPILE
 ```
 
 or mix and combine all of above examples.
+
+
+## Install commands
+
+**TODO**
+
+
 
 ## Developer informations
 
@@ -226,11 +287,15 @@ C++ language level requirement might evolve from c++17 to c++20 if there is reas
 - [x] migrate and check/correct/add documentation, guides and man pages
 - [x] test with more compilers and distributions
 - [x] ws_editdb manpage
-- [ ] do real live tests and fix bugs
 - [x] bash completion
+- [x] Cmake fetch for Dependencies
+- [ ] Add package manager like vcpkg or conan?
+- [ ] do real live tests (general behaviour, expirer and ws_stat) and fix bugs on systems with
+    - [ ] capabilities
+    - [ ] setuid
+    - [ ] root_squash
 - [ ] review what gets logged for security reasons, should not leak details of other workspaces
 - [ ] bash completion testing
-- [ ] keep externals download? or use package manager like vcpkg or conan? (vcpkg does now support rapidyaml)
 - [ ] installation tool? installation through CMake? 
 
 ### Future Development
@@ -316,7 +381,7 @@ note: setcap tests will fail with ASAN error messages if sysctl `fs.suid_dumpabl
 Update: turned out that capability version seems to have restrictions in docker, can only be tested fully in VM
 TODO: remove capability tests from docker
 
-### testing with VM
+### Testing with VMs
 
 Vagrant files are provided to allow testing with rocky linux 8, rocky linux 9 and alma linux 10.
 this allows to test settuid and capability version.
