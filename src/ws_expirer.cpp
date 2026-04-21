@@ -714,7 +714,7 @@ int main(int argc, char** argv) {
         ("filesystems,F", po::value<string>(&filesystem), "filesystems/workspaces to delete from, comma separated")
         ("space,s", po::value<string>(&single_space), "path of a single space that should be deleted")
         ("cleaner,c", "no dry-run mode")
-        ("configfile", po::value<string>(&configfile), "path to configfile");
+        ("config", po::value<string>(&configfile), "path to configfile");
     // clang-format on
 
     po::options_description secret_options("Secret");

@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
         ("version,V", "show version")
         ("filesystem,F", po::value<string>(&filesystem), "filesystem to list workspaces from")
         ("directory,d", po::value<string>(&directory), "target directory")
-        ("configfile,c", po::value<string>(&configfile), "path to configfile");
+        ("config", po::value<string>(&configfile), "path to configfile");
     // clang-format on
 
     po::options_description secret_options("Secret");

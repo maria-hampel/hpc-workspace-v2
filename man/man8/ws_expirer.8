@@ -5,7 +5,7 @@ ws_expirer \- expire and delete workspaces, intended to be run from a cronjob
 
 .SH SYNOPSIS
 .B ws_expirer
-[\-h] [\-V] [\-F FILESYSTEMS] [\-s SINGLE_SPACE] [\-c] [\-\-configfile CONFIGFILE]
+[\-h] [\-V] [\-F FILESYSTEMS] [\-s SINGLE_SPACE] [\-c] [\-\-config CONFIGFILE]
 
 .SH DESCRIPTION
 .B ws_expirer
@@ -65,7 +65,7 @@ process only the specified workspace space (path of a single space directory).
 \-c, \-\-cleaner
 enable cleaner mode: actually perform deletions instead of dry-run.
 .TP
-\-\-configfile CONFIGFILE
+\-\-config CONFIGFILE
 path to config file (default: \fI/etc/ws.d\fR, \fI/etc/ws.conf\fR).
 
 .SH OPERATION MODES
