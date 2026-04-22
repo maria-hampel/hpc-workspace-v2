@@ -123,14 +123,11 @@ cmake --build --preset release-static  -j
 
 ###### Rocky 8
 
-**TODO** this seems to be not working
-
 enable some development packages
 
 ```
 dnf config-manager --enable powertools
 dnf install -y gcc-toolset-15
-scl enable gcc-toolset-15 bash
 ```
 
 and install some dependencies
@@ -142,10 +139,9 @@ dnf install -y git cmake boost-devel ncurses-devel libcap-devel gcc-c++ libcurl-
 you will need some SMTP agent.
 
 
-for debug builds you need in addition
-
+to build you need a newer compiler than the system compiler:
 ```
-dnf install -y libasan libubsan
+scl enable gcc-toolset-15 bash
 ```
 
 
