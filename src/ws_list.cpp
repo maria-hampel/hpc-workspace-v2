@@ -90,21 +90,40 @@ static string getMaskedID(const DBEntry* entry) {
 template <> struct fmt::formatter<po::options_description> : ostream_formatter {};
 
 // print entry in traditional format, one below each other, multiline
-void print_entry(const DBEntry* entry, const bool verbose, const bool terse, const bool permissions) {
+void print_entry(const DBEntry* entry, const Config config ,const bool verbose, const bool terse, const bool permissions, const bool listexpired) {
     lock_guard<mutex> lock(print_entry_mtx);
-    long remaining = entry->getExpiration() - time(0L);
+
 
     fmt::println("Id: {}", getMaskedID(entry));
 
     fmt::println("    workspace directory  : {}", entry->getWSPath());
-    if (remaining < 0) {
-        fmt::println("    remaining time       : {}", "expired");
-    } else if (entry->getReleaseTime() > 0) {
-        fmt::println("    remaining time       : {}", "released");
-    } else {
+    long remaining;
+    auto fs = entry->getFilesystem();
+    auto fsconfig = config.getFsConfig(fs);
+
+    if (!listexpired){
+        remaining = entry->getRemaining();
         fmt::println("    remaining time       : {} days, {} hours", remaining / (24 * 3600),
                      (remaining % (24 * 3600)) / 3600);
     }
+    else {
+        if (entry->getReleaseTime() != 0){
+            fmt::println("    remaining time       : {}", "released");
+            remaining = (entry->getReleaseTime()+(fsconfig.releasekeeptime*86400))-time(0L);
+        } else {
+            fmt::println("    remaining time       : {}", "expired");
+            remaining = (entry->getExpired()+(fsconfig.keeptime*86400)) - time(0L);
+        }
+
+        if (remaining <= 0){
+            fmt::println("    until deletion       : 0 days, 0 hours");
+        } else {
+            fmt::println("    until deletion       : {} days, {} hours", remaining / (24 * 3600),
+                        (remaining % (24 * 3600)) / 3600);
+        }
+
+    }
+
     if (!terse) {
         if (entry->getComment() != "")
             fmt::println("    comment              : {}", entry->getComment());
@@ -460,7 +479,7 @@ int main(int argc, char** argv) {
                 // Use bshoshany's parallel loop for database processing
                 global_pool
                     .submit_loop(0, matchlist.size(),
-                                 [db = db.get(), &matchlist, &entrylist, &mtx, listexpired, sort, shortlisting,
+                                 [db = db.get(), config, &matchlist, &entrylist, &mtx, listexpired, sort, shortlisting,
                                   tableformat, permissions, terselisting, verbose](size_t i) {
                                      try {
                                          auto entry = db->readEntry(matchlist[i], listexpired);
@@ -477,7 +496,7 @@ int main(int argc, char** argv) {
                                                      fmt::println("{}", getMaskedID(entry.get()));
                                                  } else {
                                                      if (!tableformat)
-                                                         print_entry(entry.get(), verbose, terselisting, permissions);
+                                                         print_entry(entry.get(), config, verbose, terselisting, permissions, listexpired);
                                                      else
                                                          print_entry_tableformat(entry.get(), verbose, terselisting,
                                                                                  permissions);
@@ -522,7 +541,7 @@ int main(int argc, char** argv) {
                     fmt::println("{}", getMaskedID(entry.get()));
                 } else {
                     if (!tableformat)
-                        print_entry(entry.get(), verbose, terselisting, permissions);
+                        print_entry(entry.get(), config, verbose, terselisting, permissions, listexpired);
                     else
                         print_entry_tableformat(entry.get(), verbose, terselisting, permissions);
                 }
