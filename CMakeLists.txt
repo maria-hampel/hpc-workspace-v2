@@ -15,6 +15,15 @@ project(workspace
     LANGUAGES C CXX
 )
 
+include(GNUInstallDirs)
+
+if(NOT DEFINED CMAKE_INSTALL_MAN1DIR)
+    set(CMAKE_INSTALL_MAN1DIR "${CMAKE_INSTALL_MANDIR}/man1")
+endif()
+if(NOT DEFINED CMAKE_INSTALL_MAN8DIR)
+    set(CMAKE_INSTALL_MAN8DIR "${CMAKE_INSTALL_MANDIR}/man8")
+endif()
+
 # Set version macro
 add_compile_definitions(WS_VERSION="${workspace_VERSION}")
 
@@ -37,13 +46,28 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 
-# Check for libcap (capability support)
-find_library(LIBCAP NAMES cap libcap libcap.a libcap.so)
-if(LIBCAP)
-    message(STATUS "Found libcap: ${LIBCAP}. Building with capability support.")
-    add_compile_definitions(WS_CAPA=1)
+# Capability support option
+set(WS_USE_CAPABILITIES "AUTO" CACHE STRING "Use capabilities for privilege elevation. AUTO=auto-detect, ON=require libcap, OFF=force SUID only")
+set_property(CACHE WS_USE_CAPABILITIES PROPERTY STRINGS AUTO ON OFF)
+
+if(WS_USE_CAPABILITIES STREQUAL "OFF")
+    message(STATUS "Capabilities disabled by user. Building with SUID only.")
+    set(LIBCAP "")
 else()
-    message(WARNING "libcap not found. Falling back to SUID.")
+    find_library(LIBCAP NAMES cap libcap libcap.a libcap.so)
+    if(NOT LIBCAP)
+        if(WS_USE_CAPABILITIES STREQUAL "ON")
+            message(FATAL_ERROR "libcap not found and WS_USE_CAPABILITIES is ON. Install libcap-devel/libcap2-dev or set WS_USE_CAPABILITIES to AUTO or OFF.")
+        else()
+            message(WARNING "libcap not found. Falling back to SUID.")
+        endif()
+    else()
+        message(STATUS "Found libcap: ${LIBCAP}. Building with capability support.")
+    endif()
+endif()
+
+if(LIBCAP)
+    add_compile_definitions(WS_CAPA=1)
 endif()
 
 # Find Boost with program_options
@@ -59,6 +83,13 @@ include(FetchContent)
 
 # Speed up subsequent configures: skip re-fetching if deps are already present
 set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+
+# Suppress subproject installations
+set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
+set(RYML_INSTALL OFF CACHE BOOL "" FORCE)
+set(FMT_INSTALL OFF CACHE BOOL "" FORCE)
+set(MS_GSL_INSTALL OFF CACHE BOOL "" FORCE)
+set(SPDLIB_INSTALL OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(yaml-cpp
     GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
@@ -130,5 +161,16 @@ add_custom_target(
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Running clang-format on source files"
 )
+
+# Install manpages
+install(DIRECTORY man/man1/ DESTINATION ${CMAKE_INSTALL_MAN1DIR} FILES_MATCHING PATTERN "*.1")
+install(DIRECTORY man/man8/ DESTINATION ${CMAKE_INSTALL_MAN8DIR} FILES_MATCHING PATTERN "*.8")
+
+# Install shell scripts
+install(FILES
+    ${CMAKE_SOURCE_DIR}/bin/ws_extend
+    ${CMAKE_SOURCE_DIR}/bin/ws_share
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 message(STATUS "Project ${PROJECT_NAME} v${PROJECT_VERSION} configured successfully")
