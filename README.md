@@ -285,6 +285,7 @@ C++ language level requirement might evolve from c++17 to c++20 if there is reas
 - [x] ws_editdb manpage
 - [x] bash completion
 - [x] Cmake fetch for Dependencies
+- [x] installation through CMake.
 - [ ] Add package manager like vcpkg or conan?
 - [ ] do real live tests (general behaviour, expirer and ws_stat) and fix bugs on systems with
     - [ ] capabilities
@@ -292,7 +293,6 @@ C++ language level requirement might evolve from c++17 to c++20 if there is reas
     - [ ] root_squash
 - [ ] review what gets logged for security reasons, should not leak details of other workspaces
 - [ ] bash completion testing
-- [ ] installation tool? installation through CMake? 
 
 ### Future Development
 - [ ] define and implement new DB format
