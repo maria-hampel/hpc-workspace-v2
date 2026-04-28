@@ -190,17 +190,22 @@ void print_entry_tableformat(const DBEntry* entry, [[maybe_unused]] const bool v
 
     if (terse) {
         if (color_output)
-            fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(),
+            fmt::println("{:<30}{} {:<50}{} {:<9}", ID, ID.length()>30 ? fmt::format("{:31}","\n") : "",
+			 entry->getWSPath(), entry->getWSPath().length()>50 ? fmt::format("{:82}","\n") : "",
                          fmt::styled(remaining / (24 * 3600), fg(remaincolor)));
         else
-            fmt::println("{:<30} {:<50} {:<9}", ID, entry->getWSPath(), remaining / (24 * 3600));
+            fmt::println("{:<30}{} {:<50}{} {:<9}", ID, ID.length()>30 ? fmt::format("{:31}","\n") : "",
+			 entry->getWSPath(), entry->getWSPath().length()>50 ? fmt::format("{:82}","\n") : "",
+			 remaining / (24 * 3600));
     } else {
         if (color_output)
-            fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(),
+            fmt::println("{:<30}{} {:<50}{} {:<25} {:<10} {:<9}", ID, ID.length()>30 ? fmt::format("{:31}","\n") : "",
+			 entry->getWSPath(), entry->getWSPath().length()>50 ? fmt::format("{:82}","\n") : "",
                          utils::ctime(entry->getExpiration()), entry->getExtension(),
                          fmt::styled(remaining / (24 * 3600), fg(remaincolor)));
-        else
-            fmt::println("{:<30} {:<50} {:<25} {:<10} {:<9}", ID, entry->getWSPath(),
+        else 
+            fmt::println("{:<30}{} {:<50}{} {:<25} {:<10} {:<9}", ID, ID.length()>30 ? fmt::format("{:31}","\n") : "",
+			 entry->getWSPath(), entry->getWSPath().length()>50 ? fmt::format("{:82}","\n") : "",
                          utils::ctime(entry->getExpiration()), entry->getExtension(), remaining / (24 * 3600));
     }
 #pragma GCC diagnostic pop
