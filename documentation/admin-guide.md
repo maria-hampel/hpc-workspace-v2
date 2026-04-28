@@ -93,7 +93,21 @@ the capability version, and some extra settings [^1] to allow the required capab
 
 With V2, the setuid version and the capability version are both under regression testing.
 
-Run ```cmake --preset release``` and ```cmake --build --preset release -j 12``` to configure and compile the tool set.
+Run ```cmake --preset release``` and ```cmake --build --preset release -j``` to configure and compile the tool set.
+
+
+The build system can automatically set capabilities or setuid permissions during install:
+- By default, if libcap is found, it uses capabilities (set with setcap)
+- Without libcap or with ```-DWS_USE_CAPABILITIES=OFF```, it uses setuid (chmod u+s)
+- To customize the UID/GID for setuid, use ```-DWS_SETUID_UID=<uid> -DWS_SETUID_GID=<gid>```
+- To disable automatic privilege setting, use ```-DWS_INSTALL_SET_PRIVILEGES=OFF```
+
+Execute ```cmake --install build/release --prefix <TARGET>``` to install executables
+and man pages and set file properties correctly.
+
+You can check ```ws_allocate -V``` to see if capability mode was compiled in.
+
+If you can not use the automatic installation, e.g. as your setup is more complex do those steps by hand:
 
 Copy the executables from ```bin``` to e.g. ```/usr/local/bin``` and the
 manpages from ```man``` to e.g. ```/usr/local/man/man1```.
@@ -106,7 +120,7 @@ setcap "CAP_DAC_OVERRIDE=p CAP_DAC_READ_SEARCH=p" ws_restore
 ```
 *if* capability library was available at compile time.
 
-You can check ``ws_allocate -V`` to see if capability mode was compiled in.
+
 
 Finally, a cron job has to be set up that calls the `ws_expirer` tool at
 regular intervals, only then will old workspaces be cleaned up. The

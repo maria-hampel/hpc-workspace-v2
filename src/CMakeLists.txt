@@ -226,50 +226,18 @@ set(WS_INSTALL_SET_PRIVILEGES ON CACHE BOOL "Set capabilities or setuid on privi
 
 if(WS_INSTALL_SET_PRIVILEGES)
     if(LIBCAP)
-        install(CODE "
-file(TO_NATIVE_PATH \"\${CMAKE_INSTALL_PREFIX}/bin/ws_allocate\" _WS_CAPA_ALLOCATE)
-execute_process(
-    COMMAND setcap \"CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p\" \"\${_WS_CAPA_ALLOCATE}\"
-    RESULT_VARIABLE _WS_CAPA_ALLOCATE_RC)
-if(_WS_CAPA_ALLOCATE_RC)
-    message(WARNING \"setcap failed for ws_allocate\")
-else()
-    message(STATUS \"setcap applied to ws_allocate\")
-endif()")
-
-        install(CODE "
-file(TO_NATIVE_PATH \"\${CMAKE_INSTALL_PREFIX}/bin/ws_release\" _WS_CAPA_RELEASE)
-execute_process(
-    COMMAND setcap \"CAP_DAC_OVERRIDE=p CAP_CHOWN=p CAP_FOWNER=p\" \"\${_WS_CAPA_RELEASE}\"
-    RESULT_VARIABLE _WS_CAPA_RELEASE_RC)
-if(_WS_CAPA_RELEASE_RC)
-    message(WARNING \"setcap failed for ws_release\")
-else()
-    message(STATUS \"setcap applied to ws_release\")
-endif()")
-
-        install(CODE "
-file(TO_NATIVE_PATH \"\${CMAKE_INSTALL_PREFIX}/bin/ws_restore\" _WS_CAPA_RESTORE)
-execute_process(
-    COMMAND setcap \"CAP_DAC_OVERRIDE=p CAP_DAC_READ_SEARCH=p\" \"\${_WS_CAPA_RESTORE}\"
-    RESULT_VARIABLE _WS_CAPA_RESTORE_RC)
-if(_WS_CAPA_RESTORE_RC)
-    message(WARNING \"setcap failed for ws_restore\")
-else()
-    message(STATUS \"setcap applied to ws_restore\")
-endif()")
+        install(SCRIPT "${CMAKE_SOURCE_DIR}/src/setcap_install.cmake")
     else()
-        install(CODE "
-file(TO_NATIVE_PATH \"\${CMAKE_INSTALL_PREFIX}/bin/ws_allocate\" _WS_SUID_ALLOCATE)
-file(TO_NATIVE_PATH \"\${CMAKE_INSTALL_PREFIX}/bin/ws_release\" _WS_SUID_RELEASE)
-file(TO_NATIVE_PATH \"\${CMAKE_INSTALL_PREFIX}/bin/ws_restore\" _WS_SUID_RESTORE)
-execute_process(
-    COMMAND chmod u+s \"\${_WS_SUID_ALLOCATE}\" \"\${_WS_SUID_RELEASE}\" \"\${_WS_SUID_RESTORE}\"
-    RESULT_VARIABLE _WS_SUILD_RC)
-if(_WS_SUILD_RC)
-    message(WARNING \"chmod u+s failed for privileged executables\")
-else()
-    message(STATUS \"setuid bit applied to ws_allocate, ws_release, ws_restore\")
-endif()")
+        set(_WS_CHOWN_OWNER "${WS_SETUID_UID}")
+        if(_WS_CHOWN_OWNER STREQUAL "")
+            set(_WS_CHOWN_OWNER "root")
+        endif()
+
+        set(_WS_CHOWN_GROUP "${WS_SETUID_GID}")
+        if(_WS_CHOWN_GROUP STREQUAL "")
+            set(_WS_CHOWN_GROUP "root")
+        endif()
+
+        install(SCRIPT "${CMAKE_SOURCE_DIR}/src/setuid_install.cmake")
     endif()
 endif()
