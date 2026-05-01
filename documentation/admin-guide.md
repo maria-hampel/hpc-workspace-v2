@@ -246,6 +246,11 @@ location specific section.
 Lifetime in days attached to a workspace if user does not specify it.
 Defaults to 1 day.
 
+#### `reminderdefault` 
+
+if this is set, users always get a reminder email n days before expiration.
+If no email is set, the mail is send to local username.
+
 #### `maxextensions`
 
 Maximum number of times a user can extend a workspace, can be overwritten in
