@@ -293,6 +293,7 @@ C++ language level requirement might evolve from c++17 to c++20 if there is reas
     - [ ] root_squash
 - [ ] review what gets logged for security reasons, should not leak details of other workspaces
 - [ ] bash completion testing
+- [ ] manpage ws_validate_config, ws_prepare
 
 ### Future Development
 - [ ] define and implement new DB format
