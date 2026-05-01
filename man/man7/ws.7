@@ -1,0 +1,211 @@
+.TH WS 7 "May 2026" "HPC-WORKSPACE"
+
+.SH NAME
+ws \- hpc-workspace directory management system
+
+.SH DESCRIPTION
+The hpc-workspace system provides a set of tools for managing temporary
+.B workspaces
+\ \(em directories with an associated expiration date, created on behalf of a user
+to prevent high-performance parallel storage on HPC systems from being filled
+uncontrolled with stale data.
+
+Workspaces allow the operations team to offload storage management tasks to
+users, load-balance across multiple filesystems, and hide filesystem details
+from users. They also allow data migration between filesystems without
+affecting the user's workflow.
+
+A
+.I workspace
+is a directory with the following properties:
+
+.IP \(bu 2
+A user-selected
+.I ID
+(unique name)
+.IP \(bu 2
+A lifetime chosen by the user, bounded by administrator limits
+.IP \(bu 2
+Configurable permissions (private, group-readable, group-writable, or shared
+via ACLs)
+.IP \(bu 2
+Underlying storage quality transparent to the user
+
+.PP
+A workspace is intended as the location where large data resides during a
+job or job campaign. It is not the place to store source files or to
+archive data. Every workspace will eventually be deleted upon expiration,
+so users must track and manage their workspaces accordingly. By enforcing
+expiration, the system prevents any single user from occupying expensive
+storage indefinitely.
+
+.SH LIFE CYCLE
+The lifecycle of a workspace proceeds through several stages:
+
+.IP \(bu 2
+.B Creation:
+A workspace is created with
+.BR ws_allocate "(1),"
+which returns the path to the new directory. If a workspace with the same
+ID already exists, it is reused without resetting the duration.
+.IP \(bu 2
+.B Active use:
+The workspace exists for the requested duration. The user may extend the
+lifetime using
+.BR ws_extend "(1)"
+or
+.BR ws_allocate "(1), "
+consuming an extension (subject to administrator limits). The workspace may
+be shared with other group members or individual users.
+.IP \(bu 2
+.B Expiration or release:
+When the workspace expires (or is explicitly released with
+.BR ws_release "(1), "
+it becomes inaccessible under its original ID and is marked for deletion.
+Released workspaces are candidates for earlier deletion than expired ones.
+.IP \(bu 2
+.B Restoration or deletion:
+Before final deletion, released workspaces may be restored using
+.BR ws_restore "(1)"
+if space permits. The restored data is placed into an existing target
+workspace. Actual deletion typically occurs during a nightly cleanup run.
+
+.PP
+
+.SH TOOLS
+
+.TP
+.BR ws_allocate "(1)"
+Create, extend, or modify a workspace
+.TP
+.BR ws_list "(1)"
+List workspaces and available filesystems
+.TP
+.BR ws_stat "(1)"
+Show disk usage statistics for workspaces
+.TP
+.BR ws_find "(1)"
+Print the path of a workspace by ID
+.TP
+.BR ws_register "(1)"
+Create symbolic links to workspaces in a given directory
+.TP
+.BR ws_release "(1)"
+Release (mark for expiration/deletion) a workspace
+.TP
+.BR ws_restore "(1)"
+Restore a previously released workspace
+.TP
+.BR ws_extend "(1)"
+Extend the lifetime of a workspace
+.TP
+.BR ws_share "(1)"
+Share a workspace with other users or groups via ACLs
+.TP
+.BR ws_send_ical "(1)"
+Send a calendar reminder for workspace expiration
+
+.SH WORKSPACE TYPES
+
+.SS Private Workspaces
+The default workspace type. Only the creating user can see and access the
+workspace.
+
+.SS Group Workspaces
+Workspaces created with
+.B \-g
+are group-readable (with the group sticky bit set). Created with
+.B \-G
+they become group-writable as well, allowing group members to extend them
+on behalf of the owner. Group workspaces are visible to other members of
+the same group via
+.BR ws_list " \-g"
+
+.SS Shared Workspaces
+Using
+.BR ws_share "(1),"
+the owner can grant read or read-write access to individual users or
+groups via UNIX ACLs. ACL support must be available on the underlying
+filesystem. The access is applied recursively to all files and directories
+in the workspace.
+
+.SH CONFIGURATION
+Users may set default values in
+.B ~/.ws_user.conf
+\ (YAML format) to avoid repeating common options on the command line.
+Supported keys are:
+
+.TP
+.B mail
+Default email address for reminder notifications
+.TP
+.B duration
+Default workspace lifetime in days
+.TP
+.B reminder
+Default number of days before expiration to send a reminder
+.TP
+.B groupname
+Default group for group workspaces
+
+.PP
+All defaults can be overridden by command-line options.
+
+.SH TYPICAL USAGE
+
+In a batch job script, a workspace is allocated and its path
+returned to the caller:
+
+.EX
+SCRDIR=$(ws_allocate MySpace 10)
+cd "$SCRDIR"
+.EE
+
+The variable
+.B SCRDIR
+receives the path to a workspace named "MySpace" that will live for 10 days.
+Because
+.B ws_allocate
+reuses an existing workspace with the same ID without altering its duration,
+this pattern is safe to use in job series that share data across runs.
+
+Before the workspace expires, the user may send a reminder:
+
+.EX
+ws_send_ical user@example.com MySpace 3
+.EE
+
+to receive an iCalendar notification three days before expiration.
+
+When work is complete, the workspace should be released to free resources:
+
+.EX
+ws_release MySpace
+.EE
+
+.SH SEE ALSO
+.BR ws_allocate "(1),"
+.BR ws_list "(1),"
+.BR ws_stat "(1),"
+.BR ws_find "(1),"
+.BR ws_register "(1),"
+.BR ws_release "(1),"
+.BR ws_restore "(1),"
+.BR ws_extend "(1),"
+.BR ws_share "(1),"
+.BR ws_send_ical "(1)"
+
+.SH DOCUMENTATION
+
+you can find a more detailed userguide at 
+.UR https://github.com/holgerBerger/hpc-workspace-v2/blob/master/documentation/user-guide.md
+.UE
+
+.SH BUG REPORTING 
+
+you can report bugs or give feedback at
+.UR https://github.com/holgerBerger/hpc-workspace-v2/issues
+.UE
+
+.SH AUTHOR
+Written by Holger Berger
