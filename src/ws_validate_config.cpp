@@ -51,6 +51,9 @@
 
 #include "spdlog/spdlog.h"
 
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 using namespace std;
@@ -200,6 +203,8 @@ int main(int argc, char** argv) {
     auto dbgid = config.dbgid();
     fmt::println("dbgid: {}", dbgid);
 
+    struct stat sb;
+
     auto admins = config.admins();
     if (!admins.empty()) {
         fmt::println("admins: {}", admins);
@@ -265,9 +270,19 @@ int main(int argc, char** argv) {
                 if (perms != perm0755) {
                     spdlog::warn("spaces path {} has incorrect permissions", space);
                 }
+                if (stat(space.c_str(), &sb) == 0) {
+                    if (sb.st_uid != dbuid || sb.st_gid != dbgid) {
+                        spdlog::warn("spaces path {} has incorrect ownership (expected {}:{}, got {}:{})", space, dbuid, dbgid, sb.st_uid, sb.st_gid);
+                    }
+                }
                 perms = cppfs::status(deletedpath).permissions();
                 if (perms != perm0755) {
                     spdlog::warn("deleted directory {} in space {} has incorrect permissions", deleted, space);
+                }
+                if (stat(deletedpath.c_str(), &sb) == 0) {
+                    if (sb.st_uid != dbuid || sb.st_gid != dbgid) {
+                        spdlog::warn("deleted directory {} in space {} has incorrect ownership (expected {}:{}, got {}:{})", deleted, space, dbuid, dbgid, sb.st_uid, sb.st_gid);
+                    }
                 }
             }
         } else {
@@ -305,13 +320,28 @@ int main(int argc, char** argv) {
             if (perms != perm0755) {
                 spdlog::warn("database path {} has incorrect permissions", database);
             }
+            if (stat(database.c_str(), &sb) == 0) {
+                if (sb.st_uid != dbuid || sb.st_gid != dbgid) {
+                    spdlog::warn("database path {} has incorrect ownership (expected {}:{}, got {}:{})", database, dbuid, dbgid, sb.st_uid, sb.st_gid);
+                }
+            }
             perms = cppfs::status(wsdbmagicpath).permissions();
             if (perms != perm0644) {
                 spdlog::warn(".ws_db_magic in database directory {} has incorrect permissions", database);
             }
+            if (stat(wsdbmagicpath.c_str(), &sb) == 0) {
+                if (sb.st_uid != dbuid || sb.st_gid != dbgid) {
+                    spdlog::warn(".ws_db_magic in database directory {} has incorrect ownership (expected {}:{}, got {}:{})", database, dbuid, dbgid, sb.st_uid, sb.st_gid);
+                }
+            }
             perms = cppfs::status(deletedpath).permissions();
             if (perms != perm0755) {
                 spdlog::warn("deleted directory {} in database {} has incorrect permissions", deleted, database);
+            }
+            if (stat(deletedpath.c_str(), &sb) == 0) {
+                if (sb.st_uid != dbuid || sb.st_gid != dbgid) {
+                    spdlog::warn("deleted directory {} in database {} has incorrect ownership (expected {}:{}, got {}:{})", deleted, database, dbuid, dbgid, sb.st_uid, sb.st_gid);
+                }
             }
         } else {
             spdlog::error("No database location define for filesystem {}, please add \"database: <dir>\" "
