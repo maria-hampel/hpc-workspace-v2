@@ -1,0 +1,148 @@
+.TH ws_validate_config 8 "May 2026" "SYSTEM ADMINISTRATION COMMANDS"
+
+.SH NAME
+ws_validate_config \- validate workspace configuration files
+
+.SH SYNOPSIS
+.B ws_validate_config
+[\-h] [\-\-config CONFIGFILE] [CONFIGFILE]
+
+.SH DESCRIPTION
+.B ws_validate_config
+is a validation tool for workspace configuration files. It reads the
+configuration from the specified file or from the default locations
+(\fI/etc/ws.d\fR, \fI/etc/ws.conf\fR) and validates all required settings.
+
+The tool checks for:
+.RS
+.IP \(bu 4
+Presence of required configuration clauses
+.IP \(bu 4
+Correctness of workspace definitions
+.IP \(bu 4
+Existence of configured directories
+.IP \(bu 4
+Correct permissions on spaces, database and deleted directories
+.IP \(bu 4
+Correct ownership (uid/gid) matching dbuid/dbgid settings
+.RE
+
+.B Note:
+This tool only validates the configuration file structure and configuration
+values. It does not validate database contents or filesystem contents.
+
+.PP
+
+.SH OPTIONS
+.TP
+\-h, \-\-help
+display usage help text
+.TP
+\-\-config CONFIGFILE
+path to config file. Only effective for root or when running in user mode.
+.TP
+CONFIGFILE
+alternative way to specify config file path as positional argument.
+
+.SH VALIDATION CHECKS
+The tool performs the following validation checks:
+
+.SS Global Configuration
+.RS
+.IP \(bu 4
+Check clustername is defined
+.IP \(bu 4
+Check admins list is not empty
+.IP \(bu 4
+Check adminmail list is not empty
+.IP \(bu 4
+Check default workspace is defined and exists in filesystems list
+.IP \(bu 4
+Check maxduration, durationdefault, reminderdefault, maxextensions values
+.IP \(bu 4
+Validate dbuid and dbgid are set
+.RE
+
+.SS Filesystem Configuration (for each filesystem)
+.RS
+.IP \(bu 4
+Check filesystem name is defined
+.IP \(bu 4
+Check spaces directory list is not empty
+.IP \(bu 4
+Check deleted path is defined for each space
+.IP \(bu 4
+Check spaces directories exist (warning if not)
+.IP \(bu 4
+Check spaces/deleted directories exist (warning if not)
+.IP \(bu 4
+Check spaces permissions are 0755 (warning if not)
+.IP \(bu 4
+Check spaces/deleted permissions are 0755 (warning if not)
+.IP \(bu 4
+Check spaces ownership matches dbuid:dbgid (warning if not)
+.IP \(bu 4
+Check spaces/deleted ownership matches dbuid:dbgid (warning if not)
+.IP \(bu 4
+Check database path is defined
+.IP \(bu 4
+Check database directory exists (warning if not)
+.IP \(bu 4
+Check database/.ws_db_magic exists (warning if not)
+.IP \(bu 4
+Check database/deleted directory exists (warning if not)
+.IP \(bu 4
+Check database permissions are 0755 (warning if not)
+.IP \(bu 4
+Check database/.ws_db_magic permissions are 0644 (warning if not)
+.IP \(bu 4
+Check database/deleted permissions are 0755 (warning if not)
+.IP \(bu 4
+Check database ownership matches dbuid:dbgid (warning if not)
+.IP \(bu 4
+Check database/.ws_db_magic ownership matches dbuid:dbgid (warning if not)
+.IP \(bu 4
+Check database/deleted ownership matches dbuid:dbgid (warning if not)
+.RE
+
+.SS Warnings vs Errors
+All directory existence checks, permission checks, and ownership checks
+emit warnings but allow validation to continue. Only missing required
+configuration clauses (like clustername, admins, default workspace, etc.)
+are treated as errors and cause the tool to exit with code 1.
+
+.SH EXAMPLES
+.TP
+validate default config files:
+.B ws_validate_config
+.TP
+validate specific config file:
+.B ws_validate_config /etc/ws.d/custom.conf
+.TP
+validate with explicit option:
+.B ws_validate_config --config /etc/ws.d/custom.conf
+
+.SH EXIT CODES
+.TP
+0
+Configuration is valid
+.TP
+1
+Configuration is invalid or contains errors
+
+.SH FILES
+.TP
+.I /etc/ws.d
+default directory for configuration files
+.TP
+.I /etc/ws.conf
+default configuration file (used if /etc/ws.d does not exist)
+
+.SH SEE ALSO
+.BR ws (7),
+.BR ws_expirer (8),
+.BR ws_editdb (8),
+.BR ws_allocate (1)
+
+.SH AUTHOR
+Written by Holger Berger

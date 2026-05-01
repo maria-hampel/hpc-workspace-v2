@@ -1,0 +1,107 @@
+.TH ws_prepare 8 "May 2026" "SYSTEM ADMINISTRATION COMMANDS"
+
+.SH NAME
+ws_prepare \- prepare workspace directory structure for a filesystem
+
+.SH SYNOPSIS
+.B ws_prepare
+[\-h] [\-\-version] [\-\-config CONFIGFILE]
+
+.SH DESCRIPTION
+.B ws_prepare
+is a tool to prepare the workspace directory structure for all configured
+filesystems. It creates the required directories and sets their permissions
+and ownership according to the configuration file.
+
+The tool creates:
+.RS
+.IP \(bu 4
+Database directory (configured via
+.B database
+)
+.IP \(bu 4
+Database deleted directory (configured via
+.B database
+/deleted)
+.IP \(bu 4
+ws_db_magic file in database directory
+.IP \(bu 4
+Workspace spaces directories (configured via
+.B spaces
+)
+.IP \(bu 4
+Deleted workspace directories for each space
+.RE
+
+.B Important:
+This tool only creates directories if they do not exist. If a directory
+already exists, it does not check or modify its permissions or ownership.
+
+.PP
+
+.SH OPTIONS
+.TP
+\-h, \-\-help
+display usage help text
+.TP
+\-V, \-\-version
+show version information
+.TP
+\-\-config CONFIGFILE
+path to config file. Only effective for root or when running in user mode.
+.TP
+
+.SH EXAMPLES
+.TP
+prepare workspace directories for all configured filesystems:
+.B ws_prepare
+.TP
+prepare workspace directories with custom config:
+.B ws_prepare --config /etc/ws.d/custom.conf
+
+.SH USAGE NOTES
+.B ws_prepare
+is typically used for initial setup, testing, or when adding a new filesystem
+to the configuration. It should be run as root to allow changing ownership
+to the configured
+.B dbuid:dbgid
+values.
+
+Permissions on created directories are set to:
+.RS
+.IP \(bu 4
+Database and workspace directories: 0755
+.IP \(bu 4
+Database deleted and workspace deleted directories: 0755
+.RE
+
+Ownership on all created directories is set to
+.B dbuid:dbgid
+as configured in the configuration file.
+
+.SH EXIT CODES
+.TP
+0
+Success - all directories exist or were created successfully
+.TP
+1
+Error - not running as root
+.TP
+2
+Error - no valid config file found
+
+.SH FILES
+.TP
+.I /etc/ws.d
+default directory for configuration files
+.TP
+.I /etc/ws.conf
+default configuration file (used if /etc/ws.d does not exist)
+
+.SH SEE ALSO
+.BR ws_validate_config (8),
+.BR ws (7),
+.BR ws_expirer (8)
+
+.SH AUTHOR
+Written by Holger Berger
