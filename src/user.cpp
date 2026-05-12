@@ -101,7 +101,12 @@ std::vector<std::string> getGrouplist() {
     int ret = getgroups(size, gids);
 
     for (int i = 0; i < ret; i++) {
-        gsl::not_null<struct group*> group = getgrgid(gids.get()[i]);
+        struct group* group = getgrgid(gids.get()[i]);
+        // this pointer can get null, happens e.g. with PBSPro which assigns a group to a process
+        // that does not exist
+        if (group == nullptr) {
+            continue;
+        }
         grplist.push_back(std::string(group->gr_name));
     }
 
