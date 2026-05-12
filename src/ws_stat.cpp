@@ -528,7 +528,15 @@ int main(int argc, char** argv) {
 
     bool sort = sortbyname || sortbycreation || sortbyremaining;
 
-    std::locale::global(std::locale("en_US.UTF-8"));
+    // this fails in systems with minimal locals installed
+    // purpose is to get 1000 delimited bytes output in ws sizes
+    try {
+        std::locale::global(std::locale("en_US.UTF-8"));
+    } catch (const std::runtime_error&) {
+        // fallback to default locale if en_US.UTF-8 is not available
+        // but this fail a bats test for ws_stat!!!!
+        spdlog::warn("Failed to set locale to en_US.UTF-8, falling back to default locale");
+    }
 
     // Calculate sqrt for nested parallelism: sqrt(thread_count) per level
     // This ensures total threads ~= thread_count when processing multiple workspaces
