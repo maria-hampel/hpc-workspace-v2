@@ -220,7 +220,7 @@ int main(int argc, char** argv) {
                 } catch (cppfs::filesystem_error const& e) {
                     spdlog::error(e.what());
                 }
-                auto ret = chmod(WSdeleted.c_str(), 0755);
+                auto ret = chmod(WSdeleted.c_str(), 0700);
                 if (ret != 0)
                     perror(NULL);
                 ret = chown(WSdeleted.c_str(), config.dbuid(), config.dbgid());

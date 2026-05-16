@@ -71,6 +71,8 @@ cppfs::perms perm0755 = cppfs::perms::owner_read | cppfs::perms::owner_write | c
                         cppfs::perms::group_read | cppfs::perms::group_exec | cppfs::perms::others_read |
                         cppfs::perms::others_exec;
 
+cppfs::perms perm0700 = cppfs::perms::owner_read | cppfs::perms::owner_write | cppfs::perms::owner_exec;
+
 cppfs::perms perm0644 =
     cppfs::perms::owner_read | cppfs::perms::owner_write | cppfs::perms::group_read | cppfs::perms::others_read;
 
@@ -276,7 +278,7 @@ int main(int argc, char** argv) {
                     }
                 }
                 perms = cppfs::status(deletedpath).permissions();
-                if (perms != perm0755) {
+                if (perms != perm0700) {
                     spdlog::warn("deleted directory {} in space {} has incorrect permissions", deleted, space);
                 }
                 if (stat(deletedpath.c_str(), &sb) == 0) {
