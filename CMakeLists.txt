@@ -83,60 +83,77 @@ find_package(CURL REQUIRED)
 set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
 set(YAML_CPP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
 
-include(FetchContent)
+# Use vcpkg for all dependencies (skips FetchContent)
+set(BUILD_WITH_VCPKG OFF CACHE BOOL "Build all dependencies via vcpkg instead of FetchContent")
+mark_as_advanced(BUILD_WITH_VCPKG)
 
-# Speed up subsequent configures: skip re-fetching if deps are already present
-set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+if(NOT BUILD_WITH_VCPKG)
+    message(STATUS "Using FetchContent for dependencies")
 
-# Suppress subproject installations
-set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
-set(RYML_INSTALL OFF CACHE BOOL "" FORCE)
-set(FMT_INSTALL OFF CACHE BOOL "" FORCE)
-set(MS_GSL_INSTALL OFF CACHE BOOL "" FORCE)
-set(SPDLIB_INSTALL OFF CACHE BOOL "" FORCE)
+    include(FetchContent)
 
-FetchContent_Declare(yaml-cpp
-    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-    GIT_TAG yaml-cpp-0.9.0
-)
-FetchContent_MakeAvailable(yaml-cpp)
+    # Speed up subsequent configures: skip re-fetching if deps are already present
+    set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
 
-FetchContent_Declare(rapidyaml
-    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
-    GIT_TAG v0.11.1
-)
-FetchContent_MakeAvailable(rapidyaml)
+    # Suppress subproject installations
+    set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
+    set(RYML_INSTALL OFF CACHE BOOL "" FORCE)
+    set(FMT_INSTALL OFF CACHE BOOL "" FORCE)
+    set(MS_GSL_INSTALL OFF CACHE BOOL "" FORCE)
+    set(SPDLIB_INSTALL OFF CACHE BOOL "" FORCE)
 
-FetchContent_Declare(fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 12.1.0
-)
-FetchContent_MakeAvailable(fmt)
-
-FetchContent_Declare(GSL
-    GIT_REPOSITORY https://github.com/microsoft/GSL.git
-    GIT_TAG v4.2.1
-)
-FetchContent_MakeAvailable(GSL)
-
-FetchContent_Declare(spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.15.1
-)
-FetchContent_MakeAvailable(spdlog)
-
-FetchContent_Declare(thread_pool
-    GIT_REPOSITORY https://github.com/bshoshany/thread-pool.git
-    GIT_TAG v5.1.0
-)
-FetchContent_MakeAvailable(thread_pool)
-
-if(BUILD_TESTS)
-    FetchContent_Declare(Catch2
-        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-        GIT_TAG v3.7.1
+    FetchContent_Declare(yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG yaml-cpp-0.9.0
     )
-    FetchContent_MakeAvailable(Catch2)
+    FetchContent_MakeAvailable(yaml-cpp)
+
+    FetchContent_Declare(rapidyaml
+        GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
+        GIT_TAG v0.11.1
+    )
+    FetchContent_MakeAvailable(rapidyaml)
+
+    FetchContent_Declare(fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 12.1.0
+    )
+    FetchContent_MakeAvailable(fmt)
+
+    FetchContent_Declare(GSL
+        GIT_REPOSITORY https://github.com/microsoft/GSL.git
+        GIT_TAG v4.2.1
+    )
+    FetchContent_MakeAvailable(GSL)
+
+    FetchContent_Declare(spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.15.1
+    )
+    FetchContent_MakeAvailable(spdlog)
+
+    FetchContent_Declare(thread_pool
+        GIT_REPOSITORY https://github.com/bshoshany/thread-pool.git
+        GIT_TAG v5.1.0
+    )
+    FetchContent_MakeAvailable(thread_pool)
+
+    if(BUILD_TESTS)
+        FetchContent_Declare(Catch2
+            GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+            GIT_TAG v3.7.1
+        )
+        FetchContent_MakeAvailable(Catch2)
+    endif()
+
+else()
+    message(STATUS "Building with vcpkg — FetchContent is disabled")
+    # vcpkg must be initialized before this project (via CMAKE_TOOLCHAIN_FILE)
+    if(NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg")
+        message(FATAL_ERROR
+            "BUILD_WITH_VCPKG is ON but CMAKE_TOOLCHAIN_FILE does not point to vcpkg.cmake.\n"
+            "  Run: bash cmake/vcpkg-bootstrap.sh")
+    endif()
 endif()
 
 # Set runtime output directory
@@ -147,7 +164,21 @@ add_subdirectory(src)
 
 # Tests (optional)
 if(BUILD_TESTS)
-    include(Catch)
+    if(BUILD_WITH_VCPKG)
+        find_package(Catch2 CONFIG REQUIRED)
+        # Find the Catch.cmake module that comes with Catch2 vcpkg package
+        get_target_property(_CATCH2_DIR Catch2::Catch2WithMain IMPORTED_LOCATION_DEBUG)
+        if(NOT _CATCH2_DIR)
+            get_target_property(_CATCH2_DIR Catch2::Catch2WithMain INTERFACE_INCLUDE_DIRECTORIES)
+        endif()
+        if(_CATCH2_DIR)
+            list(APPEND CMAKE_MODULE_PATH "${_CATCH2_DIR}")
+        endif()
+        list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/${CMAKE_VCPKG_TRIPLET}/share/catch2")
+        include(Catch)
+    else()
+        include(Catch)
+    endif()
     enable_testing()
     add_subdirectory(tests)
 endif()

@@ -20,3 +20,5 @@ docker/coverage
 external
 .vagrant
 fetchdeps
+vcpkg/
+vcpkg_installed/

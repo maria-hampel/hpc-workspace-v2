@@ -17,6 +17,7 @@
         "uninitialized": false
       },
       "cacheVariables": {
+        "BUILD_WITH_VCPKG": false,
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "FETCHCONTENT_BASE_DIR": "${sourceDir}/fetchdeps"
       }
@@ -130,6 +131,46 @@
         "CMAKE_BUILD_TYPE": "MinSizeRel",
         "CMAKE_CXX_FLAGS": "-Wall -Wextra -Os -DNDEBUG -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE -Wno-interference-size"
       }
+    },
+    {
+      "name": "vcpkg-debug",
+      "displayName": "Debug (vcpkg)",
+      "description": "Debug build with dependencies from vcpkg. Requires: ./vcpkg/bootstrap-vcpkg.sh",
+      "hidden": false,
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/vcpkg-debug",
+      "cacheVariables": {
+        "BUILD_WITH_VCPKG": true,
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "vcpkg-debug-ninja",
+      "displayName": "Debug (vcpkg, Ninja)",
+      "description": "Debug build with dependencies from vcpkg and Ninja. Requires: ./vcpkg/bootstrap-vcpkg.sh",
+      "hidden": false,
+      "inherits": "vcpkg-debug",
+      "generator": "Ninja"
+    },
+    {
+      "name": "vcpkg-release",
+      "displayName": "Release (vcpkg)",
+      "description": "Release build with dependencies from vcpkg. Requires: ./vcpkg/bootstrap-vcpkg.sh",
+      "hidden": false,
+      "inherits": "release",
+      "binaryDir": "${sourceDir}/build/vcpkg-release",
+      "cacheVariables": {
+        "BUILD_WITH_VCPKG": true,
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "vcpkg-release-ninja",
+      "displayName": "Release (vcpkg, Ninja)",
+      "description": "Release build with dependencies from vcpkg and Ninja. Requires: ./vcpkg/bootstrap-vcpkg.sh",
+      "hidden": false,
+      "inherits": "vcpkg-release",
+      "generator": "Ninja"
     }
   ],
   "buildPresets": [
@@ -183,6 +224,26 @@
       "displayName": "Run clang-format",
       "configurePreset": "release",
       "targets": ["clang-format"]
+    },
+    {
+      "name": "vcpkg-debug",
+      "displayName": "Debug (vcpkg) build",
+      "configurePreset": "vcpkg-debug"
+    },
+    {
+      "name": "vcpkg-debug-ninja",
+      "displayName": "Debug (vcpkg, Ninja) build",
+      "configurePreset": "vcpkg-debug-ninja"
+    },
+    {
+      "name": "vcpkg-release",
+      "displayName": "Release (vcpkg) build",
+      "configurePreset": "vcpkg-release"
+    },
+    {
+      "name": "vcpkg-release-ninja",
+      "displayName": "Release (vcpkg, Ninja) build",
+      "configurePreset": "vcpkg-release-ninja"
     }
   ],
   "testPresets": [

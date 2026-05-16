@@ -1,3 +1,12 @@
+if(BUILD_WITH_VCPKG)
+    find_package(CURL CONFIG REQUIRED)
+    find_package(fmt CONFIG REQUIRED)
+    find_package(Microsoft.GSL CONFIG)
+    find_package(ryml CONFIG REQUIRED)
+    find_package(spdlog CONFIG REQUIRED)
+    find_package(yaml-cpp CONFIG REQUIRED)
+endif()
+
 find_package(Threads REQUIRED)
 
 # Check for C++17 thread support
@@ -24,15 +33,37 @@ add_library(ws_common
 )
 target_compile_features(ws_common PUBLIC cxx_std_17)
 
+# vcpkg ryml installs ryml.hpp under ryml/; add that subdirectory to include path
+if(BUILD_WITH_VCPKG)
+    get_target_property(_RYML_INCLUDES ryml::ryml INTERFACE_INCLUDE_DIRECTORIES)
+    if(_RYML_INCLUDES)
+        list(GET _RYML_INCLUDES 0 _RYML_BASE)
+        if(EXISTS "${_RYML_BASE}/ryml/ryml.hpp")
+            include_directories(BEFORE ${_RYML_BASE}/ryml)
+        endif()
+    endif()
+endif()
+
+if(BUILD_WITH_VCPKG)
+    # ms-gsl is header-only, no cmake config — just need the include dir
+    find_path(MS_GSL_INCLUDE_DIR NAMES gsl/gsl)
+    if(MS_GSL_INCLUDE_DIR)
+        target_include_directories(ws_common PRIVATE ${MS_GSL_INCLUDE_DIR})
+    endif()
+    set(GSL_TARGET "" CACHE STRING "" FORCE)
+else()
+    set(GSL_TARGET Microsoft.GSL::GSL CACHE STRING "" FORCE)
+endif()
+
 target_link_libraries(ws_common
     PUBLIC
         fmt::fmt
         ryml::ryml
         yaml-cpp::yaml-cpp
         ${LIBCAP}
-        spdlog
+        spdlog::spdlog
     PRIVATE
-        Microsoft.GSL::GSL
+        ${GSL_TARGET}
 )
 
 # Mail library with curl dependency
@@ -44,7 +75,7 @@ target_compile_features(mail PUBLIC cxx_std_17)
 target_link_libraries(mail
     PUBLIC
         CURL::libcurl
-        spdlog
+        spdlog::spdlog
     PRIVATE
         fmt::fmt
 )
@@ -53,13 +84,20 @@ target_include_directories(mail PUBLIC ${CMAKE_SOURCE_DIR}/src)
 add_executable(ws_list
     ws_list.cpp
 )
-target_include_directories(ws_list PRIVATE ${thread_pool_SOURCE_DIR}/include)
+if(NOT BUILD_WITH_VCPKG)
+    target_include_directories(ws_list PRIVATE ${thread_pool_SOURCE_DIR}/include)
+else()
+    find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIR NAMES BS_thread_pool.hpp)
+    if(BSHOSHANY_THREAD_POOL_INCLUDE_DIR)
+        target_include_directories(ws_list PRIVATE ${BSHOSHANY_THREAD_POOL_INCLUDE_DIR})
+    endif()
+endif()
 target_link_libraries(ws_list
     PRIVATE
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
         Threads::Threads
 )
 
@@ -71,7 +109,7 @@ target_link_libraries(ws_find
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
 )
 
 add_executable(ws_allocate
@@ -82,7 +120,7 @@ target_link_libraries(ws_allocate
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
 )
 
 add_executable(ws_release
@@ -93,7 +131,7 @@ target_link_libraries(ws_release
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
 )
 
 add_executable(ws_restore
@@ -104,7 +142,7 @@ target_link_libraries(ws_restore
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
 )
 
 # create copy with different name for tests
@@ -124,7 +162,7 @@ target_link_libraries(ws_prepare
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
 )
 
 add_executable(ws_register
@@ -135,7 +173,7 @@ target_link_libraries(ws_register
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
 )
 
 add_executable(ws_expirer
@@ -147,32 +185,46 @@ target_link_libraries(ws_expirer
         mail
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
 )
 
 add_executable(ws_stat
     ws_stat.cpp
 )
-target_include_directories(ws_stat PRIVATE ${thread_pool_SOURCE_DIR}/include)
+if(NOT BUILD_WITH_VCPKG)
+    target_include_directories(ws_stat PRIVATE ${thread_pool_SOURCE_DIR}/include)
+else()
+    find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIR NAMES BS_thread_pool.hpp)
+    if(BSHOSHANY_THREAD_POOL_INCLUDE_DIR)
+        target_include_directories(ws_stat PRIVATE ${BSHOSHANY_THREAD_POOL_INCLUDE_DIR})
+    endif()
+endif()
 target_link_libraries(ws_stat
     PRIVATE
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
         Threads::Threads
 )
 
 add_executable(ws_editdb
     ws_editdb.cpp
 )
-target_include_directories(ws_editdb PRIVATE ${thread_pool_SOURCE_DIR}/include)
+if(NOT BUILD_WITH_VCPKG)
+    target_include_directories(ws_editdb PRIVATE ${thread_pool_SOURCE_DIR}/include)
+else()
+    find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIR NAMES BS_thread_pool.hpp)
+    if(BSHOSHANY_THREAD_POOL_INCLUDE_DIR)
+        target_include_directories(ws_editdb PRIVATE ${BSHOSHANY_THREAD_POOL_INCLUDE_DIR})
+    endif()
+endif()
 target_link_libraries(ws_editdb
     PRIVATE
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
         Threads::Threads
 )
 
@@ -185,7 +237,7 @@ target_link_libraries(ws_send_ical
         mail
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
 )
 
 add_executable(ws_validate_config
@@ -196,7 +248,7 @@ target_link_libraries(ws_validate_config
         ws_common
         ${Boost_LIBRARIES}
         fmt::fmt
-        spdlog
+        spdlog::spdlog
 )
 
 # Installation rules for user commands (BINDIR)
