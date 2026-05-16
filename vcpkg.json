@@ -1,0 +1,25 @@
+{
+  "name": "workspace",
+  "version": "2.0.0",
+  "description": "Future successor of hpc-workspace - managing temporary workspace directories on HPC systems",
+  "dependencies": [
+    "boost-program-options",
+    "bshoshany-thread-pool",
+    "catch2",
+    "curl",
+    "fmt",
+    "libcap",
+    "ms-gsl",
+    "ryml",
+    "spdlog",
+    "yaml-cpp"
+  ],
+  "features": {
+    "tests": {
+      "description": "Build with tests",
+      "dependencies": [
+        "catch2"
+      ]
+    }
+  }
+}
