@@ -252,10 +252,12 @@ void Config::readYAML(string yamlstr) {
                         node >> fs.database;
                     if (node = ws["keeptime"]; node.has_val())
                         node >> fs.keeptime;
-                    // FIXME: no default?
+                    else
+                        fs.keeptime = 10;
                     if (node = ws["releasekeeptime"]; node.has_val())
                         node >> fs.releasekeeptime;
-                    // FIXME: no default?
+                    else
+                        fs.releasekeeptime = fs.keeptime;
                     if (node = ws["maxduration"]; node.has_val())
                         node >> fs.maxduration;
                     if (node = ws["duration"]; node.has_val())
