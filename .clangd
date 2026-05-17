@@ -1,0 +1,5 @@
+Compile Flags:
+  CompilationDatabase: build/debug
+
+DiagnosticSuppressions:
+  - .clangd
