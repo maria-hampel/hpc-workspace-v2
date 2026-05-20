@@ -158,13 +158,13 @@ setup() {
 
 @test "ws_expirer shows expiration summary" {
     run ws_expirer --config bats/ws.conf
-    assert_output --regexp "Expiration summary:.*kept.*expired.*deleted.*reminders sent.*bad db entries"
+    assert_output --regexp "Expiration Summary.*\n.*\n.+Filesystem.*Active.*Inactive.*\n.*\n.+ws1"
     assert_success
 }
 
 @test "ws_expirer shows stray removal summary" {
     run ws_expirer --config bats/ws.conf
-    assert_output --regexp "Stray removal summary:.*valid.*invalid"
+    assert_output --regexp "Stray Summary.*\n.*\n.+Filesystem.*Active.*Inactive.*\n.*\n.+ws1"
     assert_success
 }
 
