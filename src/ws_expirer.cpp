@@ -124,14 +124,14 @@ struct morbid_db_files_t {
     long count;
     std::vector<std::pair<std::string, std::string>> idreason;
 
-    morbid_db_files_t& operator+=(morbid_db_files_t other){
+    morbid_db_files_t& operator+=(morbid_db_files_t other) {
         count += other.count;
         idreason.insert(idreason.end(), other.idreason.begin(), other.idreason.end());
         return *this; // Return a reference to the modified object
     }
 
     void add(const std::pair<std::string, std::string> pair) {
-        count+=1;
+        count += 1;
         idreason.emplace_back(pair);
     }
 };
@@ -270,8 +270,8 @@ std::string generateErrorMail(const std::string& mail_from, std::vector<std::str
     return mail.str();
 }
 
-std::string generateSummaryMail(const std::string& mail_from, std::vector<std::string> mail_to, const std::string subject,
-                                const std::string& body) {
+std::string generateSummaryMail(const std::string& mail_from, std::vector<std::string> mail_to,
+                                const std::string subject, const std::string& body) {
 
     std::stringstream mail;
     std::string messageID = mail::generateMessageID("ws_expirer");
@@ -374,7 +374,6 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
         spdlog::warn(" These directories will be ignored and require manual intervention.");
     }
 
-
     // check for errors, if this throws DB is invalid and we should skip this DB
     std::unique_ptr<Database> db;
     try {
@@ -405,7 +404,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
     // get all workspace pathes from DB
     // this is a list of all workspace paths in the DB, used to compare with the filesystem
-    auto wsIDs = db->matchPattern("*", "*", {}, false, false); // (1)
+    auto wsIDs = db->matchPattern("*", "*", {}, false, false);       // (1)
     std::vector<std::pair<std::string, std::string>> workspacesInDB; // pair of (id, wspath)
 
     workspacesInDB.reserve(wsIDs.size());
@@ -413,7 +412,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
         try {
             workspacesInDB.push_back(std::make_pair(wsid, db->readEntry(wsid, false)->getWSPath()));
         } catch (const std::exception& e) {
-            workspacesInDB.push_back(std::make_pair(wsid, ""));  // store empty path for failed entries, but keep the id!
+            workspacesInDB.push_back(std::make_pair(wsid, "")); // store empty path for failed entries, but keep the id!
             spdlog::warn("    failed to read DB entry {}: {}", wsid, e.what());
             // TODO: is that something to inform admin about? this workspace is immortal!
         }
@@ -422,9 +421,10 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     // compare filesystem with DB
     for (auto const& founddir : dirs) { // (2)
         if (std::none_of(workspacesInDB.begin(), workspacesInDB.end(), [&](const auto& item) {
-                // fmt::println("{} == {} || {} == {}", item.second, (cppfs::path(founddir.space) / cppfs::path(founddir.dir)).string(), item.first, cppfs::path(founddir.dir).string());
+                // fmt::println("{} == {} || {} == {}", item.second, (cppfs::path(founddir.space) /
+                // cppfs::path(founddir.dir)).string(), item.first, cppfs::path(founddir.dir).string());
                 return item.second == (cppfs::path(founddir.space) / cppfs::path(founddir.dir)).string() ||
-                        item.first == cppfs::path(founddir.dir).string();
+                       item.first == cppfs::path(founddir.dir).string();
             })) {
             spdlog::warn("    stray workspace {}", founddir.dir);
 
@@ -514,7 +514,8 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
 // expire workspace DB entries and moves the workspace to deleted directory
 // deletes expired workspace in second phase
-static expire_result_t expire_workspaces(const Config& config, const string fs, const bool dryrun, morbid_db_files_t& morbid_db_files) {
+static expire_result_t expire_workspaces(const Config& config, const string fs, const bool dryrun,
+                                         morbid_db_files_t& morbid_db_files) {
 
     expire_result_t result = {0, 0, 0, 0, 0, 0, 0};
 
@@ -903,49 +904,71 @@ int main(int argc, char** argv) {
     // this searches over filesystem and checks DB
     std::vector<std::pair<std::string, clean_stray_result_t>> stray_stats;
     clean_stray_result_t total_stray = {0, 0, 0, 0};
-
+    clean_stray_result_t fs_stray;
     for (auto const& fs : fslist) {
-        total_stray = clean_stray_directories(config, fs, single_space, dryrun);
-        stray_stats.emplace_back(fs, total_stray);
+        fs_stray = clean_stray_directories(config, fs, single_space, dryrun);
+        stray_stats.emplace_back(fs, fs_stray);
+        total_stray += fs_stray;
     }
+    spdlog::info(" Stray removal summary: {} valid, {} invalid, {} valid deleted, {} invalid", total_stray.valid_ws,
+                 total_stray.invalid_ws, total_stray.valid_deleted, total_stray.invalid_deleted);
+    spdlog::info(" End of stray removal");
+    spdlog::info("");
 
     // go through database and
     // - expire workspaces beyond expiration age and
     // - delete expired ones which are beyond keep date
-    std::vector<std::pair<std::string, expire_result_t>> expire_stats; 
-    expire_result_t total_expire;
+    std::vector<std::pair<std::string, expire_result_t>> expire_stats;
+    expire_result_t total_expire = {0, 0, 0, 0, 0, 0, 0};
+    expire_result_t fs_expire;
     for (auto const& fs : fslist) {
-        total_expire = expire_workspaces(config, fs, dryrun, morbid_db_files);
-        expire_stats.emplace_back(fs ,total_expire);
+        fs_expire = expire_workspaces(config, fs, dryrun, morbid_db_files);
+        expire_stats.emplace_back(fs, fs_expire);
+        total_expire += fs_expire;
     }
-    
+    spdlog::info(" Expiration summary: {} active seen, {} active keep, {} active expired, {} reminders sent, {} "
+                 "inactive seen, {} inactive keep, {} inactive deleted",
+                 total_expire.active_seen, total_expire.active_keep, total_expire.active_expired,
+                 total_expire.active_mails, total_expire.inactive_seen, total_expire.inactive_keep,
+                 total_expire.inactive_deleted);
+    spdlog::info(" End of expiration");
+
     // Build summary string for logging and mail body
     std::string summary;
-    auto append = [&](const std::string& line) { spdlog::info("{}", line); summary += line + "\n"; };
-    
+    auto append = [&](const std::string& line) {
+        spdlog::info("{}", line);
+        summary += line + "\n";
+    };
 
     append(fmt::format("Dryrun: {}", dryrun));
     append("");
     append("Stray Summary");
     append("");
-    append(fmt::format("  {:<15} {:>22} {:>16} {:>24}",
-        "Filesystem", "Active [Valid Invalid]", "", "Inactive [Valid Invalid]"));
+    append(fmt::format("  {:<15} {:>22} {:>16} {:>24}", "Filesystem", "Active [Valid Invalid]", "",
+                       "Inactive [Valid Invalid]"));
     append(fmt::format("  {:->84}", ""));
     for (const auto& [fs, result] : stray_stats) {
-        append(fmt::format("  {:<15} {:>7} {:>5} {:>7} {:>27} {:>5} {:>7}",
-            fs, "", result.valid_ws, result.invalid_ws, "", result.valid_deleted, result.invalid_deleted));
+        append(fmt::format("  {:<15} {:>7} {:>5} {:>7} {:>27} {:>5} {:>7}", fs, "", result.valid_ws, result.invalid_ws,
+                           "", result.valid_deleted, result.invalid_deleted));
     }
+    append(fmt::format("  {:->84}", ""));
+    append(fmt::format("  {:<15} {:>7} {:>5} {:>7} {:>27} {:>5} {:>7}", "total", "", total_stray.valid_ws, total_stray.invalid_ws,
+                           "", total_stray.valid_deleted, total_stray.invalid_deleted));
     append("");
     append("Expiration Summary");
     append("");
-    append(fmt::format("  {:<15} {:>30} {:>4} {:>30}",
-        "Filesystem", "Active [Seen Keep Expired Mails]", "", "Inactive [Seen Keep Removed]"));
+    append(fmt::format("  {:<15} {:>30} {:>4} {:>30}", "Filesystem", "Active [Seen Keep Expired Mails]", "",
+                       "Inactive [Seen Keep Removed]"));
     append(fmt::format("  {:->84}", ""));
     for (const auto& [fs, result] : expire_stats) {
-        append(fmt::format("  {:<15} {:>7} {:>4} {:>4} {:>7} {:>5} {:>17} {:>4} {:>4} {:>7}",
-            fs, "", result.active_seen, result.active_keep, result.active_expired,
-            result.active_mails, "", result.inactive_seen, result.inactive_keep, result.inactive_deleted));
+        append(fmt::format("  {:<15} {:>7} {:>4} {:>4} {:>7} {:>5} {:>17} {:>4} {:>4} {:>7}", fs, "",
+                           result.active_seen, result.active_keep, result.active_expired, result.active_mails, "",
+                           result.inactive_seen, result.inactive_keep, result.inactive_deleted));
     }
+    append(fmt::format("  {:->84}", ""));
+    append(fmt::format("  {:<15} {:>7} {:>4} {:>4} {:>7} {:>5} {:>17} {:>4} {:>4} {:>7}", "total", "",
+                           total_expire.active_seen, total_expire.active_keep, total_expire.active_expired, total_expire.active_mails, "",
+                           total_expire.inactive_seen, total_expire.inactive_keep, total_expire.inactive_deleted));
     if (morbid_db_files.count != 0) {
         append("");
         append(" Morbid DB Files");
@@ -954,10 +977,11 @@ int main(int argc, char** argv) {
         }
         append("");
     }
-    std::string runinfo = fmt::format("==== WS_EXPIRER {}RUN END {} =====", dryrun ? "DRY" : "", utils::ctime(std::time(nullptr)));
+    std::string runinfo =
+        fmt::format("==== WS_EXPIRER {}RUN END {} =====", dryrun ? "DRY" : "", utils::ctime(std::time(nullptr)));
     append(runinfo);
 
-    if(summarymail){
+    if (summarymail) {
         std::string smtpUrl = "smtp://" + config.smtphost();
         std::string mail_from = config.mailfrom();
         std::vector<std::string> adminmails = config.adminmail();
