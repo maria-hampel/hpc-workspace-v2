@@ -57,9 +57,9 @@ if __name__ == '__main__':
         
     # find all stray workspaces 
     old_strays = re.compile(r"stray workspace .*\/(\S+)")
-    old_deleted_strays = re.compile(r"stray removed workspace .*\/(\S+)")
+    old_deleted_strays = re.compile(r"stray removed workspace .*\/(\S+)-")
     new_strays = re.compile(r"stray workspace (\S+)")
-    new_deleted_strays = re.compile(r"stray removed workspace (\S+)")
+    new_deleted_strays = re.compile(r"stray removed workspace (\S+)-")
 
     
     old_stray_workspaces = old_strays.findall(old_log)
@@ -73,11 +73,11 @@ if __name__ == '__main__':
         print("Step 1: ERROR Stray workspaces are not the same :c")
         print(f"Difference: {difference(old_stray_workspaces, new_stray_workspaces)}")
         
-    if set(old_deleted_stray_workspaces) == set(new_deleted_stray_workspaces):
+    if set(old_deleted_stray_workspaces) == set(new_deleted_stray_workspaces+new_stray_workspaces):
         print("Step 1: SUCCESS Set of deleted stray workspaces are the same!")
     else:
         print("Step 1: ERROR Deleted stray workspaces are not the same :c")
-        print(f"Difference: {difference(old_deleted_stray_workspaces, new_deleted_stray_workspaces)}")
+        print(f"Difference: {difference(old_deleted_stray_workspaces, new_deleted_stray_workspaces+new_stray_workspaces)}")
         
     
     # Step 2, checking for workspaces to be expired 
@@ -117,19 +117,19 @@ if __name__ == '__main__':
         print("Step 2: ERROR Set of (would-be) expired workspaces are not the same :c")
         print(f"Difference: {difference(old_wouldexpire_workspaces, new_wouldexpire_workspaces)}")
        
-       
+    # UFFFFFFFF
     # Step 3: Deletion of expired Workspaces 
-    old_keepdeleted = re.compile(r"keeping further.*\/(\S+)")
-    new_keepdeleted = re.compile(r"keeping.* left\),.* (\S+)")
+    old_keepdeleted = re.compile(r"keeping further.*\/(\S+)-")
+    new_keepdeleted = re.compile(r"keeping.* left\),.* (\S+)-")
     
     old_keepdeleted_workspaces = old_keepdeleted.findall(old_log)
     new_keepdeleted_workspaces = new_keepdeleted.findall(new_log)
 
-    if set(old_keepdeleted_workspaces).difference(set(old_wouldexpire_workspaces)) == set(new_keepdeleted_workspaces):
+    if set(old_keepdeleted_workspaces) == set(new_keepdeleted_workspaces).union(set(new_wouldexpire_workspaces)):
         print("Step 3: SUCCESS Set of kept workspaces are the same!")
     else: 
         print("Step 3: ERROR Kept Workspaces are not the same :c")
-        print(f"Difference: {difference(old_keepdeleted_workspaces, new_keepdeleted_workspaces)}")
+        print(f"Difference: {difference(old_keepdeleted_workspaces, new_keepdeleted_workspaces+new_wouldexpire_workspaces)}")
 
     # workspaces that should be deleted
     old_delete_expired = re.compile(r"delet.+\/(\S+).+expired")
