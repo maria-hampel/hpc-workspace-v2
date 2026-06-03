@@ -718,6 +718,11 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                              (releasetime + releasekeeptime * 24 * 3600)); // SPEC: releaskeeptime now also in days
         } else {
             // Expired, use keeptime
+            // Compatability with v1 --> expired is 0 so expiration get chosen, but for v1 db entries we need the
+            // releasetime from the filename
+            if (dbentry->getExpired() == 0) {
+                expiration = std::max(expiration, releasetime);
+            }
             should_delete = (time((long*)0L) > (expiration + keeptime * 24 * 3600));
         }
 
@@ -951,8 +956,8 @@ int main(int argc, char** argv) {
                            "", result.valid_deleted, result.invalid_deleted));
     }
     append(fmt::format("  {:->84}", ""));
-    append(fmt::format("  {:<15} {:>7} {:>5} {:>7} {:>27} {:>5} {:>7}", "total", "", total_stray.valid_ws, total_stray.invalid_ws,
-                           "", total_stray.valid_deleted, total_stray.invalid_deleted));
+    append(fmt::format("  {:<15} {:>7} {:>5} {:>7} {:>27} {:>5} {:>7}", "total", "", total_stray.valid_ws,
+                       total_stray.invalid_ws, "", total_stray.valid_deleted, total_stray.invalid_deleted));
     append("");
     append("Expiration Summary");
     append("");
@@ -966,8 +971,9 @@ int main(int argc, char** argv) {
     }
     append(fmt::format("  {:->84}", ""));
     append(fmt::format("  {:<15} {:>7} {:>4} {:>4} {:>7} {:>5} {:>17} {:>4} {:>4} {:>7}", "total", "",
-                           total_expire.active_seen, total_expire.active_keep, total_expire.active_expired, total_expire.active_mails, "",
-                           total_expire.inactive_seen, total_expire.inactive_keep, total_expire.inactive_deleted));
+                       total_expire.active_seen, total_expire.active_keep, total_expire.active_expired,
+                       total_expire.active_mails, "", total_expire.inactive_seen, total_expire.inactive_keep,
+                       total_expire.inactive_deleted));
     if (morbid_db_files.count != 0) {
         append("");
         append(" Morbid DB Files");
