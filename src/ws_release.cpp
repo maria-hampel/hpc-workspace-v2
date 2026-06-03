@@ -295,6 +295,7 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
         //
         // second handle workspace directory
         //
+
         // use timestamp_time which can be modified by db->release to avoid collisions
         // new name is still identical to DB, but does not collide
         string timestamp = fmt::format("{}", timestamp_time);
@@ -342,7 +343,7 @@ bool release(const Config& config, const po::variables_map& opt, string filesyst
         }
 
         //
-        // third remove data is requested
+        // third remove data if requested
         //
 
         if (deletedata) {
