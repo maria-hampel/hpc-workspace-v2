@@ -719,6 +719,10 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                              (releasetime + releasekeeptime * 24 * 3600)); // SPEC: releaskeeptime now also in days
         } else {
             // Expired, use keeptime
+            // Compatability with v1 --> expired is 0 so expiration get chosen, but for v1 db entries we need the releasetime from the filename 
+            if (dbentry->getExpired()==0) {
+                expiration = std::max(expiration, releasetime);
+            }
             should_delete = (time((long*)0L) > (expiration + keeptime * 24 * 3600));
         }
 
