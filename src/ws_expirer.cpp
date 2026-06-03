@@ -746,15 +746,15 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             }
         } else {
             result.inactive_keep++;
-            long deadline;
+            long wsdeadline;
             if (released > 1000000000L) {
-                deadline = releasetime + (releasekeeptime * 24 * 3600);
-                spdlog::info("   keeping (until {}, {} left), was released: {}", utils::ctime(deadline),
-                             formatTimedelta(deadline - time((long*)0L)), id);
+                wsdeadline = releasetime + (releasekeeptime * 24 * 3600);
+                spdlog::info("   keeping (until {}, {} left), was released: {}", utils::ctime(wsdeadline),
+                             formatTimedelta(wsdeadline - time((long*)0L)), id);
             } else {
-                deadline = expiration + keeptime * 24 * 3600;
-                spdlog::info("   keeping (until {}, {} left), was expired:  {}", utils::ctime(deadline),
-                             formatTimedelta(deadline - time((long*)0L)), id);
+                wsdeadline = expiration + keeptime * 24 * 3600;
+                spdlog::info("   keeping (until {}, {} left), was expired:  {}", utils::ctime(wsdeadline),
+                             formatTimedelta(wsdeadline - time((long*)0L)), id);
             }
         }
     }
@@ -868,7 +868,7 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
-    // spdlog::info("deldirtimeout = {}", config.deldirtimeout());
+    spdlog::info("deldirtimeout = {} seconds", config.deldirtimeout());
 
     // now we can add file logging
     setupLogging(config.expirerlogpath());
@@ -910,7 +910,7 @@ int main(int argc, char** argv) {
         stray_stats.emplace_back(fs, fs_stray);
         total_stray += fs_stray;
     }
-    spdlog::info(" Stray removal summary: {} valid, {} invalid, {} valid deleted, {} invalid", total_stray.valid_ws,
+    spdlog::info(" Stray removal summary: {} valid, {} invalid, {} valid deleted, {} invalid deleted", total_stray.valid_ws,
                  total_stray.invalid_ws, total_stray.valid_deleted, total_stray.invalid_deleted);
     spdlog::info(" End of stray removal");
     spdlog::info("");
