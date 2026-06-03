@@ -78,19 +78,25 @@ bool forcedeletereleased = false;
 
 // type for statistics
 struct expire_result_t {
-    long expired_ws;
-    long kept_ws;
-    long deleted_ws;
-    long sent_mails;
-    long bad_db;
+    long active_seen;
+    long active_keep;
+    long active_expired;
+    long active_mails;
+
+    long inactive_seen;
+    long inactive_keep;
+    long inactive_deleted;
 
     // add elements for global sum
     expire_result_t& operator+=(const expire_result_t& other) {
-        expired_ws += other.expired_ws;
-        kept_ws += other.kept_ws;
-        deleted_ws += other.deleted_ws;
-        sent_mails += other.sent_mails;
-        bad_db += other.bad_db;
+        active_seen += other.active_seen;
+        active_keep += other.active_keep;
+        active_expired += other.active_expired;
+        active_mails += other.active_mails;
+
+        inactive_seen += other.inactive_seen;
+        inactive_keep += other.inactive_keep;
+        inactive_deleted += other.inactive_deleted;
         return *this; // Return a reference to the modified object
     }
 };
@@ -109,6 +115,23 @@ struct clean_stray_result_t {
         valid_deleted += other.valid_deleted;
         invalid_deleted += other.invalid_deleted;
         return *this; // Return a reference to the modified object
+    }
+};
+
+// type for morbid db files
+struct morbid_db_files_t {
+    long count;
+    std::vector<std::pair<std::string, std::string>> idreason;
+
+    morbid_db_files_t& operator+=(morbid_db_files_t other) {
+        count += other.count;
+        idreason.insert(idreason.end(), other.idreason.begin(), other.idreason.end());
+        return *this; // Return a reference to the modified object
+    }
+
+    void add(const std::pair<std::string, std::string> pair) {
+        count += 1;
+        idreason.emplace_back(pair);
     }
 };
 
@@ -246,6 +269,39 @@ std::string generateErrorMail(const std::string& mail_from, std::vector<std::str
     return mail.str();
 }
 
+std::string generateSummaryMail(const std::string& mail_from, std::vector<std::string> mail_to,
+                                const std::string subject, const std::string& body) {
+
+    std::stringstream mail;
+    std::string messageID = mail::generateMessageID("ws_expirer");
+    std::string createtimestr = mail::generateMailDateFormat(time((long*)0L));
+
+    std::string to_header = mail::generateToHeader(mail_to);
+
+    mail << "From: " << mail_from << CRLF;
+    mail << "To: " << to_header << CRLF;
+    mail << "Subject: " << subject << CRLF;
+    mail << "Message-ID: <" << messageID << ">" << CRLF;
+    mail << "Date: " << createtimestr << CRLF;
+    mail << "MIME-Version: 1.0" << CRLF;
+    mail << "Content-Type: multipart/mixed; boundary=" << boundary << CRLF;
+    mail << "" << CRLF;
+
+    mail << "--" << boundary << CRLF;
+    mail << "Content-Type: text/plain; charset=UTF-8" << CRLF;
+    mail << "Content-Transfer-Encoding: 7bit" << CRLF;
+    mail << "" << CRLF;
+    mail << subject << CRLF;
+    mail << "" << CRLF;
+    mail << body << CRLF;
+
+    mail << "" << CRLF;
+    mail << "--" << boundary << "--" << CRLF;
+    mail << "" << CRLF;
+
+    return mail.str();
+}
+
 // clean_stray_directories
 //  finds directories that are not in DB and removes them,
 //  returns numbers of valid and invalid directories
@@ -317,7 +373,6 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
         spdlog::warn(" These directories will be ignored and require manual intervention.");
     }
 
-
     // check for errors, if this throws DB is invalid and we should skip this DB
     std::unique_ptr<Database> db;
     try {
@@ -348,7 +403,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
     // get all workspace pathes from DB
     // this is a list of all workspace paths in the DB, used to compare with the filesystem
-    auto wsIDs = db->matchPattern("*", "*", {}, false, false); // (1)
+    auto wsIDs = db->matchPattern("*", "*", {}, false, false);       // (1)
     std::vector<std::pair<std::string, std::string>> workspacesInDB; // pair of (id, wspath)
 
     workspacesInDB.reserve(wsIDs.size());
@@ -356,7 +411,7 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
         try {
             workspacesInDB.push_back(std::make_pair(wsid, db->readEntry(wsid, false)->getWSPath()));
         } catch (const std::exception& e) {
-            workspacesInDB.push_back(std::make_pair(wsid, ""));  // store empty path for failed entries, but keep the id!
+            workspacesInDB.push_back(std::make_pair(wsid, "")); // store empty path for failed entries, but keep the id!
             spdlog::warn("    failed to read DB entry {}: {}", wsid, e.what());
             // TODO: is that something to inform admin about? this workspace is immortal!
         }
@@ -365,9 +420,10 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
     // compare filesystem with DB
     for (auto const& founddir : dirs) { // (2)
         if (std::none_of(workspacesInDB.begin(), workspacesInDB.end(), [&](const auto& item) {
-                // fmt::println("{} == {} || {} == {}", item.second, (cppfs::path(founddir.space) / cppfs::path(founddir.dir)).string(), item.first, cppfs::path(founddir.dir).string());
+                // fmt::println("{} == {} || {} == {}", item.second, (cppfs::path(founddir.space) /
+                // cppfs::path(founddir.dir)).string(), item.first, cppfs::path(founddir.dir).string());
                 return item.second == (cppfs::path(founddir.space) / cppfs::path(founddir.dir)).string() ||
-                        item.first == cppfs::path(founddir.dir).string();
+                       item.first == cppfs::path(founddir.dir).string();
             })) {
             spdlog::warn("    stray workspace {}", founddir.dir);
 
@@ -457,9 +513,10 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
 
 // expire workspace DB entries and moves the workspace to deleted directory
 // deletes expired workspace in second phase
-static expire_result_t expire_workspaces(const Config& config, const string fs, const bool dryrun) {
+static expire_result_t expire_workspaces(const Config& config, const string fs, const bool dryrun,
+                                         morbid_db_files_t& morbid_db_files) {
 
-    expire_result_t result = {0, 0, 0, 0, 0};
+    expire_result_t result = {0, 0, 0, 0, 0, 0, 0};
 
     // Infos needed for errormails and remindermails
     std::string smtpUrl = "smtp://" + config.smtphost();
@@ -502,19 +559,20 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
     // search expired active workspaces in DB
     for (auto const& id : db->matchPattern("*", "*", {}, false, false)) {
+        result.active_seen++;
         std::unique_ptr<DBEntry> dbentry;
         // error logic first, we skip all loop body in case of bad entry
         try {
             dbentry = std::unique_ptr<DBEntry>(db->readEntry(id, false));
             if (!dbentry) {
                 spdlog::error("skipping db entry {}", id);
-                result.bad_db++;
+                morbid_db_files.add(std::pair(id, fmt::format("could not read entry, filesystem: {}", fs)));
                 continue;
             }
         } catch (DatabaseException& e) {
             spdlog::error(e.what());
             spdlog::error("skipping db entry {}", id);
-            result.bad_db++;
+            morbid_db_files.add(std::pair(id, fmt::format("database exeption, filesystem: {}", fs)));
             continue;
         }
 
@@ -524,7 +582,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
 
         if (expiration <= 0) {
             spdlog::error("bad expiration in {}, skipping", id);
-            result.bad_db++;
+            morbid_db_files.add(std::pair(id, fmt::format("bad expiration, filesystem: {}", fs)));
             continue;
         }
 
@@ -532,7 +590,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         if (time((long*)0L) > expiration) {
             auto timestamp = to_string(time((long*)0L));
 
-            result.expired_ws++;
+            result.active_expired++;
             if (!dryrun) {
                 spdlog::info("  expiring {} (expired {})", id, utils::ctime(&expiration));
                 // db entry first
@@ -556,13 +614,14 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         } else {
             spdlog::info("   keeping (until {}, {} left): {}", utils::ctime(expiration),
                          formatTimedelta(expiration - time((long*)0L)), id);
-            result.kept_ws++;
+            result.active_keep++;
             // Send reminder emails
             auto reminder = dbentry->getReminder();
             if (time((long*)0L) > (expiration - (reminder * (24 * 3600)))) {
                 if (smtpUrl == "" || mail_from == "") {
                     spdlog::warn("No smtphost or mailfrom available to contact users, please check your system config");
                 } else {
+                    result.active_mails++;
                     if (dryrun) {
                         spdlog::info("    would send reminder mail to {} for entry {}", dbentry->getMailaddress(), id);
                     } else {
@@ -577,8 +636,6 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                         try {
                             if (!mail::sendCurl(smtpUrl, mail_from, mail_to, completeMail)) {
                                 spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
-                            } else {
-                                result.sent_mails++;
                             }
                         } catch (const std::exception& e) {
                             spdlog::error("Exception while sending email: {}", e.what());
@@ -589,22 +646,25 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         }
     }
 
-    spdlog::info(" =>  {} workspaces expired, {} kept.", result.expired_ws, result.kept_ws);
+    spdlog::info(" =>  {} workspaces expired, {} kept.", result.active_expired, result.active_keep);
     spdlog::info("");
     spdlog::info("* CHECKING DELETED DB FOR WORKSPACES TO BE DELETED for filesystem: {}", fs);
 
     // search in DB for expired/released workspaces for those over keeptime to delete them
     for (auto const& id : db->matchPattern("*", "*", {}, true, false)) {
+        result.inactive_seen++;
         std::unique_ptr<DBEntry> dbentry;
         try {
             dbentry = std::unique_ptr<DBEntry>(db->readEntry(id, true));
             if (!dbentry) {
                 spdlog::error("skipping db entry {}", id);
+                morbid_db_files.add(std::pair(id, fmt::format("could not read entry, filesystem: {}", fs)));
                 continue;
             }
         } catch (DatabaseException& e) {
             spdlog::error(e.what());
             spdlog::error("skipping db entry {}", id);
+            morbid_db_files.add(std::pair(id, fmt::format("database exeption, filesystem: {}", fs)));
             continue;
         }
 
@@ -629,6 +689,11 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                 std::count(id.begin(), id.end(), '-'))); // count from back, for usernames with "-"
         } catch (const out_of_range& e) {
             spdlog::error("skipping DB entry with unparsable name {}", id);
+            morbid_db_files.add(std::pair(id, fmt::format("unparsable name, filesystem: {}", fs)));
+            continue;
+        } catch (const invalid_argument& e) {
+            spdlog::error("skipping DB entry with unparsable name {}", id);
+            morbid_db_files.add(std::pair(id, fmt::format("unparsable name, filesystem: {}", fs)));
             continue;
         }
 
@@ -657,7 +722,7 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
         }
 
         if (should_delete) {
-            result.deleted_ws++;
+            result.inactive_deleted++;
             spdlog::info("   {}delete DB entry {}, was {} {}", cleanermode ? "" : "would ", id, reason,
                          utils::ctime(&releasetime));
 
@@ -679,20 +744,20 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
                 }
             }
         } else {
-            result.kept_ws++;
-            long deadline;
+            result.inactive_keep++;
+            long wsdeadline;
             if (released > 1000000000L) {
-                deadline = releasetime + (releasekeeptime * 24 * 3600);
-                spdlog::info("   keeping (until {}, {} left), was released: {}", utils::ctime(deadline),
-                             formatTimedelta(deadline - time((long*)0L)), id);
+                wsdeadline = releasetime + (releasekeeptime * 24 * 3600);
+                spdlog::info("   keeping (until {}, {} left), was released: {}", utils::ctime(wsdeadline),
+                             formatTimedelta(wsdeadline - time((long*)0L)), id);
             } else {
-                deadline = expiration + keeptime * 24 * 3600;
-                spdlog::info("   keeping (until {}, {} left), was expired:  {}", utils::ctime(deadline),
-                             formatTimedelta(deadline - time((long*)0L)), id);
+                wsdeadline = expiration + keeptime * 24 * 3600;
+                spdlog::info("   keeping (until {}, {} left), was expired:  {}", utils::ctime(wsdeadline),
+                             formatTimedelta(wsdeadline - time((long*)0L)), id);
             }
         }
     }
-    spdlog::info(" =>  {} workspaces deleted, {} workspaces kept", result.deleted_ws, result.kept_ws);
+    spdlog::info(" =>  {} workspaces deleted, {} workspaces kept", result.inactive_deleted, result.inactive_keep);
 
     return result;
 }
@@ -704,6 +769,9 @@ int main(int argc, char** argv) {
     std::string single_space;
     std::string configfile;
     bool dryrun = true;
+    bool summarymail = false;
+
+    morbid_db_files_t morbid_db_files = {0, std::vector<std::pair<std::string, std::string>>()};
 
     po::variables_map opts;
 
@@ -726,6 +794,7 @@ int main(int argc, char** argv) {
         ("filesystems,F", po::value<string>(&filesystem), "filesystems/workspaces to delete from, comma separated")
         ("space,s", po::value<string>(&single_space), "path of a single space that should be deleted")
         ("cleaner,c", "no dry-run mode")
+        ("summary-mail,M", "send summary mail to admin after run")
         ("config", po::value<string>(&configfile), "path to configfile");
     // clang-format on
 
@@ -773,6 +842,10 @@ int main(int argc, char** argv) {
         dryrun = false;
     }
 
+    if (opts.count("summary-mail")) {
+        summarymail = true;
+    }
+
     if (opts.count("forcedeletereleased")) {
         forcedeletereleased = true;
     }
@@ -794,7 +867,7 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
-    // spdlog::info("deldirtimeout = {}", config.deldirtimeout());
+    spdlog::info("deldirtimeout = {} seconds", config.deldirtimeout());
 
     // now we can add file logging
     setupLogging(config.expirerlogpath());
@@ -828,11 +901,15 @@ int main(int argc, char** argv) {
     // - delete stray directories first (directories with no DB entry)
     // - delete deleted ones not in DB
     // this searches over filesystem and checks DB
+    std::vector<std::pair<std::string, clean_stray_result_t>> stray_stats;
     clean_stray_result_t total_stray = {0, 0, 0, 0};
+    clean_stray_result_t fs_stray;
     for (auto const& fs : fslist) {
-        total_stray += clean_stray_directories(config, fs, single_space, dryrun);
+        fs_stray = clean_stray_directories(config, fs, single_space, dryrun);
+        stray_stats.emplace_back(fs, fs_stray);
+        total_stray += fs_stray;
     }
-    spdlog::info(" Stray removal summary: {} valid, {} invalid, {} valid deleted, {} invalid", total_stray.valid_ws,
+    spdlog::info(" Stray removal summary: {} valid, {} invalid, {} valid deleted, {} invalid deleted", total_stray.valid_ws,
                  total_stray.invalid_ws, total_stray.valid_deleted, total_stray.invalid_deleted);
     spdlog::info(" End of stray removal");
     spdlog::info("");
@@ -840,19 +917,85 @@ int main(int argc, char** argv) {
     // go through database and
     // - expire workspaces beyond expiration age and
     // - delete expired ones which are beyond keep date
-    expire_result_t total_expire = {0, 0, 0, 0, 0};
+    std::vector<std::pair<std::string, expire_result_t>> expire_stats;
+    expire_result_t total_expire = {0, 0, 0, 0, 0, 0, 0};
+    expire_result_t fs_expire;
     for (auto const& fs : fslist) {
-        total_expire += expire_workspaces(config, fs, dryrun);
+        fs_expire = expire_workspaces(config, fs, dryrun, morbid_db_files);
+        expire_stats.emplace_back(fs, fs_expire);
+        total_expire += fs_expire;
     }
-    spdlog::info(" Expiration summary: {} kept, {} expired, {} deleted, {} reminders sent, {} bad db entries",
-                 total_expire.kept_ws, total_expire.expired_ws, total_expire.deleted_ws, total_expire.sent_mails,
-                 total_expire.bad_db);
+    spdlog::info(" Expiration summary: {} active seen, {} active keep, {} active expired, {} reminders sent, {} "
+                 "inactive seen, {} inactive keep, {} inactive deleted",
+                 total_expire.active_seen, total_expire.active_keep, total_expire.active_expired,
+                 total_expire.active_mails, total_expire.inactive_seen, total_expire.inactive_keep,
+                 total_expire.inactive_deleted);
     spdlog::info(" End of expiration");
+
+    // Build summary string for logging and mail body
+    std::string summary;
+    auto append = [&](const std::string& line) {
+        spdlog::info("{}", line);
+        summary += line + "\n";
+    };
+
+    append(fmt::format("Dryrun: {}", dryrun));
+    append("");
+    append("Stray Summary");
+    append("");
+    append(fmt::format("  {:<15} {:>22} {:>16} {:>24}", "Filesystem", "Active [Valid Invalid]", "",
+                       "Inactive [Valid Invalid]"));
+    append(fmt::format("  {:->84}", ""));
+    for (const auto& [fs, result] : stray_stats) {
+        append(fmt::format("  {:<15} {:>7} {:>5} {:>7} {:>27} {:>5} {:>7}", fs, "", result.valid_ws, result.invalid_ws,
+                           "", result.valid_deleted, result.invalid_deleted));
+    }
+    append(fmt::format("  {:->84}", ""));
+    append(fmt::format("  {:<15} {:>7} {:>5} {:>7} {:>27} {:>5} {:>7}", "total", "", total_stray.valid_ws, total_stray.invalid_ws,
+                           "", total_stray.valid_deleted, total_stray.invalid_deleted));
+    append("");
+    append("Expiration Summary");
+    append("");
+    append(fmt::format("  {:<15} {:>30} {:>4} {:>30}", "Filesystem", "Active [Seen Keep Expired Mails]", "",
+                       "Inactive [Seen Keep Removed]"));
+    append(fmt::format("  {:->84}", ""));
+    for (const auto& [fs, result] : expire_stats) {
+        append(fmt::format("  {:<15} {:>7} {:>4} {:>4} {:>7} {:>5} {:>17} {:>4} {:>4} {:>7}", fs, "",
+                           result.active_seen, result.active_keep, result.active_expired, result.active_mails, "",
+                           result.inactive_seen, result.inactive_keep, result.inactive_deleted));
+    }
+    append(fmt::format("  {:->84}", ""));
+    append(fmt::format("  {:<15} {:>7} {:>4} {:>4} {:>7} {:>5} {:>17} {:>4} {:>4} {:>7}", "total", "",
+                           total_expire.active_seen, total_expire.active_keep, total_expire.active_expired, total_expire.active_mails, "",
+                           total_expire.inactive_seen, total_expire.inactive_keep, total_expire.inactive_deleted));
+    if (morbid_db_files.count != 0) {
+        append("");
+        append(" Morbid DB Files");
+        for (const auto& [id, reason] : morbid_db_files.idreason) {
+            append(fmt::format("   ID: {}, reason: {}", id, reason));
+        }
+        append("");
+    }
+    std::string runinfo =
+        fmt::format("==== WS_EXPIRER {}RUN END {} =====", dryrun ? "DRY" : "", utils::ctime(std::time(nullptr)));
+    append(runinfo);
+
+    if (summarymail) {
+        std::string smtpUrl = "smtp://" + config.smtphost();
+        std::string mail_from = config.mailfrom();
+        std::vector<std::string> adminmails = config.adminmail();
+        std::string completeMail = generateSummaryMail(mail_from, adminmails, runinfo, summary);
+        try {
+            if (!mail::sendCurl(smtpUrl, mail_from, adminmails, completeMail)) {
+                spdlog::error("Failed to send email, please check the mailaddress in the DB Entry");
+            }
+        } catch (const std::exception& e) {
+            spdlog::error("Exception while sending email: {}", e.what());
+        }
+    }
 
     // Cleanup curl
     mail::cleanupCurl();
-
-    spdlog::info("==== WS_EXPIRER {}RUN END {} =====", dryrun ? "DRY" : "", utils::ctime(std::time(nullptr)));
 
     return 0;
 }

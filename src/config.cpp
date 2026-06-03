@@ -71,6 +71,7 @@ Config::Config(const std::vector<cppfs::path> configpathes) {
     global.durationdefault = 30;
     global.reminderdefault = 0;
     global.maxuserworkspaces = 0;
+    global.deldirtimeout = 300;  // 5 minutes should be enough to delete most workspaces
 
     bool filefound = false;
 
@@ -332,6 +333,8 @@ void Config::readYAML(const string yaml) {
         global.adminmail = config["adminmail"].as<vector<string>>();
     if (config["deldirtimeout"])
         global.deldirtimeout = config["deldirtimeout"].as<int>();
+    if (config["deldir_timeout"])
+        global.deldirtimeout = config["deldir_timeout"].as<int>();
     if (config["expirerlogpath"])
         global.expirerlogpath = config["expirerlogpath"].as<string>();
     if (config["maxuserworkspaces"])
