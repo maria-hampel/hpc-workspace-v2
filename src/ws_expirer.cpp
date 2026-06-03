@@ -489,8 +489,8 @@ static clean_stray_result_t clean_stray_directories(const Config& config, const 
                          (cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir).string());
             if (!dryrun) {
                 try {
-                    // timeout is now + deldirtimeout
-                    std::time_t deadline = std::time_t(std::time_t(nullptr)) + config.deldirtimeout();
+                    // timeout is now + deldir_timeout
+                    std::time_t deadline = std::time_t(std::time_t(nullptr)) + config.deldir_timeout();
 
                     utils::rmtree(cppfs::path(founddir.space) / config.deletedPath(fs) / founddir.dir, deadline);
 
@@ -735,8 +735,8 @@ static expire_result_t expire_workspaces(const Config& config, const string fs, 
             spdlog::info("    {}delete directory: {}", cleanermode ? "" : "would ", wspath.string());
             if (cleanermode) {
                 try {
-                    // timeout is now + deldirtimeout;
-                    std::time_t deadline = std::time_t(std::time(nullptr)) + config.deldirtimeout();
+                    // timeout is now + deldir_timeout;
+                    std::time_t deadline = std::time_t(std::time(nullptr)) + config.deldir_timeout();
                     spdlog::info("   deadline: {}", deadline);
 
                     utils::rmtree(wspath.string(), deadline);
@@ -868,7 +868,7 @@ int main(int argc, char** argv) {
         exit(-2);
     }
 
-    // spdlog::info("deldirtimeout = {}", config.deldirtimeout());
+    // spdlog::info("deldir_timeout = {}", config.deldir_timeout());
 
     // now we can add file logging
     setupLogging(config.expirerlogpath());

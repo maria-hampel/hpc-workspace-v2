@@ -61,7 +61,7 @@ struct Global_config {
     int maxuserworkspaces;   // max number of workspaces a user can create
     int dbuid;               // uid of DB user
     int dbgid;               // gid of DB user
-    int deldirtimeout;       // timeout for directory deletion in seconds
+    int deldir_timeout;       // timeout for directory deletion in seconds
     string expirerlogpath;   // path where ws_expirer should place logfiles
 };
 
@@ -144,7 +144,7 @@ class Config {
     int maxextensions() const { return global.maxextensions; };
     int maxduration() const { return global.maxduration; };
     string defaultworkspace() const { return global.defaultWorkspace; };
-    int deldirtimeout() const { return global.deldirtimeout; };
+    int deldir_timeout() const { return global.deldir_timeout; };
     string mailfrom() const { return global.mail_from; };
     string smtphost() const { return global.smtphost; };
     vector<string> admins() const { return global.admins; };

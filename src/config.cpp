@@ -216,7 +216,7 @@ void Config::readYAML(string yamlstr) {
     readRyamlScalar(config, "dbuid", global.dbuid);
     readRyamlScalar(config, "dbgid", global.dbgid);
 
-    readRyamlSequence(config, "deldirtimeout", global.deldirtimeout);
+    readRyamlSequence(config, "deldir_timeout", global.deldir_timeout);
     readRyamlSequence(config, "expirerlogpath", global.expirerlogpath);
     readRyamlSequence(config, "maxuserworkspaces", global.maxuserworkspaces);
 
@@ -330,8 +330,8 @@ void Config::readYAML(const string yaml) {
         global.debugusers = config["debugusers"].as<vector<string>>();
     if (config["adminmail"])
         global.adminmail = config["adminmail"].as<vector<string>>();
-    if (config["deldirtimeout"])
-        global.deldirtimeout = config["deldirtimeout"].as<int>();
+    if (config["deldir_timeout"])
+        global.deldir_timeout = config["deldir_timeout"].as<int>();
     if (config["expirerlogpath"])
         global.expirerlogpath = config["expirerlogpath"].as<string>();
     if (config["maxuserworkspaces"])

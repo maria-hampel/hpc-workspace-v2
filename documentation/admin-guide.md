@@ -291,7 +291,7 @@ which needs intervention.
 A path including filename where ```ws_expirer``` will place a logfile per day.
 The logfile contains additional timestamps compared to normal output.
 
-#### `deldirtimeout`
+#### `deldir_timeout`
 
 A timeout value in seconds that a single workspace deletion is allowed to take.
 If this time is exceeded, the workspace might not be fully deleted, but
