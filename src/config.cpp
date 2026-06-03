@@ -192,7 +192,7 @@ template <typename T> static void readRyamlScalar(ryml::Tree config, const char*
     }
 }
 
-// parse YAML from a string (using yaml-cpp)
+// parse YAML from a string (using rapidyaml)
 //  unittest: indirect
 void Config::readYAML(string yamlstr) {
 
