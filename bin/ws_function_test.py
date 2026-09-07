@@ -50,7 +50,7 @@ def run_cmd(cmd_list, capture_output=True, interactive=False):
             stderr=sys.stderr,
             shell=isinstance(cmd_list, str)
         )
-    
+
     return subprocess.run(
         cmd_list,
         text=True,
@@ -59,13 +59,49 @@ def run_cmd(cmd_list, capture_output=True, interactive=False):
     )
 
 
-def main():
-    # Load configuration via PyYAML
-    conf_file = "./ws.conf"
+def merge_yaml(base: dict, extra: dict) -> dict:
+    """Recursively merge `extra` into `base`; later values win for scalar keys."""
+    for key, value in extra.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            merge_yaml(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+
+def load_config(conf_dir: str = "/etc/ws.d", conf_file: str = "/etc/ws.conf") -> dict:
+    """
+    Load configuration via PyYAML, mirroring the C++ Config loader:
+    read all regular files in /etc/ws.d in alphabetical order, each file adding to
+    the merged config. Only when /etc/ws.d has no files, fall back to /etc/ws.conf
+    for compatibility.
+    """
     conf_data = {}
+
+    if os.path.isdir(conf_dir):
+        conf_files = sorted(
+            os.path.join(conf_dir, name)
+            for name in os.listdir(conf_dir)
+            if os.path.isfile(os.path.join(conf_dir, name))
+        )
+        for path in conf_files:
+            with open(path, "r") as f:
+                data = yaml.safe_load(f)
+            if isinstance(data, dict):
+                merge_yaml(conf_data, data)
+        if conf_files:
+            return conf_data
+
+    # Fallback to the legacy single config file
     if os.path.isfile(conf_file):
         with open(conf_file, "r") as f:
             conf_data = yaml.safe_load(f) or {}
+
+    return conf_data
+
+
+def main():
+    conf_data = load_config()
 
     current_uid = os.getuid()
     user = os.getenv("USER", "")
@@ -86,7 +122,7 @@ def main():
     dbuid = workspaces_cfg.get("dbuid")
 
     dbfile = os.path.join(db, f"{user}-TESTWORKSPACE") if db else ""
-    
+
     # Verify DB file exists and check ownership
     db_exists = os.path.isfile(dbfile)
     check("  db found", 0 if db_exists else 1)
@@ -140,7 +176,7 @@ def main():
     # Pass interactive=True so stdin/stdout/stderr are linked directly to TTY
     res_restore = run_cmd(["ws_restore", restore_id, "RESTORETARGET"], interactive=True)
     check("ws_restore execution", res_restore.returncode)
-    
+
     # Check if TESTFILE was restored matching pattern: ${TARGET}/*/TESTFILE
     restored_files = glob.glob(os.path.join(target, "*", "TESTFILE"))
     check("  TESTFILE restored", 0 if len(restored_files) > 0 else 1)
